@@ -12,9 +12,10 @@ interface ProfileDetailProps {
 }
 
 export function ProfileDetail({ profile, onBack, onLike, isLiked }: ProfileDetailProps) {
-    // Mock data for demonstration if not present
-    const seekingFor = profile.seekingFor || ['ビジネスパートナーを探す', 'ビジネスメンバーを探す'];
-    const seekingRoles = profile.seekingRoles || ['エンジニア', 'デザイナー', 'マーケター'];
+    // Fallback for optional fields
+    const seekingFor = profile.seekingFor || [];
+    const skills = profile.skills || [];
+    const seekingRoles = profile.seekingRoles || [];
 
     return (
         <SafeAreaView style={styles.container}>
@@ -65,27 +66,29 @@ export function ProfileDetail({ profile, onBack, onLike, isLiked }: ProfileDetai
                             )}
                         </View>
                     </View>
+                </View>
 
-                    {/* Seeking Status Badge */}
-                    <View style={styles.seekingContainer}>
-                        <View style={styles.seekingHeader}>
-                            <Ionicons name="search" size={20} color="#0d9488" />
-                            <Text style={styles.seekingTitle}>今、何を探していますか？</Text>
+                {/* Status/Purpose Section */}
+                {seekingFor.length > 0 && (
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <Ionicons name="flag-outline" size={20} color="#0d9488" />
+                            <Text style={styles.sectionTitle}>🚩 現在のステータス・目的</Text>
                         </View>
                         <View style={styles.tagsContainer}>
                             {seekingFor.map((item, index) => (
-                                <View key={index} style={styles.seekingTag}>
-                                    <Text style={styles.seekingTagText}>{item}</Text>
+                                <View key={index} style={styles.statusTag}>
+                                    <Text style={styles.statusTagText}>{item}</Text>
                                 </View>
                             ))}
                         </View>
                     </View>
-                </View>
+                )}
 
                 {/* Bio Section */}
                 <View style={styles.section}>
                     <View style={styles.sectionHeader}>
-                        <Ionicons name="document-text-outline" size={24} color="#374151" />
+                        <Ionicons name="document-text-outline" size={20} color="#374151" />
                         <Text style={styles.sectionTitle}>自己紹介</Text>
                     </View>
                     <View style={styles.detailBox}>
@@ -94,28 +97,28 @@ export function ProfileDetail({ profile, onBack, onLike, isLiked }: ProfileDetai
                 </View>
 
                 {/* Skills Section */}
-                <View style={styles.section}>
-                    <View style={styles.subSection}>
+                {skills.length > 0 && (
+                    <View style={styles.section}>
                         <View style={styles.sectionHeader}>
                             <Ionicons name="flash" size={20} color="#0d9488" />
-                            <Text style={styles.subSectionTitle}>提供できるスキル（役割）</Text>
+                            <Text style={styles.sectionTitle}>⚡️ 持っているスキル</Text>
                         </View>
                         <View style={styles.tagsContainer}>
-                            {profile.skills.map((skill, index) => (
+                            {skills.map((skill, index) => (
                                 <View key={index} style={styles.skillTag}>
                                     <Text style={styles.skillTagText}>{skill}</Text>
                                 </View>
                             ))}
                         </View>
                     </View>
-                </View>
+                )}
 
-                {/* Seeking Requirements Section */}
-                <View style={styles.section}>
-                    <View style={styles.subSection}>
+                {/* Seeking Roles Section */}
+                {seekingRoles.length > 0 && (
+                    <View style={styles.section}>
                         <View style={styles.sectionHeader}>
                             <Ionicons name="people" size={20} color="#f97316" />
-                            <Text style={styles.subSectionTitle}>求める仲間（役割）</Text>
+                            <Text style={styles.sectionTitle}>🤝 求める仲間・条件</Text>
                         </View>
                         <View style={styles.tagsContainer}>
                             {seekingRoles.map((role, index) => (
@@ -123,19 +126,6 @@ export function ProfileDetail({ profile, onBack, onLike, isLiked }: ProfileDetai
                                     <Text style={styles.roleTagText}>{role}</Text>
                                 </View>
                             ))}
-                        </View>
-                    </View>
-                </View>
-
-                {/* Details Section */}
-                {profile.details && (
-                    <View style={styles.section}>
-                        <View style={styles.sectionHeader}>
-                            <Ionicons name="document-text-outline" size={20} color="#0d9488" />
-                            <Text style={styles.sectionTitle}>詳細・補足</Text>
-                        </View>
-                        <View style={styles.detailBox}>
-                            <Text style={styles.detailText}>{profile.details}</Text>
                         </View>
                     </View>
                 )}
@@ -193,7 +183,7 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     scrollContent: {
-        paddingBottom: 100, // Space for footer
+        paddingBottom: 100,
     },
     section: {
         backgroundColor: 'white',
@@ -212,7 +202,7 @@ const styles = StyleSheet.create({
         height: 96,
         borderRadius: 16,
         borderWidth: 2,
-        borderColor: '#14b8a6', // teal-500
+        borderColor: '#14b8a6',
     },
     basicInfoText: {
         flex: 1,
@@ -234,40 +224,6 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#4b5563',
     },
-    seekingContainer: {
-        backgroundColor: '#f0fdfa', // teal-50
-        borderWidth: 1,
-        borderColor: '#99f6e4', // teal-200
-        borderRadius: 12,
-        padding: 16,
-    },
-    seekingHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        marginBottom: 8,
-    },
-    seekingTitle: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: '#111827',
-    },
-    tagsContainer: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 8,
-    },
-    seekingTag: {
-        backgroundColor: '#0d9488', // teal-600
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 8,
-    },
-    seekingTagText: {
-        color: 'white',
-        fontSize: 12,
-        fontWeight: '500',
-    },
     sectionHeader: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -279,41 +235,26 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#111827',
     },
-    themeBox: {
-        backgroundColor: '#fff7ed', // orange-50
+    tagsContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+    },
+    statusTag: {
+        backgroundColor: '#f0fdfa',
         borderWidth: 1,
-        borderColor: '#fed7aa', // orange-200
-        borderRadius: 12,
-        padding: 16,
-    },
-    themeText: {
-        fontSize: 16,
-        color: '#1f2937',
-        lineHeight: 24,
-    },
-    subSection: {
-        marginBottom: 16,
-    },
-    subSectionTitle: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: '#111827',
-    },
-    skillTag: {
-        backgroundColor: '#ccfbf1', // teal-100
-        borderWidth: 1,
-        borderColor: '#5eead4', // teal-300
+        borderColor: '#5eead4',
         paddingHorizontal: 12,
         paddingVertical: 8,
-        borderRadius: 8,
+        borderRadius: 20,
     },
-    skillTagText: {
-        color: '#0f766e', // teal-700
-        fontSize: 12,
-        fontWeight: '500',
+    statusTagText: {
+        color: '#0f766e',
+        fontSize: 13,
+        fontWeight: '600',
     },
     detailBox: {
-        backgroundColor: '#f9fafb', // gray-50
+        backgroundColor: '#f9fafb',
         borderWidth: 1,
         borderColor: '#e5e7eb',
         borderRadius: 8,
@@ -324,25 +265,31 @@ const styles = StyleSheet.create({
         color: '#374151',
         lineHeight: 20,
     },
-    roleTag: {
-        backgroundColor: '#ffedd5', // orange-100
+    skillTag: {
+        backgroundColor: '#ccfbf1',
         borderWidth: 1,
-        borderColor: '#fdba74', // orange-300
+        borderColor: '#5eead4',
         paddingHorizontal: 12,
         paddingVertical: 8,
-        borderRadius: 8,
+        borderRadius: 20,
+    },
+    skillTagText: {
+        color: '#0f766e',
+        fontSize: 13,
+        fontWeight: '600',
+    },
+    roleTag: {
+        backgroundColor: '#ffedd5',
+        borderWidth: 1,
+        borderColor: '#fdba74',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 20,
     },
     roleTagText: {
-        color: '#c2410c', // orange-700
-        fontSize: 12,
-        fontWeight: '500',
-    },
-    roleDetailBox: {
-        backgroundColor: '#fff7ed', // orange-50
-        borderWidth: 1,
-        borderColor: '#fed7aa', // orange-200
-        borderRadius: 8,
-        padding: 16,
+        color: '#c2410c',
+        fontSize: 13,
+        fontWeight: '600',
     },
     footer: {
         position: 'absolute',
@@ -353,7 +300,7 @@ const styles = StyleSheet.create({
         borderTopWidth: 1,
         borderTopColor: '#e5e7eb',
         padding: 16,
-        paddingBottom: 32, // Extra padding for home bar
+        paddingBottom: 32,
     },
     likeButton: {
         flexDirection: 'row',

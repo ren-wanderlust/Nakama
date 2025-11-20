@@ -31,23 +31,61 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
     const [skills, setSkills] = useState<string[]>(initialProfile.skills || []);
     const [seekingRoles, setSeekingRoles] = useState<string[]>(initialProfile.seekingRoles || []);
 
-    const skillOptions = [
-        'エンジニア', 'デザイナー', 'マーケター', 'セールス',
-        'ライター', 'プランナー', '財務/会計', '法務',
+    const skillCategories = [
+        {
+            title: '💻 エンジニア',
+            skills: ['フロントエンド', 'バックエンド', 'モバイルアプリ', 'ゲーム開発', 'AI / データ', 'ノーコード']
+        },
+        {
+            title: '🎨 デザイナー',
+            skills: ['UI / UXデザイン', 'グラフィック / イラスト']
+        },
+        {
+            title: '📣 マーケ / 広報',
+            skills: ['マーケティング', 'SNS運用', 'ライター']
+        },
+        {
+            title: '💼 セールス / BizDev',
+            skills: ['セールス (営業)', '事業開発 (BizDev)']
+        },
+        {
+            title: '🎥 動画 / クリエイター',
+            skills: ['動画編集', '3D / CG']
+        },
+        {
+            title: '1️⃣ PM / ディレクター',
+            skills: ['PM / ディレクター', 'コミュニティ運営']
+        },
+        {
+            title: '💰 財務 / 専門職',
+            skills: ['財務 / 会計', '法務 / 知財']
+        },
+        {
+            title: '🌏 その他 / 語学',
+            skills: ['英語 / 語学']
+        }
     ];
 
     const seekingOptions = [
-        'エンジニア', 'デザイナー', 'マーケター', 'セールス',
-        'ライター', 'プランナー', '財務/会計', '法務',
-        'メンター', '投資家',
+        '💻 エンジニア',
+        '🎨 デザイナー',
+        '📣 マーケ / 広報',
+        '💼 セールス / BizDev',
+        '🎥 動画 / クリエイター',
+        '1️⃣ PM / ディレクター',
+        '💰 財務 / 専門職',
+        '🌏 その他 / 語学',
+        '🗣️ 壁打ち相手',
+        '🤔 まだ分からない',
     ];
 
     const seekingForOptions = [
-        'ビジネスパートナーを探す',
-        'ビジネスメンバーを探す',
-        '仕事を探したい',
-        '情報収集',
-        'その他',
+        'ビジネスメンバー探し',
+        'アイデア模索中',
+        'コミュニティ形成',
+        'まずは話してみたい',
+        '起業に興味あり',
+        '壁打ち相手募集',
     ];
 
     const handleToggle = (
@@ -67,7 +105,7 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
             ...initialProfile,
             name,
             age: parseInt(age, 10) || 0,
-            university: university, // Simplified mapping, assuming university field for now
+            university: university,
             bio,
             seekingFor,
             skills,
@@ -148,8 +186,8 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
                             {/* Tags Section A */}
                             <View style={styles.section}>
                                 <View style={styles.sectionHeader}>
-                                    <Ionicons name="search" size={20} color="#0d9488" />
-                                    <Text style={styles.sectionTitle}>今、何を探していますか？</Text>
+                                    <Ionicons name="flag-outline" size={20} color="#0d9488" />
+                                    <Text style={styles.sectionTitle}>現在のステータス・目的</Text>
                                 </View>
                                 <View style={styles.chipContainer}>
                                     {seekingForOptions.map((option) => (
@@ -175,22 +213,27 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
                                     <Ionicons name="flash-outline" size={20} color="#0d9488" />
                                     <Text style={styles.sectionTitle}>持っているスキル</Text>
                                 </View>
-                                <View style={styles.chipContainer}>
-                                    {skillOptions.map((skill) => (
-                                        <TouchableOpacity
-                                            key={skill}
-                                            onPress={() => handleToggle(skill, skills, setSkills)}
-                                            style={[
-                                                styles.chip,
-                                                skills.includes(skill) ? styles.chipSelected : styles.chipUnselected
-                                            ]}
-                                        >
-                                            <Text style={skills.includes(skill) ? styles.chipTextSelected : styles.chipTextUnselected}>
-                                                {skill}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    ))}
-                                </View>
+                                {skillCategories.map((category, categoryIndex) => (
+                                    <View key={categoryIndex}>
+                                        <Text style={styles.categoryTitle}>{category.title}</Text>
+                                        <View style={styles.chipContainer}>
+                                            {category.skills.map((skill) => (
+                                                <TouchableOpacity
+                                                    key={skill}
+                                                    onPress={() => handleToggle(skill, skills, setSkills)}
+                                                    style={[
+                                                        styles.chip,
+                                                        skills.includes(skill) ? styles.chipSelected : styles.chipUnselected
+                                                    ]}
+                                                >
+                                                    <Text style={skills.includes(skill) ? styles.chipTextSelected : styles.chipTextUnselected}>
+                                                        {skill}
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </View>
+                                    </View>
+                                ))}
                             </View>
 
                             {/* Tags Section C */}
@@ -314,8 +357,8 @@ const styles = StyleSheet.create({
         borderColor: '#d1d5db',
     },
     chipSelected: {
-        backgroundColor: '#f0fdfa', // teal-50
-        borderColor: '#0d9488', // teal-600
+        backgroundColor: '#f0fdfa',
+        borderColor: '#0d9488',
     },
     chipTextUnselected: {
         color: '#374151',
@@ -325,5 +368,12 @@ const styles = StyleSheet.create({
         color: '#0d9488',
         fontSize: 14,
         fontWeight: 'bold',
+    },
+    categoryTitle: {
+        fontSize: 13,
+        fontWeight: 'bold',
+        color: '#6b7280',
+        marginTop: 16,
+        marginBottom: 8,
     },
 });
