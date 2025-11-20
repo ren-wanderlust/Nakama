@@ -83,7 +83,6 @@ export function TalkPage({ onOpenChat }: TalkPageProps) {
                                     source={{ uri: item.partnerImage }}
                                     style={styles.avatar}
                                 />
-                                {item.isOnline && <View style={styles.onlineBadge} />}
                             </View>
 
                             {/* Content */}
