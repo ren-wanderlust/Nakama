@@ -9,7 +9,8 @@ import {
     KeyboardAvoidingView,
     Platform,
     Image,
-    SafeAreaView
+    SafeAreaView,
+    Alert
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -25,9 +26,10 @@ interface ChatRoomProps {
     onBack: () => void;
     partnerName: string;
     partnerImage: string;
+    onPartnerProfilePress: () => void;
 }
 
-export function ChatRoom({ onBack, partnerName, partnerImage }: ChatRoomProps) {
+export function ChatRoom({ onBack, partnerName, partnerImage, onPartnerProfilePress }: ChatRoomProps) {
     const [messages, setMessages] = useState<Message[]>([
         {
             id: '1',
@@ -109,6 +111,35 @@ export function ChatRoom({ onBack, partnerName, partnerImage }: ChatRoomProps) {
         );
     };
 
+    const handleMenuPress = () => {
+        Alert.alert(
+            'メニュー',
+            '',
+            [
+                { text: '相手のプロフィールを見る', onPress: () => console.log('View Profile') },
+                { text: '通知をオフにする', onPress: () => Alert.alert('完了', '通知をオフにしました') },
+                {
+                    text: 'ブロックする',
+                    style: 'destructive',
+                    onPress: () => Alert.alert('確認', '本当にブロックしますか？', [
+                        { text: 'キャンセル', style: 'cancel' },
+                        { text: 'ブロック実行', style: 'destructive', onPress: () => console.log('Blocked') }
+                    ])
+                },
+                {
+                    text: '通報する',
+                    style: 'destructive',
+                    onPress: () => Alert.alert('通報', '不適切なユーザーとして報告しますか？', [
+                        { text: 'キャンセル', style: 'cancel' },
+                        { text: '通報する', style: 'destructive', onPress: () => Alert.alert('完了', '通報を受け付けました') }
+                    ])
+                },
+                { text: 'キャンセル', style: 'cancel' },
+            ],
+            { cancelable: true }
+        );
+    };
+
     return (
         <SafeAreaView style={styles.container}>
             {/* Header */}
@@ -117,12 +148,12 @@ export function ChatRoom({ onBack, partnerName, partnerImage }: ChatRoomProps) {
                     <Ionicons name="arrow-back" size={24} color="#374151" />
                 </TouchableOpacity>
 
-                <View style={styles.headerInfo}>
+                <TouchableOpacity style={styles.headerInfo} onPress={onPartnerProfilePress}>
                     <Image source={{ uri: partnerImage }} style={styles.headerAvatar} />
                     <Text style={styles.headerName}>{partnerName}</Text>
-                </View>
+                </TouchableOpacity>
 
-                <TouchableOpacity style={styles.menuButton}>
+                <TouchableOpacity style={styles.menuButton} onPress={handleMenuPress}>
                     <Ionicons name="ellipsis-vertical" size={24} color="#374151" />
                 </TouchableOpacity>
             </View>

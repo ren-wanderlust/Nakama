@@ -56,6 +56,7 @@ export default function App() {
       university: '東京大学',
       image: 'https://images.unsplash.com/photo-1543132220-e7fef0b974e7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx5b3VuZyUyMGVudHJepreneur%20portraitfGVufDF8fHx8MTc2MzQ4NTI0MXww&ixlib=rb-4.1.0&q=80&w=1080',
       challengeTheme: 'AIチャットボット開発',
+      theme: '生成AIを活用したSaaSで、中小企業のDXを加速させたい！',
       bio: '現在は大学でAIを専攻しています。将来はエンジニアとして起業したいと考えており、一緒にハッカソンに出られる仲間を探しています！趣味はカフェ巡りです。',
       skills: ['フロントエンド', 'バックエンド', 'AI / データ'],
       seekingFor: ['起業に興味あり', 'ビジネスメンバー探し'],
@@ -72,6 +73,7 @@ export default function App() {
       university: '大阪大学',
       image: 'https://images.unsplash.com/photo-1553484771-6e117b648d45?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHxzdGFydHVwJTIwZm91bmRlciUyMHByb2Zlc3Npb25hbHxlbnwxfHx8fDE3NjM0NTI1MjJ8MA&ixlib=rb-4.1.0&q=80&w=1080',
       challengeTheme: 'サステナブルファッションブランド立ち上げ',
+      theme: 'サステナブルなD2Cブランドを立ち上げ、グローバル展開を目指す',
       bio: '環境問題に関心があり、サステナブルなファッションブランドを立ち上げたいです。マーケティングやブランディングが得意な方と繋がりたいです。',
       skills: ['マーケティング', 'SNS運用', 'グラフィック / イラスト'],
       seekingFor: ['ビジネスメンバー探し', 'まずは話してみたい'],
@@ -88,6 +90,7 @@ export default function App() {
       company: '株式会社テクノロジー',
       image: 'https://images.unsplash.com/photo-1760536928911-40831dacdbc3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHxjcmVhdGl2ZSUyMGRldmVsb3BlciUyMHdvcmtzcGFjZXxlbnwxfHx8fDE3NjM1MjAzMzR8MA&ixlib=rb-4.1.0&q=80&w=1080',
       challengeTheme: 'EdTechアプリ開発（学習効率化）',
+      theme: 'Web3技術を使った新しいコミュニティプラットフォームを作る',
       bio: '教育×テクノロジーで新しい学習体験を作りたいと考えています。Flutterでのアプリ開発経験があります。教育に興味がある方、ぜひお話ししましょう！',
       skills: ['モバイルアプリ', 'UI / UXデザイン'],
       seekingFor: ['ビジネスメンバー探し', 'アイデア模索中'],
@@ -104,6 +107,7 @@ export default function App() {
       university: '京都大学',
       image: 'https://images.unsplash.com/photo-1752937326758-f130e633b422?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHxidXNpbmVzcyUyMHN0dWRlbnQlMjBjb25maWRlbnR8ZW58MXx8fHwxNzYzNTIwMzM1fDA&ixlib=rb-4.1.0&q=80&w=1080',
       challengeTheme: 'ビジコン優勝を目指す地域活性化プロジェクト',
+      theme: '地元の観光資源を活かしたインバウンド向け体験サービスを開発したい',
       bio: '地元の京都を盛り上げるためのビジネスプランを考えています。ビジネスコンテストでの優勝を目指して、一緒に頑張れるメンバーを募集中です！',
       skills: ['マーケティング', 'PM / ディレクター'],
       seekingFor: ['ビジネスメンバー探し', 'コミュニティ形成'],
@@ -120,6 +124,7 @@ export default function App() {
       company: '株式会社ブロックチェーン',
       image: 'https://images.unsplash.com/photo-1762341116674-784c5dbedeb1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0ZWNoJTIwZW50cmVwcmVuZXVyJTIweY91bmd8ZW58MXx8fHwxNzYzNTIwMzM1fDA&ixlib=rb-4.1.0&q=80&w=1080',
       challengeTheme: 'ブロックチェーンゲーム開発',
+      theme: 'ブロックチェーン技術でゲーム内アイテムの所有権を革命する',
       bio: 'Web3領域に興味があり、ブロックチェーンゲームの開発を行っています。SolidityやUnityが触れるエンジニアの方、またはゲームデザインに興味がある方を探しています。',
       skills: ['フロントエンド', 'ゲーム開発', 'AI / データ'],
       seekingFor: ['ビジネスメンバー探し', '壁打ち相手募集'],
@@ -136,6 +141,7 @@ export default function App() {
       university: '東京大学',
       image: 'https://images.unsplash.com/photo-1709803312782-0c3b175875ed?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkZXNpZ25lciUyMGNyZWF0aXZlJTIwcHJvZmVzc2lvbmFsfGVufDF8fHx8MTc2MzUyMDMzNXww&ixlib=rb-4.1.0&q=80&w=1080',
       challengeTheme: 'クリエイター向けポートフォリオプラットフォーム',
+      theme: 'クリエイターが正当に評価されるポートフォリオプラットフォームを創る',
       bio: 'クリエイターが自分の作品をより魅力的に発信できるプラットフォームを作りたいです。UIデザインやブランディングにこだわりがあります。',
       skills: ['UI / UXデザイン', 'グラフィック / イラスト'],
       seekingFor: ['アイデア模索中', 'まずは話してみたい'],
@@ -252,6 +258,12 @@ export default function App() {
           partnerName={activeChatRoom.partnerName}
           partnerImage={activeChatRoom.partnerImage}
           onBack={() => setActiveChatRoom(null)}
+          onPartnerProfilePress={() => {
+            const partner = profiles.find(p => p.name === activeChatRoom.partnerName);
+            if (partner) {
+              setSelectedProfile(partner);
+            }
+          }}
         />
       </SafeAreaProvider>
     );
