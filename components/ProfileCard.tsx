@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View, Image, TouchableOpacity, Dimensions } from 'react-native';
+import { StyleSheet, Text, View, Image, TouchableOpacity, Dimensions, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Profile } from '../types';
 
@@ -24,14 +24,14 @@ function getTagStyle(tagText: string): { color: string; icon: string } {
     }
     // カジュアル系
     if (tagText.includes('まずは話してみたい') || tagText.includes('壁打ち相手募集')) {
-        return { color: '#29B6F6', icon: '☕️' };
+        return { color: '#039BE5', icon: '☕️' };
     }
     // アイデア・学習系
     if (tagText.includes('アイデア模索中') || tagText.includes('起業に興味あり') || tagText.includes('情報収集中')) {
-        return { color: '#66BB6A', icon: '🌱' };
+        return { color: '#43A047', icon: '🌱' };
     }
     // その他
-    return { color: '#78909C', icon: '🚩' };
+    return { color: '#546E7A', icon: '🚩' };
 }
 
 export function ProfileCard({ profile, isLiked, onLike, onSelect }: ProfileCardProps) {
@@ -43,9 +43,9 @@ export function ProfileCard({ profile, isLiked, onLike, onSelect }: ProfileCardP
         <TouchableOpacity
             style={styles.cardContainer}
             onPress={onSelect}
-            activeOpacity={0.8}
+            activeOpacity={0.9}
         >
-            {/* Image Container - Square-ish with rounded corners */}
+            {/* Image Container - Portrait 4:5 aspect ratio */}
             <View style={styles.imageContainer}>
                 <Image
                     source={{ uri: profile.image }}
@@ -53,40 +53,39 @@ export function ProfileCard({ profile, isLiked, onLike, onSelect }: ProfileCardP
                     resizeMode="cover"
                 />
 
-                {/* Top Left Badge: Status Tag */}
+                {/* Top Left Badge: Status Tag - Floating White Chip */}
                 {statusTag && tagStyle && (
-                    <View style={[styles.statusBadge, { backgroundColor: tagStyle.color }]}>
-                        <Text style={styles.statusBadgeText}>
+                    <View style={styles.statusBadge}>
+                        <Text style={[styles.statusBadgeText, { color: tagStyle.color }]}>
                             {tagStyle.icon} {statusTag}
                         </Text>
                     </View>
                 )}
 
                 {/* Bottom Right Badge: Photo Count (Mock) */}
-                <View style={styles.photoCountBadge}>
+                {/* <View style={styles.photoCountBadge}>
                     <Ionicons name="camera" size={12} color="white" />
                     <Text style={styles.photoCountText}>3</Text>
-                </View>
+                </View> */}
             </View>
 
-            {/* Text Content - Left Aligned */}
+            {/* Text Content */}
             <View style={styles.content}>
-                {/* Line 1: Age + Location */}
+                {/* Name */}
+                <Text style={styles.nameText} numberOfLines={1}>
+                    {profile.name}
+                </Text>
+
+                {/* Age + University */}
                 <View style={styles.infoRow}>
-                    <Text style={styles.primaryText}>
-                        {profile.age}歳 {profile.location}
+                    <Ionicons name="school-outline" size={12} color="#9CA3AF" />
+                    <Text style={styles.infoText}>
+                        {profile.age}歳 · {profile.university || profile.company || '所属なし'}
                     </Text>
                 </View>
 
-                {/* Line 2: University or Company */}
-                {(profile.university || profile.company) && (
-                    <Text style={styles.secondaryText} numberOfLines={1}>
-                        {profile.university ? `🏫 ${profile.university}` : `🏢 ${profile.company}`}
-                    </Text>
-                )}
-
-                {/* Line 3: Bio */}
-                <Text style={styles.commentText} numberOfLines={3}>
+                {/* Bio */}
+                <Text style={styles.bioText} numberOfLines={2}>
                     {profile.bio}
                 </Text>
             </View>
@@ -97,17 +96,27 @@ export function ProfileCard({ profile, isLiked, onLike, onSelect }: ProfileCardP
 const styles = StyleSheet.create({
     cardContainer: {
         width: CARD_WIDTH,
-        backgroundColor: 'transparent',
+        backgroundColor: '#FFFFFF',
+        borderRadius: 16,
         marginBottom: 16,
-        // No shadow for a clean, flat look
+        // Soft shadow
+        shadowColor: "#000",
+        shadowOffset: {
+            width: 0,
+            height: 8,
+        },
+        shadowOpacity: 0.06,
+        shadowRadius: 16,
+        elevation: 4,
+        overflow: 'visible', // Allow shadow to be visible
     },
     imageContainer: {
         width: '100%',
-        aspectRatio: 1, // Square aspect ratio
-        borderRadius: 12,
+        aspectRatio: 0.8, // 4:5 aspect ratio
+        borderTopLeftRadius: 16,
+        borderTopRightRadius: 16,
         overflow: 'hidden',
         position: 'relative',
-        marginBottom: 8,
         backgroundColor: '#f3f4f6',
     },
     image: {
@@ -116,21 +125,28 @@ const styles = StyleSheet.create({
     },
     statusBadge: {
         position: 'absolute',
-        top: 8,
-        left: 8,
+        top: 10,
+        left: 10,
+        backgroundColor: 'rgba(255,255,255, 0.95)',
         paddingHorizontal: 10,
-        paddingVertical: 5,
-        borderRadius: 12,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 3,
-        elevation: 4,
+        paddingVertical: 6,
+        borderRadius: 20,
+        // Strong shadow for floating effect
+        shadowColor: "#000",
+        shadowOffset: {
+            width: 0,
+            height: 4,
+        },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+        elevation: 6,
+        flexDirection: 'row',
+        alignItems: 'center',
     },
     statusBadgeText: {
-        color: 'white',
         fontSize: 11,
-        fontWeight: 'bold',
+        fontWeight: '700',
+        letterSpacing: 0.2,
     },
     photoCountBadge: {
         position: 'absolute',
@@ -150,28 +166,30 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     content: {
-        paddingHorizontal: 2,
+        padding: 16,
+        paddingTop: 12,
+    },
+    nameText: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#1F2937', // Gray-800
+        marginBottom: 4,
+        letterSpacing: 0.3,
     },
     infoRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 2,
-        gap: 6,
+        marginBottom: 8,
+        gap: 2,
     },
-    primaryText: {
-        fontSize: 15,
-        fontWeight: 'bold',
-        color: '#1f2937',
+    infoText: {
+        fontSize: 13,
+        color: '#6B7280', // Gray-500
+        fontWeight: '500',
     },
-    secondaryText: {
-        fontSize: 11,
-        color: '#6b7280', // Gray-500
-        marginBottom: 4,
-    },
-    commentText: {
-        fontSize: 12,
-        color: '#333',
-        lineHeight: 16,
-        marginTop: 2,
+    bioText: {
+        fontSize: 13,
+        color: '#4B5563', // Gray-600
+        lineHeight: 19, // Wider line height
     },
 });

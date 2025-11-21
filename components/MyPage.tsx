@@ -10,6 +10,8 @@ interface MyPageProps {
     onLogout?: () => void;
     onEditProfile?: () => void;
     onOpenNotifications?: () => void;
+    onSettingsPress?: () => void;
+    onHelpPress?: () => void;
 }
 
 interface MenuItem {
@@ -19,12 +21,11 @@ interface MenuItem {
     badge?: number;
 }
 
-export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications }: MyPageProps) {
+export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, onSettingsPress, onHelpPress }: MyPageProps) {
     const menuItems: MenuItem[] = [
         { id: 'billing', icon: 'card', label: '課金・プラン管理' },
         { id: 'notifications', icon: 'notifications', label: 'お知らせ', badge: 3 },
         { id: 'favorites', icon: 'star', label: 'お気に入り' },
-        { id: 'visitors', icon: 'eye', label: '訪問者履歴', badge: 5 },
         { id: 'settings', icon: 'settings', label: '各種設定' },
         { id: 'help', icon: 'help-circle', label: 'ヘルプ・ガイドライン' },
     ];
@@ -117,6 +118,10 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications }
                                     onPress={() => {
                                         if (item.id === 'notifications' && onOpenNotifications) {
                                             onOpenNotifications();
+                                        } else if (item.id === 'settings' && onSettingsPress) {
+                                            onSettingsPress();
+                                        } else if (item.id === 'help' && onHelpPress) {
+                                            onHelpPress();
                                         }
                                     }}
                                 >

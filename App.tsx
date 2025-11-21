@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, SafeAreaView, FlatList, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, SafeAreaView, FlatList, TouchableOpacity, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +17,8 @@ import { NotificationsPage } from './components/NotificationsPage';
 import { SignupFlow } from './components/SignupFlow';
 import { FilterModal, FilterCriteria } from './components/FilterModal';
 import { ProfileEdit } from './components/ProfileEdit';
+import { SettingsPage } from './components/SettingsPage';
+import { HelpPage } from './components/HelpPage';
 import { Profile } from './types';
 
 // Placeholder component for tabs under development
@@ -41,6 +43,8 @@ export default function App() {
   const [filterCriteria, setFilterCriteria] = useState<FilterCriteria | null>(null);
   const [showProfileEdit, setShowProfileEdit] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
 
   // Mock profiles
   const profiles: Profile[] = [
@@ -371,12 +375,27 @@ export default function App() {
             <ChallengeCardPage />
           )}
           {activeTab === 'profile' && (
-            <MyPage
-              profile={currentUser}
-              onLogout={() => setIsLoggedIn(false)}
-              onEditProfile={handleEditProfile}
-              onOpenNotifications={() => setShowNotifications(true)}
-            />
+            <>
+              {showSettings ? (
+                <SettingsPage
+                  onBack={() => setShowSettings(false)}
+                  onLogout={() => setIsLoggedIn(false)}
+                />
+              ) : showHelp ? (
+                <HelpPage
+                  onBack={() => setShowHelp(false)}
+                />
+              ) : (
+                <MyPage
+                  profile={currentUser}
+                  onLogout={() => setIsLoggedIn(false)}
+                  onEditProfile={handleEditProfile}
+                  onOpenNotifications={() => setShowNotifications(true)}
+                  onSettingsPress={() => setShowSettings(true)}
+                  onHelpPress={() => setShowHelp(true)}
+                />
+              )}
+            </>
           )}
         </View>
 
@@ -439,7 +458,7 @@ const styles = StyleSheet.create({
   // ... (existing styles)
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb', // gray-50
+    backgroundColor: '#FAFAFA', // Updated to requested color
   },
   centerContainer: {
     flex: 1,
@@ -467,30 +486,32 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   headerContainer: {
-    backgroundColor: 'white',
+    backgroundColor: 'rgba(255,255,255,0.9)', // Slightly transparent for modern feel? Or just white. User said "modern".
     paddingBottom: 12,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 1 }, // Lighter shadow
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    elevation: 1, // Reduced elevation
     zIndex: 10,
   },
   headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 20, // Increased padding
+    paddingVertical: 14,
   },
   headerLeft: {
     width: 24, // To balance the right icon
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: '900',
+    fontSize: 26,
+    fontWeight: '800',
     color: '#009688',
-    letterSpacing: 1,
+    letterSpacing: 2.5, // Wider letter spacing
+    // Attempt to use a more "designed" font if available, otherwise system font with spacing looks good
+    fontFamily: Platform.OS === 'ios' ? 'Avenir Next' : 'sans-serif-medium',
   },
   notificationButton: {
     padding: 4,
