@@ -11,6 +11,7 @@ export interface Profile {
     skills: string[];
     seekingFor?: string[];
     seekingRoles?: string[];
+    statusTags?: string[];
     isStudent: boolean;
     createdAt: string;
 }
