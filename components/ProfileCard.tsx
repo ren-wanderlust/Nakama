@@ -68,12 +68,18 @@ export function ProfileCard({ profile, isLiked, onLike, onSelect }: ProfileCardP
             </View>
 
             {/* Skills */}
+            {/* Skills */}
             <View style={styles.skillsContainer}>
                 {profile.skills.slice(0, 3).map((skill, index) => (
                     <View key={index} style={styles.skillTag}>
-                        <Text style={styles.skillText}># {skill}</Text>
+                        <Text style={styles.skillText} numberOfLines={1}># {skill}</Text>
                     </View>
                 ))}
+                {profile.skills.length > 3 && (
+                    <View style={styles.skillTag}>
+                        <Text style={styles.skillText}>+{profile.skills.length - 3}</Text>
+                    </View>
+                )}
             </View>
 
             {/* Action Buttons */}
@@ -108,6 +114,7 @@ export function ProfileCard({ profile, isLiked, onLike, onSelect }: ProfileCardP
 const styles = StyleSheet.create({
     cardContainer: {
         width: CARD_WIDTH,
+        height: 280, // Fixed height
         backgroundColor: '#FFFFFF',
         borderRadius: 16,
         padding: 16,
@@ -163,8 +170,8 @@ const styles = StyleSheet.create({
         color: '#6B7280',
     },
     mainContent: {
-        marginBottom: 12,
-        minHeight: 60, // Ensure consistent height for alignment
+        flex: 1, // Take available space
+        marginBottom: 8,
     },
     themeLabel: {
         fontSize: 10,
@@ -190,6 +197,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 8,
         paddingVertical: 4,
         borderRadius: 6,
+        maxWidth: '100%', // Prevent overflow
     },
     skillText: {
         fontSize: 10,

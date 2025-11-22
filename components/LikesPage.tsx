@@ -21,7 +21,11 @@ const receivedLikesMock: Profile[] = [
         university: '大阪大学',
         image: 'https://images.unsplash.com/photo-1553484771-6e117b648d45?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzdGFydHVwJTIwZm91bmRlciUyMHByb2Zlc3Npb25hbHxlbnwxfHx8fDE3NjM0NTI1MjJ8MA&ixlib=rb-4.1.0&q=80&w=1080',
         challengeTheme: 'サステナブルファッションブランド立ち上げ',
+        theme: 'サステナブルなD2Cブランドを立ち上げ、グローバル展開を目指す',
         skills: ['マーケティング', 'デザイン', 'SNS運用'],
+        seekingFor: ['ビジネスメンバー探し'],
+        seekingRoles: ['💻 エンジニア'],
+        statusTags: ['ビジネスメンバー探し'],
         isStudent: true,
         bio: '環境問題に関心があり、サステナブルなファッションブランドを立ち上げたいです。',
         createdAt: '2023-11-19',
@@ -34,7 +38,11 @@ const receivedLikesMock: Profile[] = [
         university: '東京大学',
         image: 'https://images.unsplash.com/photo-1709803312782-0c3b175875ed?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkZXNpZ25lciUyMGNyZWF0aXZlJTIwcHJvZmVzc2lvbmFsfGVufDF8fHx8MTc2MzUyMDMzNXww&ixlib=rb-4.1.0&q=80&w=1080',
         challengeTheme: 'クリエイター向けポートフォリオプラットフォーム',
+        theme: 'クリエイターが正当に評価されるポートフォリオプラットフォームを創る',
         skills: ['Figma', 'デザインシステム', 'ブランディング'],
+        seekingFor: ['アイデア模索中'],
+        seekingRoles: ['💻 エンジニア'],
+        statusTags: ['情報収集中'],
         isStudent: true,
         bio: 'クリエイターが自分の作品をより魅力的に発信できるプラットフォームを作りたいです。',
         createdAt: '2023-11-18',
@@ -229,9 +237,11 @@ const styles = StyleSheet.create({
     },
     listContent: {
         padding: 16,
+        paddingBottom: 100,
     },
     columnWrapper: {
         justifyContent: 'space-between',
+        gap: 12,
     },
     gridItem: {
         // width handled in ProfileCard
