@@ -102,7 +102,20 @@ export function ChallengeCardPage({ onThemeSelect }: ChallengeCardPageProps) {
         <View style={styles.container}>
             {/* Header - Navigation Bar Style */}
             <View style={styles.header}>
-                <Text style={styles.headerTitle}>挑戦テーマ</Text>
+                <View style={styles.headerTitleContainer}>
+                    <View style={styles.logoRow}>
+                        <Ionicons name="bulb-outline" size={24} color="#374151" style={{ marginRight: 4 }} />
+                        <Text style={styles.arrowDecoration}>{'>>'}</Text>
+                        <Text style={styles.headerLogoText}>挑戦テーマ</Text>
+                        <Ionicons name="settings-outline" size={20} color="#0d9488" style={{ marginLeft: 4, marginTop: 4 }} />
+                    </View>
+                    <View style={styles.underlineContainer}>
+                        <View style={styles.underline} />
+                        <Ionicons name="chevron-down" size={12} color="#0d9488" style={styles.underlineIcon} />
+                        <View style={styles.underline} />
+                    </View>
+                </View>
+
                 <TouchableOpacity
                     style={styles.searchButton}
                     onPress={() => setIsSearchModalVisible(true)}
@@ -269,10 +282,42 @@ const styles = StyleSheet.create({
         position: 'relative',
         zIndex: 10,
     },
-    headerTitle: {
-        fontSize: 18,
+    headerTitleContainer: {
+        alignItems: 'center',
+    },
+    logoRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    headerLogoText: {
+        fontSize: 28,
         fontWeight: 'bold',
-        color: '#333333',
+        color: '#1F2937', // Dark Navy/Black
+        letterSpacing: 1,
+        marginHorizontal: 4,
+    },
+    arrowDecoration: {
+        fontSize: 20,
+        color: '#374151',
+        fontWeight: '300',
+        marginRight: 4,
+    },
+    underlineContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: -4,
+        width: '100%',
+        justifyContent: 'center',
+    },
+    underline: {
+        height: 2,
+        backgroundColor: '#0d9488', // Teal accent
+        flex: 1,
+        maxWidth: 80,
+        borderRadius: 1,
+    },
+    underlineIcon: {
+        marginHorizontal: 4,
     },
     searchButton: {
         position: 'absolute',
