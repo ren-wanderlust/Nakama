@@ -32,30 +32,43 @@ interface ChallengeCardPageProps {
 const ICON_OPTIONS = ['🚀', '💻', '🎨', '🗣️', '💼', '💰', '🌍', '❤️', '📚', '🎮', '🎵', '⚽️'];
 
 export function ChallengeCardPage({ onThemeSelect }: ChallengeCardPageProps) {
-    const recommended = [
+    const [themes, setThemes] = useState([
         { id: 1, icon: '🤖', title: 'AIプロダクト開発', count: 127 },
         { id: 2, icon: '🌍', title: 'SDGs・社会課題', count: 85 },
         { id: 3, icon: '📱', title: 'モバイルアプリ', count: 203 },
         { id: 4, icon: '🎨', title: 'UI/UXデザイン', count: 94 },
-    ];
-
-    const trending = [
         { id: 5, icon: '🚀', title: 'スタートアップ', count: 342 },
         { id: 6, icon: '💰', title: 'FinTech', count: 156 },
         { id: 7, icon: '🎮', title: 'GameFi / Web3', count: 78 },
         { id: 8, icon: '📢', title: 'マーケティング', count: 112 },
-    ];
+    ]);
 
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [newThemeTitle, setNewThemeTitle] = useState('');
     const [selectedIcon, setSelectedIcon] = useState(ICON_OPTIONS[0]);
+
+    const [isSearchModalVisible, setIsSearchModalVisible] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+
+    const filteredThemes = themes.filter(theme =>
+        theme.title.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     const handleCreateTheme = () => {
         if (!newThemeTitle.trim()) {
             Alert.alert('エラー', 'テーマ名を入力してください');
             return;
         }
-        console.log('New Theme:', { icon: selectedIcon, title: newThemeTitle });
+
+        const newTheme = {
+            id: Date.now(),
+            icon: selectedIcon,
+            title: newThemeTitle,
+            count: 0
+        };
+        setThemes([newTheme, ...themes]);
+
+        console.log('New Theme Created:', newTheme);
         Alert.alert('完了', 'テーマを作成しました！');
         setIsModalVisible(false);
         setNewThemeTitle('');
@@ -69,20 +82,16 @@ export function ChallengeCardPage({ onThemeSelect }: ChallengeCardPageProps) {
                 <Text style={styles.headerTitle}>挑戦テーマ</Text>
                 <TouchableOpacity
                     style={styles.searchButton}
-                    onPress={() => console.log('Search')}
+                    onPress={() => setIsSearchModalVisible(true)}
                 >
                     <Ionicons name="search-outline" size={28} color="#333" />
                 </TouchableOpacity>
             </View>
 
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-                {/* Recommended Section */}
-                <View style={styles.section}>
-                    <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionTitle}>✨ あなたにおすすめ (AI推薦)</Text>
-                    </View>
+                <View style={styles.gridContainer}>
                     <View style={styles.grid}>
-                        {recommended.map((item) => (
+                        {themes.map((item) => (
                             <ThemeCard
                                 key={item.id}
                                 icon={item.icon}
@@ -93,25 +102,6 @@ export function ChallengeCardPage({ onThemeSelect }: ChallengeCardPageProps) {
                         ))}
                     </View>
                 </View>
-
-                {/* Trending Section */}
-                <View style={styles.section}>
-                    <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionTitle}>📈 注目の挑戦テーマ (人気急上昇)</Text>
-                    </View>
-                    <View style={styles.grid}>
-                        {trending.map((item) => (
-                            <ThemeCard
-                                key={item.id}
-                                icon={item.icon}
-                                title={item.title}
-                                count={item.count}
-                                onPress={() => onThemeSelect?.(item.title)}
-                            />
-                        ))}
-                    </View>
-                </View>
-
                 <View style={{ height: 100 }} />
             </ScrollView>
 
@@ -181,6 +171,59 @@ export function ChallengeCardPage({ onThemeSelect }: ChallengeCardPageProps) {
                     </View>
                 </TouchableWithoutFeedback>
             </Modal>
+
+            {/* Search Modal */}
+            <Modal
+                visible={isSearchModalVisible}
+                animationType="slide"
+                onRequestClose={() => setIsSearchModalVisible(false)}
+            >
+                <View style={styles.searchModalContainer}>
+                    <View style={styles.searchHeader}>
+                        <TouchableOpacity onPress={() => setIsSearchModalVisible(false)}>
+                            <Text style={styles.cancelText}>キャンセル</Text>
+                        </TouchableOpacity>
+                        <Text style={styles.searchTitle}>検索</Text>
+                        <View style={{ width: 60 }} />
+                    </View>
+
+                    <View style={styles.searchBarContainer}>
+                        <Ionicons name="search" size={20} color="#9CA3AF" style={styles.searchIcon} />
+                        <TextInput
+                            style={styles.searchInput}
+                            placeholder="テーマ名で検索..."
+                            value={searchQuery}
+                            onChangeText={setSearchQuery}
+                            autoFocus
+                        />
+                    </View>
+
+                    <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+                        <View style={styles.gridContainer}>
+                            {searchQuery ? (
+                                <View style={styles.grid}>
+                                    {filteredThemes.map((item) => (
+                                        <ThemeCard
+                                            key={item.id}
+                                            icon={item.icon}
+                                            title={item.title}
+                                            count={item.count}
+                                            onPress={() => {
+                                                onThemeSelect?.(item.title);
+                                                setIsSearchModalVisible(false);
+                                            }}
+                                        />
+                                    ))}
+                                </View>
+                            ) : (
+                                <View style={styles.emptySearchContainer}>
+                                    <Text style={styles.emptySearchText}>検索ワードを入力してください</Text>
+                                </View>
+                            )}
+                        </View>
+                    </ScrollView>
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -191,14 +234,14 @@ const styles = StyleSheet.create({
         backgroundColor: '#FAFAFA',
     },
     header: {
-        height: 90, // Reduced from 100
-        paddingTop: 45, // Reduced from 50
+        height: 90,
+        paddingTop: 45,
         paddingBottom: 10,
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center', // Center the title
+        justifyContent: 'center',
         backgroundColor: '#FAFAFA',
-        position: 'relative', // For absolute positioning of search button
+        position: 'relative',
         zIndex: 10,
     },
     headerTitle: {
@@ -209,28 +252,14 @@ const styles = StyleSheet.create({
     searchButton: {
         position: 'absolute',
         right: 16,
-        bottom: 12, // Adjusted to align with title
+        bottom: 12,
         padding: 4,
     },
     content: {
         flex: 1,
     },
-    section: {
-        paddingHorizontal: 16,
-        paddingBottom: 24,
-        marginBottom: 8,
-    },
-    sectionHeader: {
-        marginBottom: 16,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-    },
-    sectionTitle: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: '#1A1A1A',
-        letterSpacing: 0.3,
+    gridContainer: {
+        padding: 16,
     },
     grid: {
         flexDirection: 'row',
@@ -238,17 +267,16 @@ const styles = StyleSheet.create({
         gap: 12,
     },
     card: {
-        width: (Dimensions.get('window').width - 32 - 12) / 2, // (Screen width - padding*2 - gap) / 2
+        width: (Dimensions.get('window').width - 32 - 12) / 2,
         backgroundColor: 'white',
         borderRadius: 16,
         padding: 16,
-        // Clean, soft shadow
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.04,
         shadowRadius: 12,
         elevation: 2,
-        borderWidth: 0, // Remove border for cleaner look
+        borderWidth: 0,
     },
     cardIconContainer: {
         width: 52,
@@ -403,5 +431,53 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
         color: 'white',
+    },
+    searchModalContainer: {
+        flex: 1,
+        backgroundColor: '#FAFAFA',
+        paddingTop: 50,
+    },
+    searchHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 16,
+        paddingBottom: 16,
+    },
+    cancelText: {
+        fontSize: 16,
+        color: '#009688',
+    },
+    searchTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+    },
+    searchBarContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'white',
+        marginHorizontal: 16,
+        paddingHorizontal: 12,
+        borderRadius: 10,
+        height: 44,
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+    },
+    searchIcon: {
+        marginRight: 8,
+    },
+    searchInput: {
+        flex: 1,
+        fontSize: 16,
+        height: '100%',
+    },
+    emptySearchContainer: {
+        alignItems: 'center',
+        marginTop: 40,
+    },
+    emptySearchText: {
+        color: '#9CA3AF',
+        fontSize: 16,
     },
 });
