@@ -54,6 +54,16 @@ export function SettingsPage({ onBack, onLogout }: SettingsPageProps) {
         </TouchableOpacity>
     );
 
+    const handleFeatureNotImplemented = () => {
+        Alert.alert("開発中", "この機能は現在開発中です。");
+    };
+
+    const handleOpenURL = async (url: string) => {
+        // In a real app, you would use Linking.openURL(url)
+        // For now, we'll just show an alert with the URL
+        Alert.alert("外部リンク", `${url} を開きます`);
+    };
+
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
@@ -81,15 +91,16 @@ export function SettingsPage({ onBack, onLogout }: SettingsPageProps) {
                 {/* Account */}
                 {renderSectionHeader('アカウント')}
                 <View style={styles.sectionContainer}>
-                    {renderItem('person-outline', 'アカウント設定', <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />, () => { }, false, '#007AFF')}
-                    {renderItem('ban-outline', 'ブロックリスト', <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />, () => { }, true, '#FF3B30')}
+                    {renderItem('person-outline', 'アカウント設定', <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />, handleFeatureNotImplemented, false, '#007AFF')}
+                    {renderItem('ban-outline', 'ブロックリスト', <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />, handleFeatureNotImplemented, true, '#FF3B30')}
                 </View>
 
                 {/* Legal */}
                 {renderSectionHeader('サポート・規約')}
                 <View style={styles.sectionContainer}>
-                    {renderItem('document-text-outline', '利用規約', <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />, () => { }, false, '#8E8E93')}
-                    {renderItem('shield-checkmark-outline', 'プライバシーポリシー', <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />, () => { }, true, '#8E8E93')}
+                    {renderItem('document-text-outline', '利用規約', <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />, () => handleOpenURL('https://example.com/terms'), false, '#8E8E93')}
+                    {renderItem('shield-checkmark-outline', 'プライバシーポリシー', <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />, () => handleOpenURL('https://example.com/privacy'), false, '#8E8E93')}
+                    {renderItem('mail-outline', 'お問い合わせ', <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />, () => handleOpenURL('mailto:support@bizyou.app'), true, '#007AFF')}
                 </View>
 
                 {/* Logout */}
