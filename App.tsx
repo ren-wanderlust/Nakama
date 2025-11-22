@@ -323,20 +323,20 @@ export default function App() {
             <View style={styles.searchControlBar}>
               <TouchableOpacity
                 onPress={() => setIsFilterOpen(true)}
-                style={styles.controlButton}
+                style={styles.filterButton}
               >
-                <Ionicons name="search" size={16} color="#555" />
+                <Ionicons name="search" size={18} color="#666" />
                 <Text style={styles.controlButtonText}>絞り込み</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 onPress={() => setIsSortModalOpen(true)}
-                style={styles.controlButton}
+                style={styles.sortButton}
               >
                 <Text style={styles.controlButtonText}>
                   {sortOrder === 'recommended' ? 'おすすめ順' : '登録日が新しい順'}
                 </Text>
-                <Ionicons name="chevron-down" size={16} color="#555" />
+                <Ionicons name="chevron-down" size={18} color="#666" />
               </TouchableOpacity>
             </View>
           </View>
@@ -505,32 +505,29 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   headerContainer: {
-    backgroundColor: 'rgba(255,255,255,0.9)', // Slightly transparent for modern feel? Or just white. User said "modern".
-    paddingBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 }, // Lighter shadow
-    shadowOpacity: 0.03,
-    shadowRadius: 8,
-    elevation: 1, // Reduced elevation
+    backgroundColor: 'white',
+    paddingBottom: 16,
+    // Remove shadow/elevation for flat look
+    shadowColor: "transparent",
+    elevation: 0,
     zIndex: 10,
   },
   headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20, // Increased padding
-    paddingVertical: 14,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
   },
   headerLeft: {
-    width: 24, // To balance the right icon
+    width: 24, // Balance right icon
   },
   headerTitle: {
-    fontSize: 26,
-    fontWeight: '800',
+    fontSize: 32,
     color: '#009688',
-    letterSpacing: 2.5, // Wider letter spacing
-    // Attempt to use a more "designed" font if available, otherwise system font with spacing looks good
-    fontFamily: Platform.OS === 'ios' ? 'Avenir Next' : 'sans-serif-medium',
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    fontStyle: 'italic',
+    fontWeight: 'normal', // Let the font family handle weight
   },
   notificationButton: {
     padding: 4,
@@ -539,20 +536,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    marginTop: 4,
+    marginTop: 8,
+    gap: 12,
   },
-  controlButton: {
+  filterButton: {
+    flex: 6, // 60%
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F7F8FA',
-    borderRadius: 20,
-    paddingVertical: 8,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 100,
+    height: 44,
     paddingHorizontal: 16,
     gap: 8,
-    minWidth: 120,
+    justifyContent: 'flex-start', // Left aligned content
+  },
+  sortButton: {
+    flex: 4, // 40% (approx 35% requested, adjusted for gap)
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 100,
+    height: 44,
+    paddingHorizontal: 16,
+    gap: 4,
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
   },
   controlButtonText: {
     fontSize: 14,
