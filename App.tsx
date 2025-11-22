@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, SafeAreaView, FlatList, TouchableOpacity, Platform } from 'react-native';
+import { StyleSheet, Text, View, SafeAreaView, FlatList, TouchableOpacity, Platform, RefreshControl } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -47,7 +47,7 @@ export default function App() {
   const [showHelp, setShowHelp] = useState(false);
 
   // Mock profiles
-  const profiles: Profile[] = [
+  const INITIAL_PROFILES: Profile[] = [
     {
       id: '1',
       name: 'ユウキ',
@@ -152,13 +152,26 @@ export default function App() {
     },
   ];
 
-  const [currentUser, setCurrentUser] = useState<Profile>(profiles[0]);
+  const [currentUser, setCurrentUser] = useState<Profile>(INITIAL_PROFILES[0]);
 
   const [sortOrder, setSortOrder] = useState<'recommended' | 'newest'>('recommended');
   const [isSortModalOpen, setIsSortModalOpen] = useState(false);
 
+  const [displayProfiles, setDisplayProfiles] = useState<Profile[]>(INITIAL_PROFILES);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    setTimeout(() => {
+      // Shuffle profiles
+      const shuffled = [...displayProfiles].sort(() => 0.5 - Math.random());
+      setDisplayProfiles(shuffled);
+      setRefreshing(false);
+    }, 1500);
+  }, [displayProfiles]);
+
   // Filtering logic
-  const filteredProfiles = profiles.filter(profile => {
+  const filteredProfiles = displayProfiles.filter(profile => {
     if (!filterCriteria) return true;
 
     // Keyword filter
@@ -266,7 +279,7 @@ export default function App() {
           partnerImage={activeChatRoom.partnerImage}
           onBack={() => setActiveChatRoom(null)}
           onPartnerProfilePress={() => {
-            const partner = profiles.find(p => p.name === activeChatRoom.partnerName);
+            const partner = displayProfiles.find(p => p.name === activeChatRoom.partnerName);
             if (partner) {
               setSelectedProfile(partner);
             }
@@ -368,6 +381,14 @@ export default function App() {
               contentContainerStyle={styles.listContent}
               columnWrapperStyle={styles.columnWrapper}
               showsVerticalScrollIndicator={false}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  colors={['#009688']}
+                  tintColor="#009688"
+                />
+              }
               ListEmptyComponent={
                 <View style={styles.centerContainer}>
                   <Text style={styles.placeholderText}>条件に一致するユーザーがいません</Text>
@@ -378,7 +399,7 @@ export default function App() {
           {activeTab === 'likes' && (
             <LikesPage
               likedProfileIds={likedProfiles}
-              allProfiles={profiles}
+              allProfiles={displayProfiles}
               onProfileSelect={(profile) => setSelectedProfile(profile)}
             />
           )}
