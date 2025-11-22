@@ -1,7 +1,6 @@
 import React from 'react';
-import { StyleSheet, Text, View, Image, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
+import { StyleSheet, Text, View, Image, TouchableOpacity, ScrollView, SafeAreaView, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Profile } from '../types';
 
 interface ProfileDetailProps {
@@ -11,138 +10,182 @@ interface ProfileDetailProps {
     isLiked: boolean;
 }
 
+// Tag styling logic (consistent with ProfileCard)
+const TAG_COLORS: Record<string, { bg: string; text: string }> = {
+    // エンジニア系 (Blue)
+    'フロントエンド': { bg: '#E3F2FD', text: '#1565C0' },
+    'バックエンド': { bg: '#E3F2FD', text: '#1565C0' },
+    'モバイルアプリ': { bg: '#E3F2FD', text: '#1565C0' },
+    'ゲーム開発': { bg: '#E3F2FD', text: '#1565C0' },
+    'AI / データ': { bg: '#E3F2FD', text: '#1565C0' },
+    'ノーコード': { bg: '#E3F2FD', text: '#1565C0' },
+    // デザイナー系 (Purple)
+    'UI / UXデザイン': { bg: '#F3E5F5', text: '#7B1FA2' },
+    'グラフィック / イラスト': { bg: '#F3E5F5', text: '#7B1FA2' },
+    // マーケ系 (Orange)
+    'マーケティング': { bg: '#FFF3E0', text: '#E65100' },
+    'SNS運用': { bg: '#FFF3E0', text: '#E65100' },
+    'ライター': { bg: '#FFF3E0', text: '#E65100' },
+    // ビジネス系 (Green)
+    'セールス (営業)': { bg: '#E8F5E9', text: '#2E7D32' },
+    '事業開発 (BizDev)': { bg: '#E8F5E9', text: '#2E7D32' },
+    // クリエイター系 (Red)
+    '動画編集': { bg: '#FFEBEE', text: '#C62828' },
+    '3D / CG': { bg: '#FFEBEE', text: '#C62828' },
+    // PM系 (Indigo)
+    'PM / ディレクター': { bg: '#E8EAF6', text: '#283593' },
+    'コミュニティ運営': { bg: '#E8EAF6', text: '#283593' },
+    // その他 (Gray/Teal)
+    '財務 / 会計': { bg: '#E0F2F1', text: '#00695C' },
+    '法務 / 知財': { bg: '#E0F2F1', text: '#00695C' },
+    '英語 / 語学': { bg: '#F5F5F5', text: '#424242' },
+};
+
+function getTagStyle(tagText: string): { color: string; icon: string } {
+    if (tagText.includes('ビジネスメンバー探し') || tagText.includes('メンバー募集中')) {
+        return { color: '#FF5722', icon: '🔥' };
+    }
+    if (tagText.includes('まずは話してみたい') || tagText.includes('壁打ち相手募集')) {
+        return { color: '#039BE5', icon: '☕️' };
+    }
+    if (tagText.includes('アイデア模索中') || tagText.includes('起業に興味あり') || tagText.includes('情報収集中')) {
+        return { color: '#43A047', icon: '🌱' };
+    }
+    return { color: '#546E7A', icon: '🚩' };
+}
+
 export function ProfileDetail({ profile, onBack, onLike, isLiked }: ProfileDetailProps) {
-    // Fallback for optional fields
     const seekingFor = profile.seekingFor || [];
     const skills = profile.skills || [];
     const seekingRoles = profile.seekingRoles || [];
 
+    // Get status tag style
+    const statusTag = profile.statusTags && profile.statusTags.length > 0 ? profile.statusTags[0] : null;
+    const statusStyle = statusTag ? getTagStyle(statusTag) : null;
+
     return (
         <SafeAreaView style={styles.container}>
-            {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={onBack} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#374151" />
+            {/* Navigation Header */}
+            <View style={styles.navHeader}>
+                <TouchableOpacity onPress={onBack} style={styles.navButton}>
+                    <Ionicons name="chevron-back" size={28} color="#374151" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle} numberOfLines={1}>{profile.name}</Text>
-                <TouchableOpacity style={styles.menuButton}>
-                    <Ionicons name="ellipsis-vertical" size={24} color="#374151" />
+                <TouchableOpacity style={styles.navButton}>
+                    <Ionicons name="chatbubble-outline" size={24} color="#374151" />
                 </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-                {/* Profile Image & Basic Info */}
-                <View style={styles.section}>
-                    <View style={styles.basicInfoContainer}>
-                        <Image
-                            source={{ uri: profile.image }}
-                            style={styles.profileImage}
-                            resizeMode="cover"
-                        />
-                        <View style={styles.basicInfoText}>
-                            <Text style={styles.name}>{profile.name}</Text>
+            <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
-                            <View style={styles.infoRow}>
-                                <Text style={styles.infoText}>{profile.age}歳</Text>
+                {/* 1. Header Area (User Info) */}
+                <View style={styles.profileHeader}>
+                    <Image
+                        source={{ uri: profile.image }}
+                        style={styles.avatar}
+                    />
+                    <View style={styles.profileInfo}>
+                        <Text style={styles.name}>{profile.name}</Text>
+
+                        <View style={styles.attributesList}>
+                            <View style={styles.attributeRow}>
+                                <Text style={styles.attributeText}>{profile.age}歳</Text>
                             </View>
-
-                            <View style={styles.infoRow}>
-                                <Ionicons name="location-outline" size={16} color="#9ca3af" />
-                                <Text style={styles.infoText}>{profile.location}</Text>
+                            <View style={styles.attributeRow}>
+                                <Ionicons name="location-sharp" size={14} color="#9CA3AF" />
+                                <Text style={styles.attributeText}>{profile.location}</Text>
                             </View>
-
-                            {profile.university && (
-                                <View style={styles.infoRow}>
-                                    <Ionicons name="school-outline" size={16} color="#9ca3af" />
-                                    <Text style={styles.infoText}>{profile.university}</Text>
-                                </View>
-                            )}
-
-                            {profile.company && (
-                                <View style={styles.infoRow}>
-                                    <Ionicons name="briefcase-outline" size={16} color="#9ca3af" />
-                                    <Text style={styles.infoText}>{profile.company}</Text>
-                                </View>
-                            )}
+                            <View style={styles.attributeRow}>
+                                <Ionicons name="school" size={14} color="#9CA3AF" />
+                                <Text style={styles.attributeText}>{profile.university || profile.company || '所属なし'}</Text>
+                            </View>
                         </View>
                     </View>
                 </View>
 
-                {/* Status/Purpose Section */}
-                {seekingFor.length > 0 && (
+                {/* 2. Current Status / Goal */}
+                {statusTag && statusStyle && (
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
-                            <Ionicons name="flag-outline" size={20} color="#0d9488" />
-                            <Text style={styles.sectionTitle}>🚩 現在のステータス・目的</Text>
+                            <Text style={styles.sectionIcon}>🚩</Text>
+                            <Text style={styles.sectionTitle}>現在のステータス・目的</Text>
                         </View>
                         <View style={styles.tagsContainer}>
+                            <View style={[styles.statusTag, { backgroundColor: statusStyle.color + '15', borderColor: statusStyle.color }]}>
+                                <Text style={[styles.statusTagText, { color: statusStyle.color }]}>
+                                    {statusStyle.icon} {statusTag}
+                                </Text>
+                            </View>
                             {seekingFor.map((item, index) => (
-                                <View key={index} style={styles.statusTag}>
-                                    <Text style={styles.statusTagText}>{item}</Text>
+                                <View key={index} style={styles.subStatusTag}>
+                                    <Text style={styles.subStatusTagText}>{item}</Text>
                                 </View>
                             ))}
                         </View>
                     </View>
                 )}
 
-                {/* Bio Section */}
+                {/* 3. Bio */}
                 <View style={styles.section}>
                     <View style={styles.sectionHeader}>
-                        <Ionicons name="document-text-outline" size={20} color="#374151" />
+                        <Text style={styles.sectionIcon}>📄</Text>
                         <Text style={styles.sectionTitle}>自己紹介</Text>
                     </View>
-                    <View style={styles.detailBox}>
-                        <Text style={styles.detailText}>{profile.bio}</Text>
+                    <View style={styles.bioBox}>
+                        <Text style={styles.bioText}>{profile.bio}</Text>
                     </View>
                 </View>
 
-                {/* Skills Section */}
+                {/* 4. Skills */}
                 {skills.length > 0 && (
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
-                            <Ionicons name="flash" size={20} color="#0d9488" />
-                            <Text style={styles.sectionTitle}>⚡️ 持っているスキル</Text>
+                            <Text style={styles.sectionIcon}>⚡️</Text>
+                            <Text style={styles.sectionTitle}>持っているスキル</Text>
                         </View>
                         <View style={styles.tagsContainer}>
-                            {skills.map((skill, index) => (
-                                <View key={index} style={styles.skillTag}>
-                                    <Text style={styles.skillTagText}>{skill}</Text>
-                                </View>
-                            ))}
+                            {skills.map((skill, index) => {
+                                const tagColor = TAG_COLORS[skill] || { bg: '#F5F5F5', text: '#666666' };
+                                return (
+                                    <View key={index} style={[styles.skillTag, { backgroundColor: tagColor.bg }]}>
+                                        <Text style={[styles.skillTagText, { color: tagColor.text }]}># {skill}</Text>
+                                    </View>
+                                );
+                            })}
                         </View>
                     </View>
                 )}
 
-                {/* Seeking Roles Section */}
+                {/* 5. Seeking Roles */}
                 {seekingRoles.length > 0 && (
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
-                            <Ionicons name="people" size={20} color="#f97316" />
-                            <Text style={styles.sectionTitle}>🤝 求める仲間・条件</Text>
+                            <Text style={styles.sectionIcon}>🤝</Text>
+                            <Text style={styles.sectionTitle}>求める仲間・条件</Text>
                         </View>
                         <View style={styles.tagsContainer}>
                             {seekingRoles.map((role, index) => (
                                 <View key={index} style={styles.roleTag}>
+                                    <Ionicons name="search" size={12} color="#C2410C" style={{ marginRight: 4 }} />
                                     <Text style={styles.roleTagText}>{role}</Text>
                                 </View>
                             ))}
                         </View>
                     </View>
                 )}
+
             </ScrollView>
 
-            {/* Fixed Action Footer */}
+            {/* Footer Action Button */}
             <View style={styles.footer}>
-                <TouchableOpacity onPress={onLike} activeOpacity={0.9}>
-                    <LinearGradient
-                        colors={isLiked ? ['#ec4899', '#db2777'] : ['#f97316', '#ea580c']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                        style={styles.likeButton}
-                    >
-                        <Ionicons name={isLiked ? "heart" : "heart-outline"} size={24} color="white" />
-                        <Text style={styles.likeButtonText}>{isLiked ? 'いいね済み' : 'いいね'}</Text>
-                    </LinearGradient>
+                <TouchableOpacity
+                    style={[styles.likeButton, isLiked && styles.likedButton]}
+                    onPress={onLike}
+                    activeOpacity={0.8}
+                >
+                    <Ionicons name={isLiked ? "heart" : "heart"} size={24} color="white" style={{ marginRight: 8 }} />
+                    <Text style={styles.likeButtonText}>
+                        {isLiked ? 'いいね済み' : 'いいね！'}
+                    </Text>
                 </TouchableOpacity>
             </View>
         </SafeAreaView>
@@ -152,59 +195,39 @@ export function ProfileDetail({ profile, onBack, onLike, isLiked }: ProfileDetai
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f9fafb',
+        backgroundColor: '#FFFFFF',
     },
-    header: {
+    navHeader: {
         flexDirection: 'row',
-        alignItems: 'center',
         justifyContent: 'space-between',
+        alignItems: 'center',
         paddingHorizontal: 16,
-        paddingVertical: 12,
-        backgroundColor: 'white',
-        borderBottomWidth: 1,
-        borderBottomColor: '#e5e7eb',
+        paddingVertical: 10,
+        backgroundColor: '#FFFFFF',
     },
-    backButton: {
+    navButton: {
         padding: 8,
-        marginLeft: -8,
-    },
-    headerTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#111827',
-        flex: 1,
-        textAlign: 'center',
-    },
-    menuButton: {
-        padding: 8,
-        marginRight: -8,
     },
     scrollView: {
         flex: 1,
     },
     scrollContent: {
-        paddingBottom: 100,
+        paddingBottom: 120, // Space for footer
     },
-    section: {
-        backgroundColor: 'white',
-        padding: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: '#e5e7eb',
-        marginBottom: 12,
-    },
-    basicInfoContainer: {
+    profileHeader: {
         flexDirection: 'row',
-        gap: 16,
-        marginBottom: 16,
+        paddingHorizontal: 24,
+        paddingVertical: 20,
+        alignItems: 'center',
+        gap: 20,
     },
-    profileImage: {
-        width: 96,
-        height: 96,
-        borderRadius: 16,
-        borderWidth: 2,
-        borderColor: '#14b8a6',
+    avatar: {
+        width: 100,
+        height: 100,
+        borderRadius: 24,
+        backgroundColor: '#F3F4F6',
     },
-    basicInfoText: {
+    profileInfo: {
         flex: 1,
         justifyContent: 'center',
     },
@@ -212,83 +235,99 @@ const styles = StyleSheet.create({
         fontSize: 24,
         fontWeight: 'bold',
         color: '#111827',
-        marginBottom: 8,
+        marginBottom: 12,
     },
-    infoRow: {
+    attributesList: {
+        gap: 6,
+    },
+    attributeRow: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 6,
-        marginBottom: 4,
     },
-    infoText: {
+    attributeText: {
         fontSize: 14,
-        color: '#4b5563',
+        color: '#6B7280',
+        fontWeight: '500',
+    },
+    section: {
+        paddingHorizontal: 24,
+        marginBottom: 24,
     },
     sectionHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
         marginBottom: 12,
+        gap: 8,
+    },
+    sectionIcon: {
+        fontSize: 18,
     },
     sectionTitle: {
         fontSize: 16,
         fontWeight: 'bold',
-        color: '#111827',
+        color: '#374151',
     },
     tagsContainer: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 8,
+        gap: 10,
     },
     statusTag: {
-        backgroundColor: '#f0fdfa',
-        borderWidth: 1,
-        borderColor: '#5eead4',
+        flexDirection: 'row',
+        alignItems: 'center',
         paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 20,
+        paddingVertical: 6,
+        borderRadius: 100,
+        borderWidth: 1,
     },
     statusTagText: {
-        color: '#0f766e',
-        fontSize: 13,
-        fontWeight: '600',
-    },
-    detailBox: {
-        backgroundColor: '#f9fafb',
-        borderWidth: 1,
-        borderColor: '#e5e7eb',
-        borderRadius: 8,
-        padding: 16,
-    },
-    detailText: {
         fontSize: 14,
+        fontWeight: 'bold',
+    },
+    subStatusTag: {
+        backgroundColor: '#F3F4F6',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 100,
+    },
+    subStatusTagText: {
+        fontSize: 13,
+        color: '#4B5563',
+        fontWeight: '500',
+    },
+    bioBox: {
+        backgroundColor: '#F5F5F5',
+        borderRadius: 16,
+        padding: 20,
+    },
+    bioText: {
+        fontSize: 15,
         color: '#374151',
-        lineHeight: 20,
+        lineHeight: 24,
     },
     skillTag: {
-        backgroundColor: '#ccfbf1',
-        borderWidth: 1,
-        borderColor: '#5eead4',
         paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 20,
+        paddingVertical: 6,
+        borderRadius: 8,
     },
     skillTagText: {
-        color: '#0f766e',
         fontSize: 13,
         fontWeight: '600',
     },
     roleTag: {
-        backgroundColor: '#ffedd5',
-        borderWidth: 1,
-        borderColor: '#fdba74',
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FFEDD5',
         paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 20,
+        paddingVertical: 6,
+        borderRadius: 100,
+        borderWidth: 1,
+        borderColor: '#FED7AA',
     },
     roleTagText: {
-        color: '#c2410c',
         fontSize: 13,
+        color: '#C2410C',
         fontWeight: '600',
     },
     footer: {
@@ -297,22 +336,45 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         backgroundColor: 'white',
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+        paddingBottom: 34, // Safe area adjustment
         borderTopWidth: 1,
-        borderTopColor: '#e5e7eb',
-        padding: 16,
-        paddingBottom: 32,
+        borderTopColor: '#F3F4F6',
+        shadowColor: "#000",
+        shadowOffset: {
+            width: 0,
+            height: -4,
+        },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 10,
     },
     likeButton: {
+        backgroundColor: '#FF6F00',
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 12,
         paddingVertical: 16,
-        borderRadius: 12,
+        borderRadius: 100,
+        width: '100%',
+        shadowColor: "#FF6F00",
+        shadowOffset: {
+            width: 0,
+            height: 4,
+        },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 6,
+    },
+    likedButton: {
+        backgroundColor: '#DB2777', // Pink for liked state
+        shadowColor: "#DB2777",
     },
     likeButtonText: {
         color: 'white',
         fontSize: 18,
         fontWeight: 'bold',
+        letterSpacing: 0.5,
     },
 });
