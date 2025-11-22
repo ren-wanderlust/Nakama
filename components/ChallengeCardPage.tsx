@@ -6,14 +6,14 @@ interface ThemeCardProps {
     icon: string;
     title: string;
     count: number;
-    imageUrl: string;
+    image: string;
     onPress: () => void;
 }
 
-const ThemeCard = ({ icon, title, count, imageUrl, onPress }: ThemeCardProps) => (
+const ThemeCard = ({ icon, title, count, image, onPress }: ThemeCardProps) => (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.9}>
         <ImageBackground
-            source={{ uri: imageUrl }}
+            source={{ uri: image }}
             style={styles.cardBackground}
             imageStyle={{ borderRadius: 16 }}
         >
@@ -46,17 +46,21 @@ interface ChallengeCardPageProps {
 
 const ICON_OPTIONS = ['🚀', '💻', '🎨', '🗣️', '💼', '💰', '🌍', '❤️', '📚', '🎮', '🎵', '⚽️'];
 
+const INITIAL_THEMES = [
+    { id: 1, icon: '🤖', title: 'AIプロダクト開発', count: 127, image: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=800&q=80' },
+    { id: 2, icon: '📱', title: 'モバイルアプリ開発', count: 203, image: 'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?auto=format&fit=crop&w=800&q=80' },
+    { id: 3, icon: '🚀', title: 'スタートアップ企業', count: 342, image: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=800&q=80' },
+    { id: 4, icon: '⛓️', title: 'Web3 / ブロックチェーン', count: 78, image: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&w=800&q=80' },
+    { id: 5, icon: '🏙️', title: '地方創生 / まちづくり', count: 85, image: 'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?auto=format&fit=crop&w=800&q=80' },
+    { id: 6, icon: '👗', title: 'D2C / ブランド立ち上げ', count: 94, image: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=800&q=80' },
+    { id: 7, icon: '🔥', title: 'ハッカソン / ビジコン', count: 110, image: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=800&q=80' },
+    { id: 8, icon: '📚', title: 'EdTech / 教育', count: 62, image: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=800&q=80' },
+    { id: 9, icon: '🤝', title: '学生団体 / コミュニティ', count: 156, image: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=800&q=80' },
+    { id: 10, icon: '💻', title: 'Vibeコーディング', count: 42, image: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=800&q=80' },
+];
+
 export function ChallengeCardPage({ onThemeSelect }: ChallengeCardPageProps) {
-    const [themes, setThemes] = useState([
-        { id: 1, icon: '🤖', title: 'AIプロダクト開発', count: 127, imageUrl: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=400&q=80' },
-        { id: 2, icon: '🌍', title: 'SDGs・社会課題', count: 85, imageUrl: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=400&q=80' },
-        { id: 3, icon: '📱', title: 'モバイルアプリ', count: 203, imageUrl: 'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=400&q=80' },
-        { id: 4, icon: '🎨', title: 'UI/UXデザイン', count: 94, imageUrl: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=400&q=80' },
-        { id: 5, icon: '🚀', title: 'スタートアップ', count: 342, imageUrl: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=400&q=80' },
-        { id: 6, icon: '💰', title: 'FinTech', count: 156, imageUrl: 'https://images.unsplash.com/photo-1611974765270-ca1258634369?w=400&q=80' },
-        { id: 7, icon: '🎮', title: 'GameFi / Web3', count: 78, imageUrl: 'https://images.unsplash.com/photo-1614680376593-902f74cf0d41?w=400&q=80' },
-        { id: 8, icon: '📢', title: 'マーケティング', count: 112, imageUrl: 'https://images.unsplash.com/photo-1557838923-2985c318be48?w=400&q=80' },
-    ]);
+    const [themes, setThemes] = useState(INITIAL_THEMES);
 
     const DEFAULT_IMAGES = [
         'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=400&q=80',
@@ -87,7 +91,7 @@ export function ChallengeCardPage({ onThemeSelect }: ChallengeCardPageProps) {
             icon: selectedIcon,
             title: newThemeTitle,
             count: 0,
-            imageUrl: DEFAULT_IMAGES[Math.floor(Math.random() * DEFAULT_IMAGES.length)]
+            image: DEFAULT_IMAGES[Math.floor(Math.random() * DEFAULT_IMAGES.length)]
         };
         setThemes([newTheme, ...themes]);
 
@@ -133,7 +137,7 @@ export function ChallengeCardPage({ onThemeSelect }: ChallengeCardPageProps) {
                                 icon={item.icon}
                                 title={item.title}
                                 count={item.count}
-                                imageUrl={item.imageUrl}
+                                image={item.image}
                                 onPress={() => onThemeSelect?.(item.title)}
                             />
                         ))}
@@ -245,7 +249,7 @@ export function ChallengeCardPage({ onThemeSelect }: ChallengeCardPageProps) {
                                             icon={item.icon}
                                             title={item.title}
                                             count={item.count}
-                                            imageUrl={item.imageUrl}
+                                            image={item.image}
                                             onPress={() => {
                                                 onThemeSelect?.(item.title);
                                                 setIsSearchModalVisible(false);
@@ -354,7 +358,7 @@ const styles = StyleSheet.create({
     },
     cardOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.35)', // Dark overlay for readability
+        backgroundColor: 'rgba(0,0,0,0.4)', // Dark overlay for readability
         padding: 12,
         justifyContent: 'space-between',
     },
@@ -403,7 +407,7 @@ const styles = StyleSheet.create({
     },
     actionLinkText: {
         fontSize: 11,
-        color: '#FFD700', // Gold/Yellow accent
+        color: '#FFEB3B', // Yellow accent
         fontWeight: 'bold',
     },
     fab: {
