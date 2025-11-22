@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Dimensions, Modal, TextInput, Alert, TouchableWithoutFeedback, Keyboard, ImageBackground } from 'react-native';
+import React, { useState, useMemo, useCallback } from 'react';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Dimensions, Modal, TextInput, Alert, TouchableWithoutFeedback, Keyboard, ImageBackground, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Profile } from '../types';
@@ -65,6 +65,7 @@ const INITIAL_THEMES = [
 
 export function ChallengeCardPage({ onThemeSelect, profiles = [] }: ChallengeCardPageProps) {
     const [themes, setThemes] = useState(INITIAL_THEMES);
+    const [refreshing, setRefreshing] = useState(false);
 
     const DEFAULT_IMAGES = [
         'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=400&q=80',
@@ -80,15 +81,32 @@ export function ChallengeCardPage({ onThemeSelect, profiles = [] }: ChallengeCar
     const [isSearchModalVisible, setIsSearchModalVisible] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
 
-    const filteredThemes = themes.filter(theme =>
+    // 参加人数を集計するロジック
+    const countParticipants = useCallback((themeTitle: string) => {
+        if (!profiles || profiles.length === 0) return 0;
+        return profiles.filter(profile => isProfileMatchingTheme(profile, themeTitle)).length;
+    }, [profiles]);
+
+    // テーマを参加人数順（降順）にソート
+    const sortedThemes = useMemo(() => {
+        const themesWithCount = themes.map(theme => ({
+            ...theme,
+            dynamicCount: countParticipants(theme.title)
+        }));
+        return themesWithCount.sort((a, b) => b.dynamicCount - a.dynamicCount);
+    }, [themes, countParticipants]);
+
+    const filteredThemes = sortedThemes.filter(theme =>
         theme.title.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    // 参加人数を集計するロジック
-    const countParticipants = (themeTitle: string) => {
-        if (!profiles || profiles.length === 0) return 0;
-        return profiles.filter(profile => isProfileMatchingTheme(profile, themeTitle)).length;
-    };
+    const onRefresh = useCallback(() => {
+        setRefreshing(true);
+        // 擬似的なリロード処理（本来はAPIからデータを再取得する）
+        setTimeout(() => {
+            setRefreshing(false);
+        }, 1500);
+    }, []);
 
     const handleCreateTheme = () => {
         if (!newThemeTitle.trim()) {
@@ -138,15 +156,26 @@ export function ChallengeCardPage({ onThemeSelect, profiles = [] }: ChallengeCar
                 </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+            <ScrollView
+                style={styles.content}
+                showsVerticalScrollIndicator={false}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        colors={['#009688']}
+                        tintColor="#009688"
+                    />
+                }
+            >
                 <View style={styles.gridContainer}>
                     <View style={styles.grid}>
-                        {themes.map((item) => (
+                        {sortedThemes.map((item) => (
                             <ThemeCard
                                 key={item.id}
                                 icon={item.icon}
                                 title={item.title}
-                                count={countParticipants(item.title)} // 動的に計算した人数を表示
+                                count={item.dynamicCount} // ソート済みの計算結果を使用
                                 image={item.image}
                                 onPress={() => onThemeSelect?.(item.title)}
                             />
