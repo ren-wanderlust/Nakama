@@ -14,6 +14,25 @@ interface ThemeDetailPageProps {
 }
 
 export function ThemeDetailPage({ themeTitle, onBack, profiles, onProfileSelect, onLike, likedProfileIds }: ThemeDetailPageProps) {
+    // Filter profiles based on the selected theme title
+    const filteredProfiles = React.useMemo(() => {
+        // Split theme title into keywords (e.g., "SDGs・社会課題" -> ["SDGs", "社会課題"])
+        const keywords = themeTitle.split(/・|\s+/).filter(k => k.length > 0);
+
+        return profiles.filter(profile => {
+            // Check if any keyword matches relevant profile fields
+            return keywords.some(keyword => {
+                const lowerKeyword = keyword.toLowerCase();
+                return (
+                    profile.challengeTheme.toLowerCase().includes(lowerKeyword) ||
+                    profile.theme.toLowerCase().includes(lowerKeyword) ||
+                    profile.bio.toLowerCase().includes(lowerKeyword) ||
+                    (profile.skills && profile.skills.some(skill => skill.toLowerCase().includes(lowerKeyword)))
+                );
+            });
+        });
+    }, [themeTitle, profiles]);
+
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
@@ -24,7 +43,7 @@ export function ThemeDetailPage({ themeTitle, onBack, profiles, onProfileSelect,
                 <View style={{ width: 28 }} />
             </View>
             <FlatList
-                data={profiles}
+                data={filteredProfiles}
                 renderItem={({ item }) => (
                     <View style={styles.gridItem}>
                         <ProfileCard
@@ -40,6 +59,11 @@ export function ThemeDetailPage({ themeTitle, onBack, profiles, onProfileSelect,
                 contentContainerStyle={styles.listContent}
                 columnWrapperStyle={styles.columnWrapper}
                 showsVerticalScrollIndicator={false}
+                ListEmptyComponent={
+                    <View style={styles.emptyContainer}>
+                        <Text style={styles.emptyText}>このテーマに参加しているユーザーはいません</Text>
+                    </View>
+                }
             />
         </SafeAreaView>
     );
@@ -78,5 +102,15 @@ const styles = StyleSheet.create({
     },
     gridItem: {
         // width handled in ProfileCard
+    },
+    emptyContainer: {
+        alignItems: 'center',
+        marginTop: 40,
+        paddingHorizontal: 20,
+    },
+    emptyText: {
+        fontSize: 16,
+        color: '#6B7280',
+        textAlign: 'center',
     },
 });
