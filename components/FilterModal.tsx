@@ -20,7 +20,17 @@ export interface FilterCriteria {
     ageMax: string;
     location: string;
     isStudentOnly: boolean;
+    statuses: string[];
 }
+
+const STATUS_OPTIONS = [
+    'ビジネスメンバー探し',
+    'アイデア模索中',
+    'コミュニティ形成',
+    'まずは話してみたい',
+    '起業に興味あり',
+    '壁打ち相手募集',
+];
 
 interface FilterModalProps {
     visible: boolean;
@@ -35,6 +45,7 @@ export function FilterModal({ visible, onClose, onApply, initialCriteria }: Filt
     const [ageMax, setAgeMax] = useState(initialCriteria?.ageMax || '25');
     const [location, setLocation] = useState(initialCriteria?.location || '');
     const [isStudentOnly, setIsStudentOnly] = useState(initialCriteria?.isStudentOnly || false);
+    const [selectedStatuses, setSelectedStatuses] = useState<string[]>(initialCriteria?.statuses || []);
 
     const [showResetConfirm, setShowResetConfirm] = useState(false);
 
@@ -48,6 +59,7 @@ export function FilterModal({ visible, onClose, onApply, initialCriteria }: Filt
         setAgeMax('25');
         setLocation('');
         setIsStudentOnly(false);
+        setSelectedStatuses([]);
         setShowResetConfirm(false);
     };
 
@@ -58,6 +70,7 @@ export function FilterModal({ visible, onClose, onApply, initialCriteria }: Filt
             ageMax,
             location,
             isStudentOnly,
+            statuses: selectedStatuses,
         });
         onClose();
     };
@@ -80,6 +93,36 @@ export function FilterModal({ visible, onClose, onApply, initialCriteria }: Filt
                     </View>
 
                     <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent}>
+                        {/* Status/Purpose Section */}
+                        <View style={styles.section}>
+                            <View style={styles.sectionHeader}>
+                                <View style={styles.sectionBar} />
+                                <Text style={styles.sectionTitle}>🚩 ステータス・目的</Text>
+                            </View>
+                            <View style={styles.chipContainer}>
+                                {STATUS_OPTIONS.map((status) => {
+                                    const isSelected = selectedStatuses.includes(status);
+                                    return (
+                                        <TouchableOpacity
+                                            key={status}
+                                            style={[styles.chip, isSelected && styles.chipSelected]}
+                                            onPress={() => {
+                                                if (isSelected) {
+                                                    setSelectedStatuses(prev => prev.filter(s => s !== status));
+                                                } else {
+                                                    setSelectedStatuses(prev => [...prev, status]);
+                                                }
+                                            }}
+                                        >
+                                            <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
+                                                {status}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    );
+                                })}
+                            </View>
+                        </View>
+
                         {/* Basic Attributes Section */}
                         <View style={styles.section}>
                             <View style={styles.sectionHeader}>
@@ -423,5 +466,30 @@ const styles = StyleSheet.create({
         color: 'white',
         fontWeight: 'bold',
         fontSize: 14,
+    },
+    chipContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+    },
+    chip: {
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 20,
+        backgroundColor: '#f3f4f6',
+        borderWidth: 1,
+        borderColor: '#e5e7eb',
+    },
+    chipSelected: {
+        backgroundColor: '#ccfbf1', // teal-100
+        borderColor: '#0d9488', // teal-600
+    },
+    chipText: {
+        fontSize: 13,
+        color: '#4b5563',
+    },
+    chipTextSelected: {
+        color: '#0f766e', // teal-700
+        fontWeight: 'bold',
     },
 });

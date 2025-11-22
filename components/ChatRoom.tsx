@@ -116,7 +116,7 @@ export function ChatRoom({ onBack, partnerName, partnerImage, onPartnerProfilePr
             'メニュー',
             '',
             [
-                { text: '相手のプロフィールを見る', onPress: () => console.log('View Profile') },
+                { text: '相手のプロフィールを見る', onPress: onPartnerProfilePress },
                 { text: '通知をオフにする', onPress: () => Alert.alert('完了', '通知をオフにしました') },
                 {
                     text: 'ブロックする',

@@ -180,6 +180,13 @@ export default function App() {
     // Student filter
     if (filterCriteria.isStudentOnly && !profile.isStudent) return false;
 
+    // Status filter
+    if (filterCriteria.statuses && filterCriteria.statuses.length > 0) {
+      const matchStatus = profile.statusTags?.some(tag => filterCriteria.statuses!.includes(tag)) ||
+        profile.seekingFor?.some(tag => filterCriteria.statuses!.includes(tag));
+      if (!matchStatus) return false;
+    }
+
     return true;
   });
 
