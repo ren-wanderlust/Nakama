@@ -5,9 +5,11 @@ import { Ionicons } from '@expo/vector-icons';
 interface SettingsPageProps {
     onBack: () => void;
     onLogout?: () => void;
+    onOpenTerms?: () => void;
+    onOpenPrivacy?: () => void;
 }
 
-export function SettingsPage({ onBack, onLogout }: SettingsPageProps) {
+export function SettingsPage({ onBack, onLogout, onOpenTerms, onOpenPrivacy }: SettingsPageProps) {
     const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
     const handleLogout = () => {
@@ -98,8 +100,8 @@ export function SettingsPage({ onBack, onLogout }: SettingsPageProps) {
                 {/* Legal */}
                 {renderSectionHeader('サポート・規約')}
                 <View style={styles.sectionContainer}>
-                    {renderItem('document-text-outline', '利用規約', <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />, () => handleOpenURL('https://example.com/terms'), false, '#8E8E93')}
-                    {renderItem('shield-checkmark-outline', 'プライバシーポリシー', <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />, () => handleOpenURL('https://example.com/privacy'), false, '#8E8E93')}
+                    {renderItem('document-text-outline', '利用規約', <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />, onOpenTerms, false, '#8E8E93')}
+                    {renderItem('shield-checkmark-outline', 'プライバシーポリシー', <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />, onOpenPrivacy, false, '#8E8E93')}
                     {renderItem('mail-outline', 'お問い合わせ', <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />, () => handleOpenURL('mailto:support@bizyou.app'), true, '#007AFF')}
                 </View>
 

@@ -20,6 +20,7 @@ import { ProfileEdit } from './components/ProfileEdit';
 import { SettingsPage } from './components/SettingsPage';
 import { HelpPage } from './components/HelpPage';
 import { ThemeDetailPage } from './components/ThemeDetailPage';
+import { LegalDocumentPage } from './components/LegalDocumentPage';
 import { Profile } from './types';
 
 // Placeholder component for tabs under development
@@ -46,6 +47,7 @@ export default function App() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [legalDocument, setLegalDocument] = useState<{ title: string; content: string } | null>(null);
 
   // Mock profiles
   const INITIAL_PROFILES: Profile[] = [
@@ -450,18 +452,32 @@ export default function App() {
                 likedProfileIds={likedProfiles}
               />
             ) : (
-              <ChallengeCardPage 
-                onThemeSelect={setSelectedTheme} 
+              <ChallengeCardPage
+                onThemeSelect={setSelectedTheme}
                 profiles={displayProfiles}
               />
             )
           )}
           {activeTab === 'profile' && (
             <>
-              {showSettings ? (
+              {legalDocument ? (
+                <LegalDocumentPage
+                  title={legalDocument.title}
+                  content={legalDocument.content}
+                  onBack={() => setLegalDocument(null)}
+                />
+              ) : showSettings ? (
                 <SettingsPage
                   onBack={() => setShowSettings(false)}
                   onLogout={() => setIsLoggedIn(false)}
+                  onOpenTerms={() => setLegalDocument({
+                    title: '利用規約',
+                    content: '利用規約\n\nこの利用規約（以下，「本規約」といいます。）は，BizYou（以下，「当社」といいます。）がこのウェブサイト上で提供するサービス（以下，「本サービス」といいます。）の利用条件を定めるものです。登録ユーザーの皆さま（以下，「ユーザー」といいます。）には，本規約に従って，本サービスをご利用いただきます。\n\n第1条（適用）\n1. 本規約は，ユーザーと当社との間の本サービスの利用に関わる一切の関係に適用されるものとします。\n2. 当社は本サービスに関し，本規約のほか，ご利用にあたってのルール等，各種の定め（以下，「個別規定」といいます。）をすることがあります。これら個別規定はその名称のいかんに関わらず，本規約の一部を構成するものとします。\n3. 本規約の規定が前項の個別規定の規定と矛盾する場合には，個別規定において特段の定めなき限り，個別規定の規定が優先されるものとします。\n\n第2条（利用登録）\n1. 本サービスにおいては，登録希望者が本規約に同意の上，当社の定める方法によって利用登録を申請し，当社がこれを承認することによって，利用登録が完了するものとします。\n2. 当社は，利用登録の申請者に以下の事由があると判断した場合，利用登録の申請を承認しないことがあり，その理由については一切の開示義務を負わないものとします。\n   (1) 利用登録の申請に際して虚偽の事項を届け出た場合\n   (2) 本規約に違反したことがある者からの申請である場合\n   (3) その他，当社が利用登録を相当でないと判断した場合\n\n第3条（ユーザーIDおよびパスワードの管理）\n1. ユーザーは，自己の責任において，本サービスのユーザーIDおよびパスワードを適切に管理するものとします。\n2. ユーザーは，いかなる場合にも，ユーザーIDおよびパスワードを第三者に譲渡または貸与し，もしくは第三者と共用することはできません。当社は，ユーザーIDとパスワードの組み合わせが登録情報と一致してログインされた場合には，そのユーザーIDを登録しているユーザー自身による利用とみなします。\n3. ユーザーID及びパスワードが第三者によって使用されたことによって生じた損害は，当社に故意又は重大な過失がある場合を除き，当社は一切の責任を負わないものとします。\n\n（以下省略）'
+                  })}
+                  onOpenPrivacy={() => setLegalDocument({
+                    title: 'プライバシーポリシー',
+                    content: 'プライバシーポリシー\n\nBizYou（以下，「当社」といいます。）は，本ウェブサイト上で提供するサービス（以下，「本サービス」といいます。）における，ユーザーの個人情報の取扱いについて，以下のとおりプライバシーポリシー（以下，「本ポリシー」といいます。）を定めます。\n\n第1条（個人情報）\n「個人情報」とは，個人情報保護法にいう「個人情報」を指すものとし，生存する個人に関する情報であって，当該情報に含まれる氏名，生年月日，住所，電話番号，連絡先その他の記述等により特定の個人を識別できる情報及び容貌，指紋，声紋にかかるデータ，及び健康保険証の保険者番号などの当該情報単体から特定の個人を識別できる情報（個人識別情報）を指します。\n\n第2条（個人情報の収集方法）\n当社は，ユーザーが利用登録をする際に氏名，生年月日，住所，電話番号，メールアドレス，銀行口座番号，クレジットカード番号，運転免許証番号などの個人情報をお尋ねすることがあります。また，ユーザーと提携先などとの間でなされたユーザーの個人情報を含む取引記録や決済に関する情報を,当社の提携先（情報提供元，広告主，広告配信先などを含みます。以下，｢提携先｣といいます。）などから収集することがあります。\n\n第3条（個人情報を収集・利用する目的）\n当社が個人情報を収集・利用する目的は，以下のとおりです。\n1. 当社サービスの提供・運営のため\n2. ユーザーからのお問い合わせに回答するため（本人確認を行うことを含む）\n3. ユーザーが利用中のサービスの新機能，更新情報，キャンペーン等及び当社が提供する他のサービスの案内のメールを送付するため\n4. メンテナンス，重要なお知らせなど必要に応じたご連絡のため\n5. 利用規約に違反したユーザーや，不正・不当な目的でサービスを利用しようとするユーザーの特定をし，ご利用をお断りするため\n6. ユーザーにご自身の登録情報の閲覧や変更，削除，ご利用状況の閲覧を行っていただくため\n7. 有料サービスにおいて，ユーザーに利用料金を請求するため\n8. 上記の利用目的に付随する目的\n\n（以下省略）'
+                  })}
                 />
               ) : showHelp ? (
                 <HelpPage
