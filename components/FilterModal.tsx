@@ -190,7 +190,6 @@ export function FilterModal({ visible, onClose, onApply, initialCriteria }: Filt
                                         onChangeText={setKeyword}
                                         placeholder="キーワードを入力"
                                     />
-                                    <Ionicons name="search" size={20} color="#9ca3af" style={styles.searchIcon} />
                                 </View>
                             </View>
                         </View>
@@ -364,14 +363,8 @@ const styles = StyleSheet.create({
         borderColor: '#d1d5db',
         borderRadius: 8,
         padding: 10,
-        paddingRight: 40,
         fontSize: 14,
         backgroundColor: 'white',
-    },
-    searchIcon: {
-        position: 'absolute',
-        right: 12,
-        top: 12,
     },
     footer: {
         padding: 16,
