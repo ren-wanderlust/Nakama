@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import {
     StyleSheet,
     Text,
@@ -20,6 +20,14 @@ interface Message {
     text: string;
     sender: 'me' | 'other';
     timestamp: string;
+    date: string; // ISO date string for grouping (YYYY-MM-DD)
+}
+
+interface MessageItem {
+    type: 'date' | 'message';
+    id: string;
+    dateLabel?: string; // For date separators
+    message?: Message; // For actual messages
 }
 
 interface ChatRoomProps {
@@ -29,53 +37,116 @@ interface ChatRoomProps {
     onPartnerProfilePress: () => void;
 }
 
+// Helper function to get date label
+const getDateLabel = (dateString: string): string => {
+    const messageDate = new Date(dateString);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    // Reset time to compare only dates
+    messageDate.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+    yesterday.setHours(0, 0, 0, 0);
+
+    if (messageDate.getTime() === today.getTime()) {
+        return '今日';
+    } else if (messageDate.getTime() === yesterday.getTime()) {
+        return '昨日';
+    } else {
+        // Format as MM/DD
+        return `${messageDate.getMonth() + 1}/${messageDate.getDate()}`;
+    }
+};
+
 export function ChatRoom({ onBack, partnerName, partnerImage, onPartnerProfilePress }: ChatRoomProps) {
+    // Sample messages with dates (using dates from the past few days for demo)
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const twoDaysAgo = new Date(today);
+    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+
     const [messages, setMessages] = useState<Message[]>([
         {
             id: '1',
             text: 'はじめまして！プロフィール拝見しました。',
             sender: 'other',
             timestamp: '10:30',
+            date: twoDaysAgo.toISOString().split('T')[0],
         },
         {
             id: '2',
             text: 'AIを活用したプロダクト開発に興味があります！',
             sender: 'other',
             timestamp: '10:31',
+            date: twoDaysAgo.toISOString().split('T')[0],
         },
         {
             id: '3',
             text: 'はじめまして！メッセージありがとうございます。',
             sender: 'me',
-            timestamp: '10:35',
+            timestamp: '14:35',
+            date: yesterday.toISOString().split('T')[0],
         },
         {
             id: '4',
             text: 'ぜひ一度お話ししませんか？',
             sender: 'me',
-            timestamp: '10:35',
+            timestamp: '14:35',
+            date: yesterday.toISOString().split('T')[0],
         },
         {
             id: '5',
             text: 'ぜひお願いします！来週の平日で都合の良い日はありますか？',
             sender: 'other',
             timestamp: '10:40',
+            date: today.toISOString().split('T')[0],
         },
     ]);
 
     const [inputText, setInputText] = useState('');
     const flatListRef = useRef<FlatList>(null);
 
+    // Create message list with date separators
+    const messageListWithDates = useMemo(() => {
+        const items: MessageItem[] = [];
+        let lastDate: string | null = null;
+
+        messages.forEach((message) => {
+            // Add date separator if date changed
+            if (message.date !== lastDate) {
+                items.push({
+                    type: 'date',
+                    id: `date-${message.date}`,
+                    dateLabel: getDateLabel(message.date),
+                });
+                lastDate = message.date;
+            }
+
+            // Add message
+            items.push({
+                type: 'message',
+                id: message.id,
+                message,
+            });
+        });
+
+        return items;
+    }, [messages]);
+
     const handleSend = () => {
         if (inputText.trim()) {
+            const now = new Date();
             const newMessage: Message = {
                 id: Date.now().toString(),
                 text: inputText,
                 sender: 'me',
-                timestamp: new Date().toLocaleTimeString('ja-JP', {
+                timestamp: now.toLocaleTimeString('ja-JP', {
                     hour: '2-digit',
                     minute: '2-digit',
                 }),
+                date: now.toISOString().split('T')[0],
             };
             setMessages([...messages, newMessage]);
             setInputText('');
@@ -86,8 +157,16 @@ export function ChatRoom({ onBack, partnerName, partnerImage, onPartnerProfilePr
         }
     };
 
-    const renderMessage = ({ item }: { item: Message }) => {
-        const isMe = item.sender === 'me';
+    const renderDateSeparator = (dateLabel: string) => (
+        <View style={styles.dateSeparatorContainer}>
+            <View style={styles.dateSeparatorLine} />
+            <Text style={styles.dateSeparatorText}>{dateLabel}</Text>
+            <View style={styles.dateSeparatorLine} />
+        </View>
+    );
+
+    const renderMessage = (message: Message) => {
+        const isMe = message.sender === 'me';
         return (
             <View style={[styles.messageRow, isMe ? styles.messageRowMe : styles.messageRowOther]}>
                 <View style={[styles.messageContainer, isMe ? styles.messageContainerMe : styles.messageContainerOther]}>
@@ -98,17 +177,25 @@ export function ChatRoom({ onBack, partnerName, partnerImage, onPartnerProfilePr
                             end={{ x: 1, y: 0 }}
                             style={styles.bubbleGradient}
                         >
-                            <Text style={styles.messageTextMe}>{item.text}</Text>
+                            <Text style={styles.messageTextMe}>{message.text}</Text>
                         </LinearGradient>
                     ) : (
                         <View style={styles.bubbleOther}>
-                            <Text style={styles.messageTextOther}>{item.text}</Text>
+                            <Text style={styles.messageTextOther}>{message.text}</Text>
                         </View>
                     )}
-                    <Text style={styles.timestamp}>{item.timestamp}</Text>
+                    <Text style={styles.timestamp}>{message.timestamp}</Text>
                 </View>
             </View>
         );
+    };
+
+    const renderItem = ({ item }: { item: MessageItem }) => {
+        if (item.type === 'date') {
+            return renderDateSeparator(item.dateLabel!);
+        } else {
+            return renderMessage(item.message!);
+        }
     };
 
     const handleMenuPress = () => {
@@ -161,8 +248,8 @@ export function ChatRoom({ onBack, partnerName, partnerImage, onPartnerProfilePr
             {/* Messages */}
             <FlatList
                 ref={flatListRef}
-                data={messages}
-                renderItem={renderMessage}
+                data={messageListWithDates}
+                renderItem={renderItem}
                 keyExtractor={(item) => item.id}
                 contentContainerStyle={styles.messagesList}
                 onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
@@ -258,6 +345,23 @@ const styles = StyleSheet.create({
     messagesList: {
         padding: 16,
         paddingBottom: 32,
+    },
+    dateSeparatorContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginVertical: 20,
+        paddingHorizontal: 16,
+    },
+    dateSeparatorLine: {
+        flex: 1,
+        height: 1,
+        backgroundColor: '#d1d5db',
+    },
+    dateSeparatorText: {
+        paddingHorizontal: 12,
+        fontSize: 12,
+        color: '#6b7280',
+        fontWeight: '500',
     },
     messageRow: {
         marginBottom: 16,
