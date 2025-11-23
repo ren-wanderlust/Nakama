@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View, Image, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
+import { StyleSheet, Text, View, Image, TouchableOpacity, ScrollView, SafeAreaView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Profile } from '../types';
@@ -104,6 +104,33 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                     >
                         <Text style={styles.logoutText}>ログアウト</Text>
                     </TouchableOpacity>
+
+                    {/* Delete Account */}
+                    <View style={styles.deleteAccountContainer}>
+                        <TouchableOpacity
+                            style={styles.deleteAccountButton}
+                            onPress={() => {
+                                Alert.alert(
+                                    "アカウント削除",
+                                    "本当にアカウントを削除しますか？この操作は取り消せません。\nすべてのデータが完全に削除されます。",
+                                    [
+                                        { text: "キャンセル", style: "cancel" },
+                                        {
+                                            text: "削除する",
+                                            style: "destructive",
+                                            onPress: () => {
+                                                Alert.alert("完了", "アカウント削除のリクエストを受け付けました。\n（デモ版のため実際の削除は行われません）", [
+                                                    { text: "OK", onPress: onLogout }
+                                                ]);
+                                            }
+                                        }
+                                    ]
+                                );
+                            }}
+                        >
+                            <Text style={styles.deleteAccountText}>アカウントを削除する</Text>
+                        </TouchableOpacity>
+                    </View>
 
                     {/* App Version */}
                     <View style={styles.versionContainer}>
@@ -249,5 +276,17 @@ const styles = StyleSheet.create({
     versionText: {
         fontSize: 12,
         color: '#CCC',
+    },
+    deleteAccountContainer: {
+        alignItems: 'center',
+        marginBottom: 24,
+    },
+    deleteAccountButton: {
+        padding: 8,
+    },
+    deleteAccountText: {
+        fontSize: 13,
+        color: '#999',
+        textDecorationLine: 'underline',
     },
 });
