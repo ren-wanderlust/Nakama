@@ -11,10 +11,12 @@ import {
     Platform,
     TouchableWithoutFeedback,
     Keyboard,
-    Alert
+    Alert,
+    Image
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as ImagePicker from 'expo-image-picker';
 
 interface SignupFlowProps {
     onComplete: () => void;
@@ -31,6 +33,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
     const [nickname, setNickname] = useState('');
 
     // Step 2: Profile info
+    const [imageUri, setImageUri] = useState<string | null>(null);
     const [age, setAge] = useState('');
     const [university, setUniversity] = useState('');
     const [bio, setBio] = useState('');
@@ -46,6 +49,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
         email: false,
         password: false,
         passwordConfirm: false,
+        image: false,
         age: false,
         university: false,
         bio: false,
@@ -112,6 +116,21 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
         '壁打ち相手募集',
     ];
 
+    const pickImage = async () => {
+        // No permissions request is necessary for launching the image library
+        let result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.8,
+        });
+
+        if (!result.canceled) {
+            setImageUri(result.assets[0].uri);
+            if (errors.image) setErrors({ ...errors, image: false });
+        }
+    };
+
     const handleToggle = (
         item: string,
         list: string[],
@@ -177,6 +196,14 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
         let isValid = true;
         const newErrors = { ...errors };
         let errorMessage = '';
+
+        if (!imageUri) {
+            newErrors.image = true;
+            isValid = false;
+            if (!errorMessage) errorMessage = 'プロフィール画像を設定してください。';
+        } else {
+            newErrors.image = false;
+        }
 
         if (!age.trim()) {
             newErrors.age = true;
@@ -256,7 +283,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
         if (validateStep3()) {
             // Here you would typically save the data
             console.log('Registration complete', {
-                email, password, nickname, age, university, bio,
+                email, password, nickname, imageUri, age, university, bio,
                 seekingFor, skills, seekingRoles
             });
             onComplete();
@@ -386,6 +413,25 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
         <View style={styles.stepContainer}>
             <Text style={styles.stepTitle}>基本プロフィール</Text>
             <Text style={styles.stepSubtitle}>あなたの基本情報を入力してください</Text>
+
+            <View style={styles.imagePickerContainer}>
+                <TouchableOpacity onPress={pickImage} style={[styles.imagePicker, errors.image && styles.imagePickerError]}>
+                    {imageUri ? (
+                        <>
+                            <Image source={{ uri: imageUri }} style={styles.profileImage} />
+                            <View style={styles.editIconContainer}>
+                                <Ionicons name="pencil" size={12} color="white" />
+                            </View>
+                        </>
+                    ) : (
+                        <View style={styles.imagePlaceholder}>
+                            <Ionicons name="camera" size={32} color="#9ca3af" />
+                            <Text style={styles.imagePlaceholderText}>写真を追加</Text>
+                        </View>
+                    )}
+                </TouchableOpacity>
+                {errors.image && <Text style={styles.errorText}>必須です</Text>}
+            </View>
 
             <View style={styles.formGroup}>
                 <Text style={styles.label}>年齢</Text>
@@ -672,6 +718,56 @@ const styles = StyleSheet.create({
     inputError: {
         backgroundColor: '#fef2f2',
         borderColor: '#ef4444',
+    },
+    imagePickerContainer: {
+        alignItems: 'center',
+        marginBottom: 24,
+    },
+    imagePicker: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        backgroundColor: '#f3f4f6',
+        overflow: 'hidden',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#e5e7eb',
+    },
+    imagePickerError: {
+        borderColor: '#ef4444',
+        borderWidth: 2,
+    },
+    profileImage: {
+        width: '100%',
+        height: '100%',
+    },
+    imagePlaceholder: {
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    imagePlaceholderText: {
+        fontSize: 12,
+        color: '#6b7280',
+        marginTop: 4,
+    },
+    editIconContainer: {
+        position: 'absolute',
+        bottom: 0,
+        right: 0,
+        backgroundColor: '#0d9488',
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 2,
+        borderColor: 'white',
+    },
+    errorText: {
+        color: '#ef4444',
+        fontSize: 12,
+        marginTop: 4,
     },
     sectionTitleError: {
         color: '#ef4444',
