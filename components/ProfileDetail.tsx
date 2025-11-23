@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View, Image, TouchableOpacity, ScrollView, SafeAreaView, Dimensions } from 'react-native';
+import { StyleSheet, Text, View, Image, TouchableOpacity, ScrollView, SafeAreaView, Dimensions, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Profile } from '../types';
 
@@ -63,6 +63,33 @@ export function ProfileDetail({ profile, onBack, onLike, isLiked }: ProfileDetai
     const statusTag = profile.statusTags && profile.statusTags.length > 0 ? profile.statusTags[0] : null;
     const statusStyle = statusTag ? getTagStyle(statusTag) : null;
 
+    const handleMenuPress = () => {
+        Alert.alert(
+            'メニュー',
+            `${profile.name}さんに対する操作`,
+            [
+                {
+                    text: 'ブロックする',
+                    style: 'destructive',
+                    onPress: () => Alert.alert('確認', '本当にブロックしますか？', [
+                        { text: 'キャンセル', style: 'cancel' },
+                        { text: 'ブロック実行', style: 'destructive', onPress: () => Alert.alert('完了', 'ブロックしました') }
+                    ])
+                },
+                {
+                    text: '通報する',
+                    style: 'destructive',
+                    onPress: () => Alert.alert('通報', '不適切なユーザーとして報告しますか？', [
+                        { text: 'キャンセル', style: 'cancel' },
+                        { text: '通報する', style: 'destructive', onPress: () => Alert.alert('完了', '通報を受け付けました') }
+                    ])
+                },
+                { text: 'キャンセル', style: 'cancel' }
+            ],
+            { cancelable: true }
+        );
+    };
+
     return (
         <SafeAreaView style={styles.container}>
             {/* Navigation Header */}
@@ -70,9 +97,14 @@ export function ProfileDetail({ profile, onBack, onLike, isLiked }: ProfileDetai
                 <TouchableOpacity onPress={onBack} style={styles.navButton}>
                     <Ionicons name="chevron-back" size={28} color="#374151" />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.navButton}>
-                    <Ionicons name="chatbubble-outline" size={24} color="#374151" />
-                </TouchableOpacity>
+                <View style={styles.headerRightButtons}>
+                    <TouchableOpacity style={styles.navButton}>
+                        <Ionicons name="chatbubble-outline" size={24} color="#374151" />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.navButton} onPress={handleMenuPress}>
+                        <Ionicons name="ellipsis-horizontal" size={24} color="#374151" />
+                    </TouchableOpacity>
+                </View>
             </View>
 
             <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -207,6 +239,10 @@ const styles = StyleSheet.create({
     },
     navButton: {
         padding: 8,
+    },
+    headerRightButtons: {
+        flexDirection: 'row',
+        gap: 8,
     },
     scrollView: {
         flex: 1,
