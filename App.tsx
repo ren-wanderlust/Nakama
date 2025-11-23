@@ -21,6 +21,7 @@ import { SettingsPage } from './components/SettingsPage';
 import { HelpPage } from './components/HelpPage';
 import { ThemeDetailPage } from './components/ThemeDetailPage';
 import { LegalDocumentPage } from './components/LegalDocumentPage';
+import { OnboardingScreen } from './components/OnboardingScreen';
 import { Profile } from './types';
 
 // Placeholder component for tabs under development
@@ -33,6 +34,7 @@ const PlaceholderScreen = ({ title }: { title: string }) => (
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
   const [likedProfiles, setLikedProfiles] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState('search');
@@ -252,6 +254,14 @@ export default function App() {
 
   // Show login screen if not logged in
   if (!isLoggedIn) {
+    if (!hasCompletedOnboarding) {
+      return (
+        <SafeAreaProvider>
+          <OnboardingScreen onComplete={() => setHasCompletedOnboarding(true)} />
+        </SafeAreaProvider>
+      );
+    }
+
     if (showSignup) {
       return (
         <SafeAreaProvider>
