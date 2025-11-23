@@ -18,6 +18,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
+import { supabase } from '../lib/supabase';
 
 interface SignupFlowProps {
     onComplete: () => void;
@@ -282,18 +283,51 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
         }
     };
 
-    const handleComplete = () => {
+    const handleComplete = async () => {
         if (validateStep3()) {
             setIsSubmitting(true);
-            // Simulate network request
-            setTimeout(() => {
-                console.log('Registration complete', {
-                    email, password, nickname, imageUri, age, university, bio,
-                    seekingFor, skills, seekingRoles
+            try {
+                // 1. Sign up
+                const { data: { user }, error: signUpError } = await supabase.auth.signUp({
+                    email,
+                    password,
                 });
-                setIsSubmitting(false);
+
+                if (signUpError) throw signUpError;
+
+                if (user) {
+                    // 2. Insert profile
+                    // Note: This requires the 'profiles' table to exist.
+                    const { error: profileError } = await supabase
+                        .from('profiles')
+                        .insert([
+                            {
+                                id: user.id,
+                                name: nickname,
+                                age: parseInt(age, 10),
+                                university: university, // or company
+                                bio: bio,
+                                image: imageUri, // TODO: Upload to Storage
+                                skills: skills,
+                                seeking_for: seekingFor,
+                                seeking_roles: seekingRoles,
+                                is_student: true, // Defaulting to true for now
+                                created_at: new Date().toISOString(),
+                            }
+                        ]);
+
+                    if (profileError) {
+                        console.error('Profile creation error:', profileError);
+                        Alert.alert('注意', 'ユーザー登録は完了しましたが、プロフィールの保存に失敗しました。データベースの設定が必要です。');
+                    }
+                }
+
                 onComplete();
-            }, 1500);
+            } catch (error: any) {
+                Alert.alert('登録エラー', error.message || '登録に失敗しました');
+            } finally {
+                setIsSubmitting(false);
+            }
         }
     };
 
