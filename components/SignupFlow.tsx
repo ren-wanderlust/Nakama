@@ -12,7 +12,8 @@ import {
     TouchableWithoutFeedback,
     Keyboard,
     Alert,
-    Image
+    Image,
+    ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -37,6 +38,8 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
     const [age, setAge] = useState('');
     const [university, setUniversity] = useState('');
     const [bio, setBio] = useState('');
+
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Step 3: Tags (same as ProfileEdit)
     const [seekingFor, setSeekingFor] = useState<string[]>([]);
@@ -281,12 +284,16 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
 
     const handleComplete = () => {
         if (validateStep3()) {
-            // Here you would typically save the data
-            console.log('Registration complete', {
-                email, password, nickname, imageUri, age, university, bio,
-                seekingFor, skills, seekingRoles
-            });
-            onComplete();
+            setIsSubmitting(true);
+            // Simulate network request
+            setTimeout(() => {
+                console.log('Registration complete', {
+                    email, password, nickname, imageUri, age, university, bio,
+                    seekingFor, skills, seekingRoles
+                });
+                setIsSubmitting(false);
+                onComplete();
+            }, 1500);
         }
     };
 
@@ -615,6 +622,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                     <TouchableOpacity
                         onPress={step === 3 ? handleComplete : handleNext}
                         activeOpacity={0.9}
+                        disabled={isSubmitting}
                     >
                         <LinearGradient
                             colors={['#0d9488', '#14b8a6']}
@@ -622,10 +630,16 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                             end={{ x: 1, y: 0 }}
                             style={styles.nextButton}
                         >
-                            <Text style={styles.nextButtonText}>
-                                {step === 3 ? '登録してはじめる' : '次へ'}
-                            </Text>
-                            {step < 3 && <Ionicons name="arrow-forward" size={20} color="white" />}
+                            {isSubmitting ? (
+                                <ActivityIndicator color="white" />
+                            ) : (
+                                <>
+                                    <Text style={styles.nextButtonText}>
+                                        {step === 3 ? '登録してはじめる' : '次へ'}
+                                    </Text>
+                                    {step < 3 && <Ionicons name="arrow-forward" size={20} color="white" />}
+                                </>
+                            )}
                         </LinearGradient>
                     </TouchableOpacity>
                 </View>

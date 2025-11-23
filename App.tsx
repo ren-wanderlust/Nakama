@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, SafeAreaView, FlatList, TouchableOpacity, Platform, RefreshControl } from 'react-native';
+import { StyleSheet, Text, View, SafeAreaView, FlatList, TouchableOpacity, Platform, RefreshControl, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -34,8 +34,19 @@ const PlaceholderScreen = ({ title }: { title: string }) => (
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean | null>(null);
   const [showSignup, setShowSignup] = useState(false);
+
+  React.useEffect(() => {
+    // Simulate checking onboarding status
+    const checkOnboarding = async () => {
+      // In a real app, check AsyncStorage here
+      setTimeout(() => {
+        setHasCompletedOnboarding(true);
+      }, 1000);
+    };
+    checkOnboarding();
+  }, []);
   const [likedProfiles, setLikedProfiles] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState('search');
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
@@ -243,43 +254,48 @@ export default function App() {
     });
   };
 
-  const handleEditProfile = () => {
-    setShowProfileEdit(true);
-  };
-
   const handleSaveProfile = (updatedProfile: Profile) => {
     setCurrentUser(updatedProfile);
     setShowProfileEdit(false);
   };
 
-  // Show login screen if not logged in
+  const handleEditProfile = () => {
+    setShowProfileEdit(true);
+  };
+
+  const handleLogin = () => {
+    setIsLoggedIn(true);
+  };
+
+  // Show loading screen while checking onboarding status
+  if (hasCompletedOnboarding === null) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#009688" />
+        <Text style={styles.loadingText}>読み込み中...</Text>
+      </View>
+    );
+  }
+
+  if (showSignup) {
+    return (
+      <SafeAreaProvider>
+        <SignupFlow
+          onComplete={() => {
+            setShowSignup(false);
+            setIsLoggedIn(true);
+          }}
+          onCancel={() => setShowSignup(false)}
+        />
+      </SafeAreaProvider>
+    );
+  }
+
   if (!isLoggedIn) {
-    if (!hasCompletedOnboarding) {
-      return (
-        <SafeAreaProvider>
-          <OnboardingScreen onComplete={() => setHasCompletedOnboarding(true)} />
-        </SafeAreaProvider>
-      );
-    }
-
-    if (showSignup) {
-      return (
-        <SafeAreaProvider>
-          <SignupFlow
-            onComplete={() => {
-              setShowSignup(false);
-              setIsLoggedIn(true);
-            }}
-            onCancel={() => setShowSignup(false)}
-          />
-        </SafeAreaProvider>
-      );
-    }
-
     return (
       <LoginScreen
         onCreateAccount={() => setShowSignup(true)}
-        onLogin={() => setIsLoggedIn(true)}
+        onLogin={handleLogin}
       />
     );
   }
@@ -721,5 +737,16 @@ const styles = StyleSheet.create({
   sortOptionTextActive: {
     color: '#0d9488',
     fontWeight: 'bold',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  loadingText: {
+    marginTop: 10,
+    color: '#009688',
+    fontSize: 16,
   },
 });

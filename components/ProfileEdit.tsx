@@ -1,152 +1,81 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
     StyleSheet,
     Text,
     View,
     TextInput,
-    TouchableOpacity,
     ScrollView,
+    TouchableOpacity,
+    Image,
     SafeAreaView,
     KeyboardAvoidingView,
     Platform,
     TouchableWithoutFeedback,
     Keyboard,
-    Image,
-    Alert
+    ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Profile } from '../types';
 
 interface ProfileEditProps {
     initialProfile: Profile;
-    onSave: (updatedProfile: Profile) => void;
+    onSave: (profile: Profile) => void;
     onCancel: () => void;
 }
 
 export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditProps) {
-    const [image, setImage] = useState(initialProfile.image);
     const [name, setName] = useState(initialProfile.name);
     const [age, setAge] = useState(initialProfile.age.toString());
     const [university, setUniversity] = useState(initialProfile.university || initialProfile.company || '');
-    const [bio, setBio] = useState(initialProfile.bio || '');
-
+    const [bio, setBio] = useState(initialProfile.bio);
     const [seekingFor, setSeekingFor] = useState<string[]>(initialProfile.seekingFor || []);
     const [skills, setSkills] = useState<string[]>(initialProfile.skills || []);
     const [seekingRoles, setSeekingRoles] = useState<string[]>(initialProfile.seekingRoles || []);
+    const [image, setImage] = useState(initialProfile.image);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const seekingForOptions = ['起業に興味あり', 'ビジネスメンバー探し', 'アイデア模索中', 'まずは話してみたい', 'コミュニティ形成', '壁打ち相手募集'];
 
     const skillCategories = [
-        {
-            title: '💻 エンジニア',
-            skills: ['フロントエンド', 'バックエンド', 'モバイルアプリ', 'ゲーム開発', 'AI / データ', 'ノーコード']
-        },
-        {
-            title: '🎨 デザイナー',
-            skills: ['UI / UXデザイン', 'グラフィック / イラスト']
-        },
-        {
-            title: '📣 マーケ / 広報',
-            skills: ['マーケティング', 'SNS運用', 'ライター']
-        },
-        {
-            title: '💼 セールス / BizDev',
-            skills: ['セールス (営業)', '事業開発 (BizDev)']
-        },
-        {
-            title: '🎥 動画 / クリエイター',
-            skills: ['動画編集', '3D / CG']
-        },
-        {
-            title: '1️⃣ PM / ディレクター',
-            skills: ['PM / ディレクター', 'コミュニティ運営']
-        },
-        {
-            title: '💰 財務 / 専門職',
-            skills: ['財務 / 会計', '法務 / 知財']
-        },
-        {
-            title: '🌏 その他 / 語学',
-            skills: ['英語 / 語学']
-        }
+        { title: '開発・技術', skills: ['フロントエンド', 'バックエンド', 'モバイルアプリ', 'AI / データ', 'インフラ / クラウド', 'ブロックチェーン', 'ゲーム開発'] },
+        { title: 'デザイン', skills: ['UI / UXデザイン', 'グラフィック / イラスト', 'Webデザイン'] },
+        { title: 'ビジネス', skills: ['マーケティング', 'セールス / BizDev', 'PM / ディレクター', '広報 / PR', 'ファイナンス / 経理'] },
+        { title: 'その他', skills: ['動画 / クリエイター', 'ライティング'] }
     ];
 
-    const seekingOptions = [
-        '💻 エンジニア',
-        '🎨 デザイナー',
-        '📣 マーケ / 広報',
-        '💼 セールス / BizDev',
-        '🎥 動画 / クリエイター',
-        '1️⃣ PM / ディレクター',
-        '💰 財務 / 専門職',
-        '🌏 その他 / 語学',
-        '🗣️ 壁打ち相手',
-        '🤔 まだ分からない',
-    ];
+    const seekingOptions = ['💻 エンジニア', '🎨 デザイナー', '📣 マーケ / 広報', '💼 セールス / BizDev', '1️⃣ PM / ディレクター', '💰 ファイナンス', '🗣️ 壁打ち相手', '🤔 まだ分からない'];
 
-    const seekingForOptions = [
-        'ビジネスメンバー探し',
-        'アイデア模索中',
-        'コミュニティ形成',
-        'まずは話してみたい',
-        '起業に興味あり',
-        '壁打ち相手募集',
-    ];
+    const handleImageChange = () => {
+        // Placeholder for image change functionality
+        alert('画像変更機能は未実装です');
+    };
 
-    const handleToggle = (
-        item: string,
-        list: string[],
-        setList: React.Dispatch<React.SetStateAction<string[]>>
-    ) => {
+    const handleToggle = (item: string, list: string[], setList: (l: string[]) => void) => {
         if (list.includes(item)) {
-            setList(list.filter((i) => i !== item));
+            setList(list.filter(i => i !== item));
         } else {
             setList([...list, item]);
         }
     };
 
-    const handleImageChange = () => {
-        Alert.alert(
-            "プロフィール画像の変更",
-            "画像を選択してください（現在はモック機能です）",
-            [
-                { text: "キャンセル", style: "cancel" },
-                {
-                    text: "ライブラリから選択",
-                    onPress: () => Alert.alert("完了", "画像の選択機能はバックエンド連携後に実装されます。")
-                }
-            ]
-        );
-    };
-
     const handleSave = () => {
-        if (!name.trim()) {
-            Alert.alert('エラー', 'ニックネームを入力してください。');
-            return;
-        }
-        if (!age.trim()) {
-            Alert.alert('エラー', '年齢を入力してください。');
-            return;
-        }
-        if (!university.trim()) {
-            Alert.alert('エラー', '職種 / 大学名を入力してください。');
-            return;
-        }
-        if (!bio.trim()) {
-            Alert.alert('エラー', '自己紹介文を入力してください。');
-            return;
-        }
-
-        const updatedProfile: Profile = {
-            ...initialProfile,
-            image,
-            name,
-            age: parseInt(age, 10) || 0,
-            university: university,
-            bio,
-            seekingFor,
-            skills,
-            seekingRoles,
-        };
-        onSave(updatedProfile);
+        setIsSubmitting(true);
+        // Simulate network request
+        setTimeout(() => {
+            const updatedProfile: Profile = {
+                ...initialProfile,
+                name,
+                age: parseInt(age) || 0,
+                university: university, // Simplified: assuming university field for now
+                bio,
+                seekingFor,
+                skills,
+                seekingRoles,
+                image
+            };
+            setIsSubmitting(false);
+            onSave(updatedProfile);
+        }, 1500);
     };
 
     return (
@@ -157,12 +86,16 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
             >
                 {/* Header */}
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={onCancel} style={styles.headerButton}>
+                    <TouchableOpacity onPress={onCancel} style={styles.headerButton} disabled={isSubmitting}>
                         <Text style={styles.cancelText}>キャンセル</Text>
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>プロフィール編集</Text>
-                    <TouchableOpacity onPress={handleSave} style={styles.headerButton}>
-                        <Text style={styles.saveText}>保存</Text>
+                    <TouchableOpacity onPress={handleSave} style={styles.headerButton} disabled={isSubmitting}>
+                        {isSubmitting ? (
+                            <ActivityIndicator size="small" color="#009688" />
+                        ) : (
+                            <Text style={styles.saveText}>保存</Text>
+                        )}
                     </TouchableOpacity>
                 </View>
 
