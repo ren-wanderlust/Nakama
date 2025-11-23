@@ -174,6 +174,13 @@ export function ChatRoom({ onBack, partnerName, partnerImage, onPartnerProfilePr
                 keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
             >
                 <View style={styles.inputContainer}>
+                    <TouchableOpacity
+                        style={styles.attachButton}
+                        onPress={() => Alert.alert('画像送信', '画像選択機能は開発中です')}
+                    >
+                        <Ionicons name="add" size={24} color="#6b7280" />
+                    </TouchableOpacity>
+
                     <TextInput
                         style={styles.input}
                         value={inputText}
@@ -342,6 +349,14 @@ const styles = StyleSheet.create({
     sendButtonContentDisabled: {
         width: '100%',
         height: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    attachButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#f3f4f6',
         alignItems: 'center',
         justifyContent: 'center',
     },
