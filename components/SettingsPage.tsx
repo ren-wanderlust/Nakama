@@ -111,6 +111,33 @@ export function SettingsPage({ onBack, onLogout, onOpenTerms, onOpenPrivacy }: S
                         <Text style={styles.logoutText}>ログアウト</Text>
                     </TouchableOpacity>
                 </View>
+
+                {/* Delete Account */}
+                <View style={styles.deleteAccountContainer}>
+                    <TouchableOpacity
+                        style={styles.deleteAccountButton}
+                        onPress={() => {
+                            Alert.alert(
+                                "アカウント削除",
+                                "本当にアカウントを削除しますか？この操作は取り消せません。\nすべてのデータが完全に削除されます。",
+                                [
+                                    { text: "キャンセル", style: "cancel" },
+                                    {
+                                        text: "削除する",
+                                        style: "destructive",
+                                        onPress: () => {
+                                            Alert.alert("完了", "アカウント削除のリクエストを受け付けました。\n（デモ版のため実際の削除は行われません）", [
+                                                { text: "OK", onPress: onLogout }
+                                            ]);
+                                        }
+                                    }
+                                ]
+                            );
+                        }}
+                    >
+                        <Text style={styles.deleteAccountText}>アカウントを削除する</Text>
+                    </TouchableOpacity>
+                </View>
             </ScrollView>
         </SafeAreaView>
     );
@@ -204,5 +231,18 @@ const styles = StyleSheet.create({
         fontSize: 17,
         color: '#FF3B30',
         fontWeight: '400',
+    },
+    deleteAccountContainer: {
+        marginTop: 32,
+        alignItems: 'center',
+        marginBottom: 40,
+    },
+    deleteAccountButton: {
+        padding: 12,
+    },
+    deleteAccountText: {
+        fontSize: 14,
+        color: '#999',
+        textDecorationLine: 'underline',
     },
 });
