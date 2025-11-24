@@ -1,6 +1,7 @@
-import React from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, FlatList, Image } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, FlatList, Image, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { supabase } from '../lib/supabase';
 
 interface ChatRoom {
     id: string;
@@ -20,44 +21,153 @@ interface TalkPageProps {
 }
 
 export function TalkPage({ onOpenChat }: TalkPageProps) {
-    const chatRooms: ChatRoom[] = [
-        {
-            id: 'c1',
-            partnerId: 'p1',
-            partnerName: 'アヤカ',
-            partnerAge: 21,
-            partnerLocation: '大阪',
-            partnerImage: 'https://images.unsplash.com/photo-1553484771-6e117b648d45?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzdGFydHVwJTIwZm91bmRlciUyMHByb2Zlc3Npb25hbHxlbnwxfHx8fDE3NjM0NTI1MjJ8MA&ixlib=rb-4.1.0&q=80&w=1080',
-            lastMessage: 'ブランドのコンセプトについて、もう少し詳しくお話できますか？',
-            unreadCount: 2,
-            timestamp: '15分前',
-            isOnline: true,
-        },
-        {
-            id: 'c2',
-            partnerId: 'p2',
-            partnerName: 'サクラ',
-            partnerAge: 22,
-            partnerLocation: '東京',
-            partnerImage: 'https://images.unsplash.com/photo-1709803312782-0c3b175875ed?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkZXNpZ25lciUyMGNyZWF0aXZlJTIwcHJvZmVzc2lvbmFsfGVufDF8fHx8MTc2MzUyMDMzNXww&ixlib=rb-4.1.0&q=80&w=1080',
-            lastMessage: 'ポートフォリオサイトのUI、一緒に考えませんか？',
-            unreadCount: 1,
-            timestamp: '1時間前',
-            isOnline: true,
-        },
-        {
-            id: 'c3',
-            partnerId: 'p3',
-            partnerName: 'リョウ',
-            partnerAge: 23,
-            partnerLocation: '神奈川',
-            partnerImage: 'https://images.unsplash.com/photo-1762341116674-784c5dbedeb1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0ZWNoJTIwZW50cmVwcmVuZXVyJTIweW91bmd8ZW58MXx8fHwxNzYzNTIwMzM1fDA&ixlib=rb-4.1.0&q=80&w=1080',
-            lastMessage: 'Web3のイベント、一緒に行きませんか？',
-            unreadCount: 0,
-            timestamp: '2日前',
-            isOnline: false,
-        },
-    ];
+    const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        fetchChatRooms();
+
+        // Subscribe to new messages to update the list
+        const subscription = supabase
+            .channel('public:messages')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => {
+                fetchChatRooms();
+            })
+            .subscribe();
+
+        return () => {
+            subscription.unsubscribe();
+        };
+    }, []);
+
+    const fetchChatRooms = async () => {
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            // 1. Fetch matches (mutual likes)
+            const { data: myLikes } = await supabase
+                .from('likes')
+                .select('receiver_id')
+                .eq('sender_id', user.id);
+
+            const { data: receivedLikes } = await supabase
+                .from('likes')
+                .select('sender_id')
+                .eq('receiver_id', user.id);
+
+            const myLikedIds = new Set(myLikes?.map(l => l.receiver_id) || []);
+            const matchedIds = new Set<string>();
+
+            receivedLikes?.forEach(l => {
+                if (myLikedIds.has(l.sender_id)) {
+                    matchedIds.add(l.sender_id);
+                }
+            });
+
+            // 2. Fetch messages
+            const { data: messages, error: messagesError } = await supabase
+                .from('messages')
+                .select('*')
+                .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+                .order('created_at', { ascending: false });
+
+            if (messagesError) throw messagesError;
+
+            // Group messages by partner
+            const roomsMap = new Map<string, any>();
+            if (messages) {
+                for (const msg of messages) {
+                    const partnerId = msg.sender_id === user.id ? msg.receiver_id : msg.sender_id;
+                    if (!roomsMap.has(partnerId)) {
+                        roomsMap.set(partnerId, {
+                            lastMessage: msg.content,
+                            timestamp: msg.created_at,
+                            unreadCount: 0
+                        });
+                    }
+                }
+            }
+
+            // Add matched users who don't have messages yet
+            matchedIds.forEach(partnerId => {
+                if (!roomsMap.has(partnerId)) {
+                    roomsMap.set(partnerId, {
+                        lastMessage: 'マッチングしました！メッセージを送ってみましょう',
+                        timestamp: new Date().toISOString(),
+                        unreadCount: 0,
+                        isNewMatch: true
+                    });
+                }
+            });
+
+            // Fetch partner profiles
+            const partnerIds = Array.from(roomsMap.keys());
+            if (partnerIds.length === 0) {
+                setChatRooms([]);
+                setLoading(false);
+                return;
+            }
+
+            const { data: profiles, error: profilesError } = await supabase
+                .from('profiles')
+                .select('*')
+                .in('id', partnerIds);
+
+            if (profilesError) throw profilesError;
+
+            // Combine data
+            const formattedRooms: ChatRoom[] = partnerIds.map(partnerId => {
+                const partnerProfile = profiles?.find(p => p.id === partnerId);
+                const roomData = roomsMap.get(partnerId);
+                const lastMsgDate = new Date(roomData.timestamp);
+
+                // Format timestamp
+                const now = new Date();
+                const diff = now.getTime() - lastMsgDate.getTime();
+                let timestamp = '';
+                if (diff < 24 * 60 * 60 * 1000) {
+                    timestamp = lastMsgDate.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+                } else {
+                    timestamp = `${lastMsgDate.getMonth() + 1}/${lastMsgDate.getDate()}`;
+                }
+
+                return {
+                    id: partnerId,
+                    partnerId: partnerId,
+                    partnerName: partnerProfile?.name || 'Unknown',
+                    partnerAge: partnerProfile?.age || 0,
+                    partnerLocation: partnerProfile?.location || '',
+                    partnerImage: partnerProfile?.image || 'https://via.placeholder.com/150',
+                    lastMessage: roomData.lastMessage,
+                    unreadCount: roomData.unreadCount,
+                    timestamp: timestamp,
+                    isOnline: false,
+                };
+            });
+
+            // Sort by timestamp descending
+            formattedRooms.sort((a, b) => {
+                const timeA = new Date(roomsMap.get(a.partnerId).timestamp).getTime();
+                const timeB = new Date(roomsMap.get(b.partnerId).timestamp).getTime();
+                return timeB - timeA;
+            });
+
+            setChatRooms(formattedRooms);
+        } catch (error) {
+            console.error('Error fetching chat rooms:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (loading) {
+        return (
+            <View style={[styles.container, styles.loadingContainer]}>
+                <ActivityIndicator size="large" color="#009688" />
+            </View>
+        );
+    }
 
     return (
         <View style={styles.container}>
@@ -133,6 +243,10 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#f9fafb',
+    },
+    loadingContainer: {
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     header: {
         backgroundColor: 'white',

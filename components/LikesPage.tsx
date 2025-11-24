@@ -4,6 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Profile } from '../types';
 import { ProfileCard } from './ProfileCard';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 
 interface LikesPageProps {
     likedProfileIds: Set<string>;
@@ -11,52 +13,73 @@ interface LikesPageProps {
     onProfileSelect: (profile: Profile) => void;
 }
 
-// Mock data for received likes (since we don't have real backend yet)
-const receivedLikesMock: Profile[] = [
-    {
-        id: 'r1',
-        name: 'アヤカ',
-        age: 21,
-        location: '大阪',
-        university: '大阪大学',
-        image: 'https://images.unsplash.com/photo-1553484771-6e117b648d45?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzdGFydHVwJTIwZm91bmRlciUyMHByb2Zlc3Npb25hbHxlbnwxfHx8fDE3NjM0NTI1MjJ8MA&ixlib=rb-4.1.0&q=80&w=1080',
-        challengeTheme: 'サステナブルファッションブランド立ち上げ',
-        theme: 'サステナブルなD2Cブランドを立ち上げ、グローバル展開を目指す',
-        skills: ['マーケティング', 'デザイン', 'SNS運用'],
-        seekingFor: ['ビジネスメンバー探し'],
-        seekingRoles: ['💻 エンジニア'],
-        statusTags: ['ビジネスメンバー探し'],
-        isStudent: true,
-        bio: '環境問題に関心があり、サステナブルなファッションブランドを立ち上げたいです。',
-        createdAt: '2023-11-19',
-    },
-    {
-        id: 'r2',
-        name: 'サクラ',
-        age: 22,
-        location: '東京',
-        university: '東京大学',
-        image: 'https://images.unsplash.com/photo-1709803312782-0c3b175875ed?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkZXNpZ25lciUyMGNyZWF0aXZlJTIwcHJvZmVzc2lvbmFsfGVufDF8fHx8MTc2MzUyMDMzNXww&ixlib=rb-4.1.0&q=80&w=1080',
-        challengeTheme: 'クリエイター向けポートフォリオプラットフォーム',
-        theme: 'クリエイターが正当に評価されるポートフォリオプラットフォームを創る',
-        skills: ['Figma', 'デザインシステム', 'ブランディング'],
-        seekingFor: ['アイデア模索中'],
-        seekingRoles: ['💻 エンジニア'],
-        statusTags: ['情報収集中'],
-        isStudent: true,
-        bio: 'クリエイターが自分の作品をより魅力的に発信できるプラットフォームを作りたいです。',
-        createdAt: '2023-11-18',
-    },
-];
+
 
 export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect }: LikesPageProps) {
-    const [activeTab, setActiveTab] = useState<'received' | 'sent'>('sent'); // Default to 'sent' per user instruction context
+    const { session } = useAuth();
+    const [activeTab, setActiveTab] = useState<'received' | 'sent'>('sent');
+    const [receivedLikes, setReceivedLikes] = useState<Profile[]>([]);
+
+    React.useEffect(() => {
+        const fetchReceivedLikes = async () => {
+            if (!session?.user) return;
+
+            const { data: likes, error } = await supabase
+                .from('likes')
+                .select('sender_id')
+                .eq('receiver_id', session.user.id);
+
+            if (error) {
+                console.error('Error fetching received likes:', error);
+                return;
+            }
+
+            if (likes && likes.length > 0) {
+                const senderIds = likes.map(l => l.sender_id);
+                const { data: profiles, error: profilesError } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .in('id', senderIds);
+
+                if (profilesError) {
+                    console.error('Error fetching profiles for received likes:', profilesError);
+                    return;
+                }
+
+                if (profiles) {
+                    const mappedProfiles: Profile[] = profiles.map((item: any) => ({
+                        id: item.id,
+                        name: item.name,
+                        age: item.age,
+                        location: item.location || '',
+                        university: item.university,
+                        company: item.company,
+                        image: item.image,
+                        challengeTheme: item.challenge_theme || '',
+                        theme: item.theme || '',
+                        bio: item.bio,
+                        skills: item.skills || [],
+                        seekingFor: item.seeking_for || [],
+                        seekingRoles: item.seeking_roles || [],
+                        statusTags: item.status_tags || [],
+                        isStudent: item.is_student,
+                        createdAt: item.created_at,
+                    }));
+                    setReceivedLikes(mappedProfiles);
+                }
+            } else {
+                setReceivedLikes([]);
+            }
+        };
+
+        fetchReceivedLikes();
+    }, [session, activeTab]);
 
     // Filter profiles based on likedProfileIds
     const sentLikes = allProfiles.filter(profile => likedProfileIds.has(profile.id));
 
     const renderContent = () => {
-        const data = activeTab === 'received' ? receivedLikesMock : sentLikes;
+        const data = activeTab === 'received' ? receivedLikes : sentLikes;
         const emptyMessage = activeTab === 'received' ? 'まだいいねがありません' : 'まだいいねを送っていません';
         const emptySubMessage = activeTab === 'received' ? 'プロフィールを充実させて待ちましょう！' : '気になる相手を探してみましょう！';
 
@@ -112,18 +135,18 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect }: Lik
                                 style={styles.tabGradient}
                             >
                                 <Text style={styles.tabTextActive}>あなたに興味あり</Text>
-                                {receivedLikesMock.length > 0 && (
+                                {receivedLikes.length > 0 && (
                                     <View style={styles.badge}>
-                                        <Text style={styles.badgeText}>{receivedLikesMock.length}</Text>
+                                        <Text style={styles.badgeText}>{receivedLikes.length}</Text>
                                     </View>
                                 )}
                             </LinearGradient>
                         ) : (
                             <View style={styles.tabContentInactive}>
                                 <Text style={styles.tabTextInactive}>あなたに興味あり</Text>
-                                {receivedLikesMock.length > 0 && (
+                                {receivedLikes.length > 0 && (
                                     <View style={styles.badge}>
-                                        <Text style={styles.badgeText}>{receivedLikesMock.length}</Text>
+                                        <Text style={styles.badgeText}>{receivedLikes.length}</Text>
                                     </View>
                                 )}
                             </View>

@@ -7,6 +7,7 @@ interface ProfileDetailProps {
     profile: Profile;
     onBack: () => void;
     onLike: () => void;
+    onChat: () => void;
     isLiked: boolean;
 }
 
@@ -54,7 +55,7 @@ function getTagStyle(tagText: string): { color: string; icon: string } {
     return { color: '#546E7A', icon: '🚩' };
 }
 
-export function ProfileDetail({ profile, onBack, onLike, isLiked }: ProfileDetailProps) {
+export function ProfileDetail({ profile, onBack, onLike, onChat, isLiked }: ProfileDetailProps) {
     const seekingFor = profile.seekingFor || [];
     const skills = profile.skills || [];
     const seekingRoles = profile.seekingRoles || [];
@@ -98,7 +99,7 @@ export function ProfileDetail({ profile, onBack, onLike, isLiked }: ProfileDetai
                     <Ionicons name="chevron-back" size={28} color="#374151" />
                 </TouchableOpacity>
                 <View style={styles.headerRightButtons}>
-                    <TouchableOpacity style={styles.navButton}>
+                    <TouchableOpacity style={styles.navButton} onPress={onChat}>
                         <Ionicons name="chatbubble-outline" size={24} color="#374151" />
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.navButton} onPress={handleMenuPress}>
@@ -135,26 +136,28 @@ export function ProfileDetail({ profile, onBack, onLike, isLiked }: ProfileDetai
                 </View>
 
                 {/* 2. Current Status / Goal */}
-                {statusTag && statusStyle && (
-                    <View style={styles.section}>
-                        <View style={styles.sectionHeader}>
-                            <Text style={styles.sectionIcon}>🚩</Text>
-                            <Text style={styles.sectionTitle}>現在のステータス・目的</Text>
-                        </View>
-                        <View style={styles.tagsContainer}>
-                            <View style={[styles.statusTag, { backgroundColor: statusStyle.color + '15', borderColor: statusStyle.color }]}>
-                                <Text style={[styles.statusTagText, { color: statusStyle.color }]}>
-                                    {statusStyle.icon} {statusTag}
-                                </Text>
+                {
+                    statusTag && statusStyle && (
+                        <View style={styles.section}>
+                            <View style={styles.sectionHeader}>
+                                <Text style={styles.sectionIcon}>🚩</Text>
+                                <Text style={styles.sectionTitle}>現在のステータス・目的</Text>
                             </View>
-                            {seekingFor.map((item, index) => (
-                                <View key={index} style={styles.subStatusTag}>
-                                    <Text style={styles.subStatusTagText}>{item}</Text>
+                            <View style={styles.tagsContainer}>
+                                <View style={[styles.statusTag, { backgroundColor: statusStyle.color + '15', borderColor: statusStyle.color }]}>
+                                    <Text style={[styles.statusTagText, { color: statusStyle.color }]}>
+                                        {statusStyle.icon} {statusTag}
+                                    </Text>
                                 </View>
-                            ))}
+                                {seekingFor.map((item, index) => (
+                                    <View key={index} style={styles.subStatusTag}>
+                                        <Text style={styles.subStatusTagText}>{item}</Text>
+                                    </View>
+                                ))}
+                            </View>
                         </View>
-                    </View>
-                )}
+                    )
+                }
 
                 {/* 3. Bio */}
                 <View style={styles.section}>
@@ -168,47 +171,51 @@ export function ProfileDetail({ profile, onBack, onLike, isLiked }: ProfileDetai
                 </View>
 
                 {/* 4. Skills */}
-                {skills.length > 0 && (
-                    <View style={styles.section}>
-                        <View style={styles.sectionHeader}>
-                            <Text style={styles.sectionIcon}>⚡️</Text>
-                            <Text style={styles.sectionTitle}>持っているスキル</Text>
+                {
+                    skills.length > 0 && (
+                        <View style={styles.section}>
+                            <View style={styles.sectionHeader}>
+                                <Text style={styles.sectionIcon}>⚡️</Text>
+                                <Text style={styles.sectionTitle}>持っているスキル</Text>
+                            </View>
+                            <View style={styles.tagsContainer}>
+                                {skills.map((skill, index) => {
+                                    const tagColor = TAG_COLORS[skill] || { bg: '#F5F5F5', text: '#666666' };
+                                    return (
+                                        <View key={index} style={[styles.skillTag, { backgroundColor: tagColor.bg }]}>
+                                            <Text style={[styles.skillTagText, { color: tagColor.text }]}># {skill}</Text>
+                                        </View>
+                                    );
+                                })}
+                            </View>
                         </View>
-                        <View style={styles.tagsContainer}>
-                            {skills.map((skill, index) => {
-                                const tagColor = TAG_COLORS[skill] || { bg: '#F5F5F5', text: '#666666' };
-                                return (
-                                    <View key={index} style={[styles.skillTag, { backgroundColor: tagColor.bg }]}>
-                                        <Text style={[styles.skillTagText, { color: tagColor.text }]}># {skill}</Text>
-                                    </View>
-                                );
-                            })}
-                        </View>
-                    </View>
-                )}
+                    )
+                }
 
                 {/* 5. Seeking Roles */}
-                {seekingRoles.length > 0 && (
-                    <View style={styles.section}>
-                        <View style={styles.sectionHeader}>
-                            <Text style={styles.sectionIcon}>🤝</Text>
-                            <Text style={styles.sectionTitle}>求める仲間・条件</Text>
+                {
+                    seekingRoles.length > 0 && (
+                        <View style={styles.section}>
+                            <View style={styles.sectionHeader}>
+                                <Text style={styles.sectionIcon}>🤝</Text>
+                                <Text style={styles.sectionTitle}>求める仲間・条件</Text>
+                            </View>
+                            <View style={styles.tagsContainer}>
+                                {seekingRoles.map((role, index) => (
+                                    <View key={index} style={styles.roleTag}>
+                                        <Ionicons name="search" size={12} color="#C2410C" style={{ marginRight: 4 }} />
+                                        <Text style={styles.roleTagText}>{role}</Text>
+                                    </View>
+                                ))}
+                            </View>
                         </View>
-                        <View style={styles.tagsContainer}>
-                            {seekingRoles.map((role, index) => (
-                                <View key={index} style={styles.roleTag}>
-                                    <Ionicons name="search" size={12} color="#C2410C" style={{ marginRight: 4 }} />
-                                    <Text style={styles.roleTagText}>{role}</Text>
-                                </View>
-                            ))}
-                        </View>
-                    </View>
-                )}
+                    )
+                }
 
-            </ScrollView>
+            </ScrollView >
 
             {/* Footer Action Button */}
-            <View style={styles.footer}>
+            < View style={styles.footer} >
                 <TouchableOpacity
                     style={[styles.likeButton, isLiked && styles.likedButton]}
                     onPress={onLike}
@@ -219,8 +226,8 @@ export function ProfileDetail({ profile, onBack, onLike, isLiked }: ProfileDetai
                         {isLiked ? 'いいね済み' : 'いいね！'}
                     </Text>
                 </TouchableOpacity>
-            </View>
-        </SafeAreaView>
+            </View >
+        </SafeAreaView >
     );
 }
 

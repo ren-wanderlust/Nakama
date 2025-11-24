@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import {
     StyleSheet,
     Text,
@@ -10,10 +10,12 @@ import {
     Platform,
     Image,
     SafeAreaView,
-    Alert
+    Alert,
+    ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { supabase } from '../lib/supabase';
 
 interface Message {
     id: string;
@@ -21,6 +23,7 @@ interface Message {
     sender: 'me' | 'other';
     timestamp: string;
     date: string; // ISO date string for grouping (YYYY-MM-DD)
+    created_at: string;
 }
 
 interface MessageItem {
@@ -32,6 +35,7 @@ interface MessageItem {
 
 interface ChatRoomProps {
     onBack: () => void;
+    partnerId: string;
     partnerName: string;
     partnerImage: string;
     onPartnerProfilePress: () => void;
@@ -59,54 +63,91 @@ const getDateLabel = (dateString: string): string => {
     }
 };
 
-export function ChatRoom({ onBack, partnerName, partnerImage, onPartnerProfilePress }: ChatRoomProps) {
-    // Sample messages with dates (using dates from the past few days for demo)
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    const twoDaysAgo = new Date(today);
-    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-
-    const [messages, setMessages] = useState<Message[]>([
-        {
-            id: '1',
-            text: 'はじめまして！プロフィール拝見しました。',
-            sender: 'other',
-            timestamp: '10:30',
-            date: twoDaysAgo.toISOString().split('T')[0],
-        },
-        {
-            id: '2',
-            text: 'AIを活用したプロダクト開発に興味があります！',
-            sender: 'other',
-            timestamp: '10:31',
-            date: twoDaysAgo.toISOString().split('T')[0],
-        },
-        {
-            id: '3',
-            text: 'はじめまして！メッセージありがとうございます。',
-            sender: 'me',
-            timestamp: '14:35',
-            date: yesterday.toISOString().split('T')[0],
-        },
-        {
-            id: '4',
-            text: 'ぜひ一度お話ししませんか？',
-            sender: 'me',
-            timestamp: '14:35',
-            date: yesterday.toISOString().split('T')[0],
-        },
-        {
-            id: '5',
-            text: 'ぜひお願いします！来週の平日で都合の良い日はありますか？',
-            sender: 'other',
-            timestamp: '10:40',
-            date: today.toISOString().split('T')[0],
-        },
-    ]);
-
+export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartnerProfilePress }: ChatRoomProps) {
+    const [messages, setMessages] = useState<Message[]>([]);
     const [inputText, setInputText] = useState('');
+    const [loading, setLoading] = useState(true);
+    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const flatListRef = useRef<FlatList>(null);
+
+    useEffect(() => {
+        const initializeChat = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                setCurrentUserId(user.id);
+                await fetchMessages(user.id);
+                subscribeToMessages(user.id);
+            }
+            setLoading(false);
+        };
+
+        initializeChat();
+
+        return () => {
+            supabase.channel('public:messages').unsubscribe();
+        };
+    }, [partnerId]);
+
+    const fetchMessages = async (userId: string) => {
+        try {
+            const { data, error } = await supabase
+                .from('messages')
+                .select('*')
+                .or(`and(sender_id.eq.${userId},receiver_id.eq.${partnerId}),and(sender_id.eq.${partnerId},receiver_id.eq.${userId})`)
+                .order('created_at', { ascending: true });
+
+            if (error) throw error;
+
+            if (data) {
+                const formattedMessages: Message[] = data.map((msg: any) => ({
+                    id: msg.id,
+                    text: msg.content,
+                    sender: msg.sender_id === userId ? 'me' : 'other',
+                    timestamp: new Date(msg.created_at).toLocaleTimeString('ja-JP', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                    }),
+                    date: new Date(msg.created_at).toISOString().split('T')[0],
+                    created_at: msg.created_at,
+                }));
+                setMessages(formattedMessages);
+            }
+        } catch (error: any) {
+            console.error('Error fetching messages:', error);
+            Alert.alert('エラー', `メッセージの取得に失敗しました: ${error.message || error}`);
+        }
+    };
+
+    const subscribeToMessages = (userId: string) => {
+        supabase
+            .channel('public:messages')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'messages',
+                    filter: `receiver_id=eq.${userId}`,
+                },
+                (payload) => {
+                    if (payload.new.sender_id === partnerId) {
+                        const newMessage: Message = {
+                            id: payload.new.id,
+                            text: payload.new.content,
+                            sender: 'other',
+                            timestamp: new Date(payload.new.created_at).toLocaleTimeString('ja-JP', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                            }),
+                            date: new Date(payload.new.created_at).toISOString().split('T')[0],
+                            created_at: payload.new.created_at,
+                        };
+                        setMessages((prev) => [...prev, newMessage]);
+                    }
+                }
+            )
+            .subscribe();
+    };
 
     // Create message list with date separators
     const messageListWithDates = useMemo(() => {
@@ -135,25 +176,48 @@ export function ChatRoom({ onBack, partnerName, partnerImage, onPartnerProfilePr
         return items;
     }, [messages]);
 
-    const handleSend = () => {
-        if (inputText.trim()) {
-            const now = new Date();
-            const newMessage: Message = {
-                id: Date.now().toString(),
-                text: inputText,
-                sender: 'me',
-                timestamp: now.toLocaleTimeString('ja-JP', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                }),
-                date: now.toISOString().split('T')[0],
-            };
-            setMessages([...messages, newMessage]);
-            setInputText('');
-            // Scroll to bottom after sending
-            setTimeout(() => {
-                flatListRef.current?.scrollToEnd({ animated: true });
-            }, 100);
+    const handleSend = async () => {
+        if (!inputText.trim() || !currentUserId) return;
+
+        const content = inputText.trim();
+        setInputText(''); // Clear input immediately for better UX
+
+        try {
+            const { data, error } = await supabase
+                .from('messages')
+                .insert({
+                    sender_id: currentUserId,
+                    receiver_id: partnerId,
+                    content: content,
+                })
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            if (data) {
+                const newMessage: Message = {
+                    id: data.id,
+                    text: data.content,
+                    sender: 'me',
+                    timestamp: new Date(data.created_at).toLocaleTimeString('ja-JP', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                    }),
+                    date: new Date(data.created_at).toISOString().split('T')[0],
+                    created_at: data.created_at,
+                };
+                setMessages((prev) => [...prev, newMessage]);
+
+                // Scroll to bottom after sending
+                setTimeout(() => {
+                    flatListRef.current?.scrollToEnd({ animated: true });
+                }, 100);
+            }
+        } catch (error: any) {
+            console.error('Error sending message:', error);
+            Alert.alert('エラー', `メッセージの送信に失敗しました: ${error.message || error}`);
+            setInputText(content); // Restore input on error
         }
     };
 
@@ -226,6 +290,14 @@ export function ChatRoom({ onBack, partnerName, partnerImage, onPartnerProfilePr
             { cancelable: true }
         );
     };
+
+    if (loading) {
+        return (
+            <View style={[styles.container, styles.loadingContainer]}>
+                <ActivityIndicator size="large" color="#009688" />
+            </View>
+        );
+    }
 
     return (
         <SafeAreaView style={styles.container}>
@@ -307,6 +379,10 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#f9fafb',
+    },
+    loadingContainer: {
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     header: {
         flexDirection: 'row',

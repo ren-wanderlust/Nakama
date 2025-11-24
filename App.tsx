@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, SafeAreaView, FlatList, TouchableOpacity, Platform, RefreshControl, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, SafeAreaView, FlatList, TouchableOpacity, Platform, RefreshControl, ActivityIndicator, Modal } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,6 +21,7 @@ import { HelpPage } from './components/HelpPage';
 import { ThemeDetailPage } from './components/ThemeDetailPage';
 import { LegalDocumentPage } from './components/LegalDocumentPage';
 import { OnboardingScreen } from './components/OnboardingScreen';
+import { MatchingModal } from './components/MatchingModal';
 import { Profile } from './types';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { supabase } from './lib/supabase';
@@ -54,6 +55,7 @@ function AppContent() {
   const [activeTab, setActiveTab] = useState('search');
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
   const [activeChatRoom, setActiveChatRoom] = useState<{
+    partnerId: string;
     partnerName: string;
     partnerImage: string;
   } | null>(null);
@@ -73,6 +75,7 @@ function AppContent() {
   const [displayProfiles, setDisplayProfiles] = useState<Profile[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedTheme, setSelectedTheme] = useState<string | null>(null);
+  const [matchedProfile, setMatchedProfile] = useState<Profile | null>(null);
 
   // Fetch profiles from Supabase
   const fetchProfiles = async () => {
@@ -120,7 +123,7 @@ function AppContent() {
         .from('profiles')
         .select('*')
         .eq('id', session.user.id)
-        .single();
+        .maybeSingle(); // Use maybeSingle instead of single to handle 0 rows gracefully
 
       if (error) throw error;
 
@@ -145,7 +148,7 @@ function AppContent() {
         };
         setCurrentUser(mappedUser);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching current user:', error);
     }
   };
@@ -221,7 +224,10 @@ function AppContent() {
     return 0; // Recommended order (default)
   });
 
-  const handleLike = (profileId: string) => {
+  const handleLike = async (profileId: string) => {
+    if (!session?.user) return;
+
+    // Optimistic update
     setLikedProfiles((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(profileId)) {
@@ -231,6 +237,50 @@ function AppContent() {
       }
       return newSet;
     });
+
+    try {
+      // Check if already liked
+      const { data: existingLike } = await supabase
+        .from('likes')
+        .select('*')
+        .eq('sender_id', session.user.id)
+        .eq('receiver_id', profileId)
+        .maybeSingle();
+
+      if (existingLike) {
+        // Unlike
+        await supabase
+          .from('likes')
+          .delete()
+          .eq('id', existingLike.id);
+      } else {
+        // Like
+        await supabase
+          .from('likes')
+          .insert({
+            sender_id: session.user.id,
+            receiver_id: profileId
+          });
+
+        // Check for match
+        const { data: reverseLike } = await supabase
+          .from('likes')
+          .select('*')
+          .eq('sender_id', profileId)
+          .eq('receiver_id', session.user.id)
+          .maybeSingle();
+
+        if (reverseLike) {
+          // It's a match!
+          const matchedUser = displayProfiles.find(p => p.id === profileId);
+          if (matchedUser) {
+            setMatchedProfile(matchedUser);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error handling like:', error);
+    }
   };
 
   const handleSaveProfile = async (updatedProfile: Profile) => {
@@ -308,6 +358,13 @@ function AppContent() {
           profile={selectedProfile}
           onBack={() => setSelectedProfile(null)}
           onLike={() => handleLike(selectedProfile.id)}
+          onChat={() => {
+            setActiveChatRoom({
+              partnerId: selectedProfile.id,
+              partnerName: selectedProfile.name,
+              partnerImage: selectedProfile.image,
+            });
+          }}
           isLiked={likedProfiles.has(selectedProfile.id)}
         />
       </SafeAreaProvider>
@@ -319,6 +376,7 @@ function AppContent() {
     return (
       <SafeAreaProvider>
         <ChatRoom
+          partnerId={activeChatRoom.partnerId}
           partnerName={activeChatRoom.partnerName}
           partnerImage={activeChatRoom.partnerImage}
           onBack={() => setActiveChatRoom(null)}
@@ -354,239 +412,172 @@ function AppContent() {
       </SafeAreaProvider>
     );
   }
-
-  // Authenticated View - Main Screen
   return (
-    <SafeAreaProvider>
-      <SafeAreaView style={styles.container}>
-        <StatusBar style="dark" />
-
-        {/* Header - Only show on search tab */}
-        {activeTab === 'search' && (
-          <View style={styles.headerContainer}>
-            {/* Top Header */}
-            <View style={styles.headerTop}>
-              <View style={styles.headerLeft} />
-              <Text style={styles.headerTitle}>BizYou</Text>
-              <TouchableOpacity
-                style={styles.notificationButton}
-                onPress={() => setShowNotifications(true)}
-              >
-                <Ionicons name="notifications-outline" size={24} color="#374151" />
-              </TouchableOpacity>
-            </View>
-
-            {/* Search Control Bar */}
-            <View style={styles.searchControlBar}>
-              <TouchableOpacity
-                onPress={() => setIsFilterOpen(true)}
-                style={[
-                  styles.filterButton,
-                  isFilterActive && styles.filterButtonActive
-                ]}
-              >
-                <Ionicons
-                  name="search"
-                  size={18}
-                  color={isFilterActive ? "#FF5252" : "#666"}
-                />
-                <Text style={[
-                  styles.controlButtonText,
-                  isFilterActive && styles.controlButtonTextActive
-                ]}>
-                  {isFilterActive ? "絞り込み中" : "絞り込み"}
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={() => setIsSortModalOpen(true)}
-                style={styles.sortButton}
-              >
-                <Text style={styles.controlButtonText}>
-                  {sortOrder === 'recommended' ? 'おすすめ順' : '登録日が新しい順'}
-                </Text>
-                <Ionicons name="chevron-down" size={18} color="#666" />
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
-
-        {/* Main Content Area */}
-        <View style={styles.contentArea}>
-          {activeTab !== 'search' && activeTab !== 'likes' && activeTab !== 'talk' && activeTab !== 'profile' && activeTab !== 'challenge' && (
-            <PlaceholderScreen title={activeTab} />
-          )}
-          {activeTab === 'search' && (
-            <FlatList
-              data={sortedProfiles}
-              renderItem={({ item }) => (
-                <View style={styles.gridItem}>
-                  <ProfileCard
-                    profile={item}
-                    isLiked={likedProfiles.has(item.id)}
-                    onLike={() => handleLike(item.id)}
-                    onSelect={() => {
-                      console.log('Selected profile:', item.name);
-                      setSelectedProfile(item);
-                    }}
-                  />
-                </View>
-              )}
-              keyExtractor={(item) => item.id}
-              numColumns={2}
-              contentContainerStyle={styles.listContent}
-              columnWrapperStyle={styles.columnWrapper}
-              showsVerticalScrollIndicator={false}
-              refreshControl={
-                <RefreshControl
-                  refreshing={refreshing}
-                  onRefresh={onRefresh}
-                  colors={['#009688']}
-                  tintColor="#009688"
-                />
-              }
-              ListEmptyComponent={
-                <View style={styles.centerContainer}>
-                  <Text style={styles.placeholderText}>条件に一致するユーザーがいません</Text>
-                </View>
-              }
-            />
-          )}
-          {activeTab === 'likes' && (
-            <LikesPage
-              likedProfileIds={likedProfiles}
-              allProfiles={displayProfiles}
-              onProfileSelect={(profile) => setSelectedProfile(profile)}
-            />
-          )}
-          {activeTab === 'talk' && (
-            <TalkPage
-              onOpenChat={(room) => setActiveChatRoom({
-                partnerName: room.partnerName,
-                partnerImage: room.partnerImage,
-              })}
-            />
-          )}
-          {activeTab === 'challenge' && (
-            selectedTheme ? (
-              <ThemeDetailPage
-                themeTitle={selectedTheme}
-                onBack={() => setSelectedTheme(null)}
-                profiles={displayProfiles}
-                onProfileSelect={(profile) => setSelectedProfile(profile)}
-                onLike={handleLike}
-                likedProfileIds={likedProfiles}
-              />
-            ) : (
-              <ChallengeCardPage
-                onThemeSelect={setSelectedTheme}
-                profiles={displayProfiles}
-              />
-            )
-          )}
-          {activeTab === 'profile' && (
-            <>
-              {legalDocument ? (
-                <LegalDocumentPage
-                  title={legalDocument.title}
-                  content={legalDocument.content}
-                  onBack={() => setLegalDocument(null)}
-                />
-              ) : showSettings ? (
-                <SettingsPage
-                  onBack={() => setShowSettings(false)}
-                  onLogout={signOut}
-                  onOpenTerms={() => setLegalDocument({
-                    title: '利用規約',
-                    content: '利用規約\n\nこの利用規約（以下，「本規約」といいます。）は，BizYou（以下，「当社」といいます。）がこのウェブサイト上で提供するサービス（以下，「本サービス」といいます。）の利用条件を定めるものです。登録ユーザーの皆さま（以下，「ユーザー」といいます。）には，本規約に従って，本サービスをご利用いただきます。\n\n第1条（適用）\n1. 本規約は，ユーザーと当社との間の本サービスの利用に関わる一切の関係に適用されるものとします。\n2. 当社は本サービスに関し，本規約のほか，ご利用にあたってのルール等，各種の定め（以下，「個別規定」といいます。）をすることがあります。これら個別規定はその名称のいかんに関わらず，本規約の一部を構成するものとします。\n3. 本規約の規定が前項の個別規定の規定と矛盾する場合には，個別規定において特段の定めなき限り，個別規定の規定が優先されるものとします。\n\n第2条（利用登録）\n1. 本サービスにおいては，登録希望者が本規約に同意の上，当社の定める方法によって利用登録を申請し，当社がこれを承認することによって，利用登録が完了するものとします。\n2. 当社は，利用登録の申請者に以下の事由があると判断した場合，利用登録の申請を承認しないことがあり，その理由については一切の開示義務を負わないものとします。\n   (1) 利用登録の申請に際して虚偽の事項を届け出た場合\n   (2) 本規約に違反したことがある者からの申請である場合\n   (3) その他，当社が利用登録を相当でないと判断した場合\n\n第3条（ユーザーIDおよびパスワードの管理）\n1. ユーザーは，自己の責任において，本サービスのユーザーIDおよびパスワードを適切に管理するものとします。\n2. ユーザーは，いかなる場合にも，ユーザーIDおよびパスワードを第三者に譲渡または貸与し，もしくは第三者と共用することはできません。当社は，ユーザーIDとパスワードの組み合わせが登録情報と一致してログインされた場合には，そのユーザーIDを登録しているユーザー自身による利用とみなします。\n3. ユーザーID及びパスワードが第三者によって使用されたことによって生じた損害は，当社に故意又は重大な過失がある場合を除き，当社は一切の責任を負わないものとします。\n\n（以下省略）'
-                  })}
-                  onOpenPrivacy={() => setLegalDocument({
-                    title: 'プライバシーポリシー',
-                    content: 'プライバシーポリシー\n\nBizYou（以下，「当社」といいます。）は，本ウェブサイト上で提供するサービス（以下，「本サービス」といいます。）における，ユーザーの個人情報の取扱いについて，以下のとおりプライバシーポリシー（以下，「本ポリシー」といいます。）を定めます。\n\n第1条（個人情報）\n「個人情報」とは，個人情報保護法にいう「個人情報」を指すものとし，生存する個人に関する情報であって，当該情報に含まれる氏名，生年月日，住所，電話番号，連絡先その他の記述等により特定の個人を識別できる情報及び容貌，指紋，声紋にかかるデータ，及び健康保険証の保険者番号などの当該情報単体から特定の個人を識別できる情報（個人識別情報）を指します。\n\n第2条（個人情報の収集方法）\n当社は，ユーザーが利用登録をする際に氏名，生年月日，住所，電話番号，メールアドレス，銀行口座番号，クレジットカード番号，運転免許証番号などの個人情報をお尋ねすることがあります。また，ユーザーと提携先などとの間でなされたユーザーの個人情報を含む取引記録や決済に関する情報を,当社の提携先（情報提供元，広告主，広告配信先などを含みます。以下，｢提携先｣といいます。）などから収集することがあります。\n\n第3条（個人情報を収集・利用する目的）\n当社が個人情報を収集・利用する目的は，以下のとおりです。\n1. 当社サービスの提供・運営のため\n2. ユーザーからのお問い合わせに回答するため（本人確認を行うことを含む）\n3. ユーザーが利用中のサービスの新機能，更新情報，キャンペーン等及び当社が提供する他のサービスの案内のメールを送付するため\n4. メンテナンス，重要なお知らせなど必要に応じたご連絡のため\n5. 利用規約に違反したユーザーや，不正・不当な目的でサービスを利用しようとするユーザーの特定をし，ご利用をお断りするため\n6. ユーザーにご自身の登録情報の閲覧や変更，削除，ご利用状況の閲覧を行っていただくため\n7. 有料サービスにおいて，ユーザーに利用料金を請求するため\n8. 上記の利用目的に付随する目的\n\n（以下省略）'
-                  })}
-                />
-              ) : showHelp ? (
-                <HelpPage
-                  onBack={() => setShowHelp(false)}
-                />
-              ) : (
-                currentUser ? (
-                  <MyPage
-                    profile={currentUser}
-                    onLogout={signOut}
-                    onEditProfile={handleEditProfile}
-                    onOpenNotifications={() => setShowNotifications(true)}
-                    onSettingsPress={() => setShowSettings(true)}
-                    onHelpPress={() => setShowHelp(true)}
-                  />
-                ) : (
-                  <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color="#009688" />
-                  </View>
-                )
-              )}
-            </>
-          )}
+    <SafeAreaView style={styles.container}>
+      <StatusBar style="auto" />
+      <View style={styles.headerContainer}>
+        <View style={styles.headerTop}>
+          <View style={styles.headerLeft} />
+          <Text style={styles.headerTitle}>BizYou</Text>
+          <TouchableOpacity
+            style={styles.notificationButton}
+            onPress={() => setShowNotifications(true)}
+          >
+            <Ionicons name="notifications-outline" size={24} color="#374151" />
+          </TouchableOpacity>
         </View>
-        <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
 
-        {/* Filter Modal */}
-        <FilterModal
-          visible={isFilterOpen}
-          onClose={() => setIsFilterOpen(false)}
-          onApply={(criteria) => {
-            setFilterCriteria(criteria);
-            setIsFilterOpen(false);
-          }}
-          initialCriteria={filterCriteria || undefined}
-        />
-
-        {/* Sort Modal */}
-        {isSortModalOpen && (
-          <View style={styles.modalOverlay}>
+        {activeTab === 'search' && (
+          <View style={styles.searchControlBar}>
             <TouchableOpacity
-              style={styles.modalBackdrop}
-              onPress={() => setIsSortModalOpen(false)}
-            />
-            <View style={styles.sortModalContent}>
-              <Text style={styles.sortModalTitle}>並び替え</Text>
-              <TouchableOpacity
-                style={styles.sortOption}
-                onPress={() => {
-                  setSortOrder('recommended');
-                  setIsSortModalOpen(false);
-                }}
-              >
-                <Text style={[styles.sortOptionText, sortOrder === 'recommended' && styles.sortOptionTextActive]}>
-                  おすすめ順
-                </Text>
-                {sortOrder === 'recommended' && <Ionicons name="checkmark" size={20} color="#0d9488" />}
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.sortOption}
-                onPress={() => {
-                  setSortOrder('newest');
-                  setIsSortModalOpen(false);
-                }}
-              >
-                <Text style={[styles.sortOptionText, sortOrder === 'newest' && styles.sortOptionTextActive]}>
-                  登録日が新しい順
-                </Text>
-                {sortOrder === 'newest' && <Ionicons name="checkmark" size={20} color="#0d9488" />}
-              </TouchableOpacity>
-            </View>
+              style={[styles.filterButton, isFilterActive && styles.filterButtonActive]}
+              onPress={() => setIsFilterOpen(true)}
+            >
+              <Ionicons name="search" size={20} color={isFilterActive ? "#FF5252" : "#9CA3AF"} />
+              <Text style={[styles.controlButtonText, isFilterActive && styles.controlButtonTextActive]}>
+                絞り込み
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.sortButton}
+              onPress={() => setIsSortModalOpen(true)}
+            >
+              <Text style={styles.controlButtonText}>
+                {sortOrder === 'recommended' ? 'おすすめ順' : '新着順'}
+              </Text>
+              <Ionicons name="chevron-down" size={16} color="#374151" />
+            </TouchableOpacity>
           </View>
         )}
-      </SafeAreaView>
-    </SafeAreaProvider>
-  );
-}
+      </View>
 
-export default function App() {
-  return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+      <View style={styles.contentArea}>
+        {activeTab === 'search' && (
+          <FlatList
+            data={sortedProfiles}
+            renderItem={({ item }) => (
+              <View style={styles.gridItem}>
+                <ProfileCard
+                  profile={item}
+                  isLiked={likedProfiles.has(item.id)}
+                  onLike={() => handleLike(item.id)}
+                  onSelect={() => setSelectedProfile(item)}
+                />
+              </View>
+            )}
+            keyExtractor={(item) => item.id}
+            numColumns={2}
+            contentContainerStyle={styles.listContent}
+            columnWrapperStyle={styles.columnWrapper}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#009688']} />
+            }
+          />
+        )}
+        {activeTab === 'likes' && (
+          <LikesPage
+            likedProfileIds={likedProfiles}
+            allProfiles={displayProfiles}
+            onProfileSelect={setSelectedProfile}
+          />
+        )}
+        {activeTab === 'challenge' && <ChallengeCardPage />}
+        {activeTab === 'talk' && (
+          <TalkPage
+            onOpenChat={(room) => setActiveChatRoom({
+              partnerId: room.partnerId,
+              partnerName: room.partnerName,
+              partnerImage: room.partnerImage,
+            })}
+          />
+        )}
+        {activeTab === 'profile' && currentUser && (
+          <MyPage
+            profile={currentUser}
+            onLogout={signOut}
+            onEditProfile={handleEditProfile}
+            onOpenNotifications={() => setShowNotifications(true)}
+            onSettingsPress={() => setShowSettings(true)}
+            onHelpPress={() => setShowHelp(true)}
+          />
+        )}
+      </View>
+
+      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+
+      <FilterModal
+        visible={isFilterOpen}
+        onClose={() => setIsFilterOpen(false)}
+        onApply={(criteria) => {
+          setFilterCriteria(criteria);
+          setIsFilterOpen(false);
+        }}
+        initialCriteria={filterCriteria || undefined}
+      />
+
+      <Modal
+        visible={isSortModalOpen}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setIsSortModalOpen(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => setIsSortModalOpen(false)}
+        />
+        <View style={styles.modalOverlay}>
+          <View style={styles.sortModalContent}>
+            <Text style={styles.sortModalTitle}>並び替え</Text>
+
+            <TouchableOpacity
+              style={styles.sortOption}
+              onPress={() => {
+                setSortOrder('recommended');
+                setIsSortModalOpen(false);
+              }}
+            >
+              <Text style={[
+                styles.sortOptionText,
+                sortOrder === 'recommended' && styles.sortOptionTextActive
+              ]}>おすすめ順</Text>
+              {sortOrder === 'recommended' && <Ionicons name="checkmark" size={20} color="#0d9488" />}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.sortOption}
+              onPress={() => {
+                setSortOrder('newest');
+                setIsSortModalOpen(false);
+              }}
+            >
+              <Text style={[
+                styles.sortOptionText,
+                sortOrder === 'newest' && styles.sortOptionTextActive
+              ]}>新着順</Text>
+              {sortOrder === 'newest' && <Ionicons name="checkmark" size={20} color="#0d9488" />}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+      <MatchingModal
+        visible={!!matchedProfile}
+        profile={matchedProfile}
+        onClose={() => setMatchedProfile(null)}
+        onChat={() => {
+          if (matchedProfile) {
+            setActiveChatRoom({
+              partnerId: matchedProfile.id,
+              partnerName: matchedProfile.name,
+              partnerImage: matchedProfile.image,
+            });
+            setMatchedProfile(null);
+          }
+        }}
+      />
+    </SafeAreaView>
   );
 }
 
@@ -762,3 +753,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 });
+
+export default function App() {
+  return (
+    <SafeAreaProvider>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </SafeAreaProvider>
+  );
+}
