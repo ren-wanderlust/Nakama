@@ -12,7 +12,8 @@ import {
     Platform,
     TouchableWithoutFeedback,
     Keyboard,
-    ActivityIndicator
+    ActivityIndicator,
+    Alert
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -69,6 +70,20 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
     };
 
     const handleSave = async () => {
+        // Validation
+        if (!name.trim()) {
+            Alert.alert('エラー', 'ニックネームを入力してください');
+            return;
+        }
+        if (!age.trim() || isNaN(parseInt(age))) {
+            Alert.alert('エラー', '年齢を正しく入力してください');
+            return;
+        }
+        if (!university.trim()) {
+            Alert.alert('エラー', '職種 / 大学名を入力してください');
+            return;
+        }
+
         setIsSubmitting(true);
         try {
             let uploadedImageUrl = image;
@@ -103,6 +118,7 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
 
                     if (uploadError) {
                         console.error('Image upload error:', uploadError);
+                        throw uploadError;
                     } else {
                         const { data: { publicUrl } } = supabase.storage
                             .from('avatars')
@@ -111,6 +127,9 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
                     }
                 } catch (uploadErr) {
                     console.error('Error uploading image:', uploadErr);
+                    Alert.alert('エラー', '画像のアップロードに失敗しました');
+                    setIsSubmitting(false);
+                    return;
                 }
             }
 
@@ -128,6 +147,7 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
             onSave(updatedProfile);
         } catch (error) {
             console.error('Error saving profile:', error);
+            Alert.alert('エラー', 'プロフィールの保存に失敗しました');
         } finally {
             setIsSubmitting(false);
         }

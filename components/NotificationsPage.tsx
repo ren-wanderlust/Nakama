@@ -1,58 +1,63 @@
-import React from 'react';
-import { StyleSheet, Text, View, FlatList, TouchableOpacity, Image, SafeAreaView, Alert } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, Text, View, FlatList, TouchableOpacity, Image, SafeAreaView, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { supabase } from '../lib/supabase';
 
 export interface Notification {
     id: string;
     type: 'important' | 'update' | 'psychology' | 'other';
     title: string;
+    content?: string;
     date: string;
     imageUrl?: string;
+    created_at: string;
 }
 
 interface NotificationsPageProps {
     onBack: () => void;
 }
 
-const mockNotifications: Notification[] = [
-    {
-        id: '1',
-        type: 'important',
-        title: '【重要】利用規約改定のお知らせ',
-        date: '11/19(水)',
-        imageUrl: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=100&h=100&fit=crop',
-    },
-    {
-        id: '2',
-        type: 'update',
-        title: '新機能「挑戦カード」がリリースされました！興味のあるテーマを探してみましょう。',
-        date: '11/18(火)',
-        imageUrl: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=100&h=100&fit=crop',
-    },
-    {
-        id: '3',
-        type: 'psychology',
-        title: 'あなたの隠れた才能がわかる？「ビジネス心理テスト」公開中',
-        date: '11/15(金)',
-        imageUrl: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=100&h=100&fit=crop',
-    },
-    {
-        id: '4',
-        type: 'update',
-        title: 'システムメンテナンスのお知らせ（11/25実施予定）',
-        date: '11/10(日)',
-        imageUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=100&h=100&fit=crop',
-    },
-    {
-        id: '5',
-        type: 'other',
-        title: 'プロフィールを充実させて、マッチング率をアップさせましょう！',
-        date: '11/05(火)',
-        imageUrl: 'https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=100&h=100&fit=crop',
-    },
-];
-
 export function NotificationsPage({ onBack }: NotificationsPageProps) {
+    const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        fetchNotifications();
+    }, []);
+
+    const fetchNotifications = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('notifications')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+
+            if (data) {
+                const formattedNotifications: Notification[] = data.map((item: any) => ({
+                    id: item.id,
+                    type: item.type,
+                    title: item.title,
+                    content: item.content,
+                    imageUrl: item.image_url,
+                    created_at: item.created_at,
+                    date: new Date(item.created_at).toLocaleDateString('ja-JP', {
+                        month: 'numeric',
+                        day: 'numeric',
+                        weekday: 'short',
+                    }),
+                }));
+                setNotifications(formattedNotifications);
+            }
+        } catch (error) {
+            console.error('Error fetching notifications:', error);
+            Alert.alert('エラー', 'お知らせの取得に失敗しました');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const getBadgeStyle = (type: string) => {
         switch (type) {
             case 'important':
@@ -67,7 +72,7 @@ export function NotificationsPage({ onBack }: NotificationsPageProps) {
     };
 
     const handleNotificationPress = (item: Notification) => {
-        Alert.alert(item.title, "詳細情報はここに表示されます。\n\n(現在はデモ用のため、リンク先はありません)");
+        Alert.alert(item.title, item.content || "詳細情報はここに表示されます。");
     };
 
     const renderItem = ({ item }: { item: Notification }) => {
@@ -107,6 +112,23 @@ export function NotificationsPage({ onBack }: NotificationsPageProps) {
         </View>
     );
 
+    if (loading) {
+        return (
+            <SafeAreaView style={styles.container}>
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={onBack} style={styles.backButton}>
+                        <Ionicons name="chevron-back" size={28} color="#333" />
+                    </TouchableOpacity>
+                    <Text style={styles.headerTitle}>お知らせ</Text>
+                    <View style={{ width: 28 }} />
+                </View>
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color="#009688" />
+                </View>
+            </SafeAreaView>
+        );
+    }
+
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
@@ -117,14 +139,16 @@ export function NotificationsPage({ onBack }: NotificationsPageProps) {
                 <View style={{ width: 28 }} />
             </View>
             <FlatList
-                data={mockNotifications}
+                data={notifications}
                 renderItem={renderItem}
                 keyExtractor={(item) => item.id}
                 contentContainerStyle={[
                     styles.listContent,
-                    mockNotifications.length === 0 && styles.flexGrow
+                    notifications.length === 0 && styles.flexGrow
                 ]}
                 ListEmptyComponent={renderEmpty}
+                refreshing={loading}
+                onRefresh={fetchNotifications}
             />
         </SafeAreaView>
     );
@@ -134,6 +158,11 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: 'white',
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     header: {
         flexDirection: 'row',
