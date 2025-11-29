@@ -11,7 +11,8 @@ import {
     Image,
     SafeAreaView,
     Alert,
-    ActivityIndicator
+    ActivityIndicator,
+    Modal
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -19,10 +20,12 @@ import { supabase } from '../lib/supabase';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
 import * as Haptics from 'expo-haptics';
+import * as ImagePicker from 'expo-image-picker';
 
 interface Message {
     id: string;
     text: string;
+    image_url?: string;
     sender: 'me' | 'other';
     timestamp: string;
     date: string; // ISO date string for grouping (YYYY-MM-DD)
@@ -83,6 +86,7 @@ const MessageBubble = ({
 }) => {
     const isMe = message.sender === 'me';
     const swipeableRef = useRef<any>(null);
+    const [imageModalVisible, setImageModalVisible] = useState(false);
 
     const renderLeftActions = (_progress: any, dragX: any) => {
         return (
@@ -114,57 +118,79 @@ const MessageBubble = ({
     };
 
     return (
-        <Swipeable
-            ref={swipeableRef}
-            renderLeftActions={renderLeftActions}
-            onSwipeableOpen={handleSwipeOpen}
-            friction={2}
-            enableTrackpadTwoFingerGesture
-            leftThreshold={40}
-            containerStyle={styles.swipeableContainer}
-        >
-            <View style={[styles.messageRow, isMe ? styles.messageRowMe : styles.messageRowOther]}>
-                <TouchableOpacity
-                    style={[styles.messageContainer, isMe ? styles.messageContainerMe : styles.messageContainerOther]}
-                    onLongPress={handleLongPress}
-                    activeOpacity={0.8}
-                >
-                    {isMe ? (
-                        <LinearGradient
-                            colors={['#0d9488', '#2563eb']} // teal-600 to blue-600
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 0 }}
-                            style={styles.bubbleGradient}
-                        >
-                            {message.replyTo && (
-                                <View style={styles.replyContainerMe}>
-                                    <View style={styles.replyBarMe} />
-                                    <View style={styles.replyContent}>
-                                        <Text style={styles.replySenderMe}>{message.replyTo.senderName}</Text>
-                                        <Text style={styles.replyTextMe} numberOfLines={1}>{message.replyTo.text}</Text>
+        <>
+            <Swipeable
+                ref={swipeableRef}
+                renderLeftActions={renderLeftActions}
+                onSwipeableOpen={handleSwipeOpen}
+                friction={2}
+                enableTrackpadTwoFingerGesture
+                leftThreshold={40}
+                containerStyle={styles.swipeableContainer}
+            >
+                <View style={[styles.messageRow, isMe ? styles.messageRowMe : styles.messageRowOther]}>
+                    <TouchableOpacity
+                        style={[styles.messageContainer, isMe ? styles.messageContainerMe : styles.messageContainerOther]}
+                        onLongPress={handleLongPress}
+                        activeOpacity={0.8}
+                    >
+                        {isMe ? (
+                            <LinearGradient
+                                colors={['#0d9488', '#2563eb']} // teal-600 to blue-600
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
+                                style={styles.bubbleGradient}
+                            >
+                                {message.replyTo && (
+                                    <View style={styles.replyContainerMe}>
+                                        <View style={styles.replyBarMe} />
+                                        <View style={styles.replyContent}>
+                                            <Text style={styles.replySenderMe}>{message.replyTo.senderName}</Text>
+                                            <Text style={styles.replyTextMe} numberOfLines={1}>{message.replyTo.text}</Text>
+                                        </View>
                                     </View>
-                                </View>
-                            )}
-                            <Text style={styles.messageTextMe}>{message.text}</Text>
-                        </LinearGradient>
-                    ) : (
-                        <View style={styles.bubbleOther}>
-                            {message.replyTo && (
-                                <View style={styles.replyContainerOther}>
-                                    <View style={styles.replyBarOther} />
-                                    <View style={styles.replyContent}>
-                                        <Text style={styles.replySenderOther}>{message.replyTo.senderName}</Text>
-                                        <Text style={styles.replyTextOther} numberOfLines={1}>{message.replyTo.text}</Text>
+                                )}
+                                {message.image_url && (
+                                    <TouchableOpacity onPress={() => setImageModalVisible(true)} activeOpacity={0.9}>
+                                        <Image source={{ uri: message.image_url }} style={styles.messageImageMe} />
+                                    </TouchableOpacity>
+                                )}
+                                {message.text ? <Text style={styles.messageTextMe}>{message.text}</Text> : null}
+                            </LinearGradient>
+                        ) : (
+                            <View style={styles.bubbleOther}>
+                                {message.replyTo && (
+                                    <View style={styles.replyContainerOther}>
+                                        <View style={styles.replyBarOther} />
+                                        <View style={styles.replyContent}>
+                                            <Text style={styles.replySenderOther}>{message.replyTo.senderName}</Text>
+                                            <Text style={styles.replyTextOther} numberOfLines={1}>{message.replyTo.text}</Text>
+                                        </View>
                                     </View>
-                                </View>
-                            )}
-                            <Text style={styles.messageTextOther}>{message.text}</Text>
-                        </View>
-                    )}
-                    <Text style={styles.timestamp}>{message.timestamp}</Text>
-                </TouchableOpacity>
-            </View>
-        </Swipeable>
+                                )}
+                                {message.image_url && (
+                                    <TouchableOpacity onPress={() => setImageModalVisible(true)} activeOpacity={0.9}>
+                                        <Image source={{ uri: message.image_url }} style={styles.messageImageOther} />
+                                    </TouchableOpacity>
+                                )}
+                                {message.text ? <Text style={styles.messageTextOther}>{message.text}</Text> : null}
+                            </View>
+                        )}
+                        <Text style={styles.timestamp}>{message.timestamp}</Text>
+                    </TouchableOpacity>
+                </View>
+            </Swipeable>
+
+            {/* Image Viewer Modal */}
+            <Modal visible={imageModalVisible} transparent={true} onRequestClose={() => setImageModalVisible(false)}>
+                <View style={styles.imageModalContainer}>
+                    <TouchableOpacity style={styles.imageModalCloseButton} onPress={() => setImageModalVisible(false)}>
+                        <Ionicons name="close" size={30} color="white" />
+                    </TouchableOpacity>
+                    <Image source={{ uri: message.image_url }} style={styles.fullScreenImage} resizeMode="contain" />
+                </View>
+            </Modal>
+        </>
     );
 };
 
@@ -174,6 +200,8 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
     const [loading, setLoading] = useState(true);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const [replyingTo, setReplyingTo] = useState<Message | null>(null);
+    const [selectedImage, setSelectedImage] = useState<string | null>(null);
+    const [isSending, setIsSending] = useState(false);
     const flatListRef = useRef<FlatList>(null);
     const inputRef = useRef<TextInput>(null);
 
@@ -209,6 +237,7 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                 const formattedMessages: Message[] = data.map((msg: any) => ({
                     id: msg.id,
                     text: msg.content,
+                    image_url: msg.image_url,
                     sender: msg.sender_id === userId ? 'me' : 'other',
                     timestamp: new Date(msg.created_at).toLocaleTimeString('ja-JP', {
                         hour: '2-digit',
@@ -242,6 +271,7 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                         const newMessage: Message = {
                             id: payload.new.id,
                             text: payload.new.content,
+                            image_url: payload.new.image_url,
                             sender: 'other',
                             timestamp: new Date(payload.new.created_at).toLocaleTimeString('ja-JP', {
                                 hour: '2-digit',
@@ -285,27 +315,81 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
         return items;
     }, [messages]);
 
+    const handlePickImage = async () => {
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            quality: 0.7,
+        });
+
+        if (!result.canceled) {
+            setSelectedImage(result.assets[0].uri);
+        }
+    };
+
     const handleSend = async () => {
-        if (!inputText.trim() || !currentUserId) return;
+        if ((!inputText.trim() && !selectedImage) || !currentUserId || isSending) return;
 
+        setIsSending(true);
         const content = inputText.trim();
-        const replyData = replyingTo ? {
-            id: replyingTo.id,
-            text: replyingTo.text,
-            senderName: replyingTo.sender === 'me' ? '自分' : partnerName
-        } : null;
+        const imageUri = selectedImage;
 
-        setInputText(''); // Clear input immediately for better UX
-        setReplyingTo(null); // Clear reply state
+        // Reset inputs immediately for UX
+        setInputText('');
+        setSelectedImage(null);
+        setReplyingTo(null);
 
         try {
+            let uploadedImageUrl = null;
+
+            if (imageUri) {
+                const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+                    const xhr = new XMLHttpRequest();
+                    xhr.onload = function () {
+                        resolve(xhr.response);
+                    };
+                    xhr.onerror = function (e) {
+                        console.log(e);
+                        reject(new TypeError('Network request failed'));
+                    };
+                    xhr.responseType = 'arraybuffer';
+                    xhr.open('GET', imageUri, true);
+                    xhr.send(null);
+                });
+
+                const fileExt = imageUri.split('.').pop()?.toLowerCase() ?? 'jpg';
+                const fileName = `${currentUserId}/${Date.now()}.${fileExt}`;
+
+                const { error: uploadError } = await supabase.storage
+                    .from('chat-images')
+                    .upload(fileName, arrayBuffer, {
+                        contentType: `image/${fileExt}`,
+                        upsert: false,
+                    });
+
+                if (uploadError) throw uploadError;
+
+                const { data: { publicUrl } } = supabase.storage
+                    .from('chat-images')
+                    .getPublicUrl(fileName);
+
+                uploadedImageUrl = publicUrl;
+            }
+
+            const replyData = replyingTo ? {
+                id: replyingTo.id,
+                text: replyingTo.text || '画像',
+                senderName: replyingTo.sender === 'me' ? '自分' : partnerName
+            } : null;
+
             const { data, error } = await supabase
                 .from('messages')
                 .insert({
                     sender_id: currentUserId,
                     receiver_id: partnerId,
                     content: content,
-                    reply_to: replyData, // Save reply info
+                    image_url: uploadedImageUrl,
+                    reply_to: replyData,
                 })
                 .select()
                 .single();
@@ -316,6 +400,7 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                 const newMessage: Message = {
                     id: data.id,
                     text: data.content,
+                    image_url: data.image_url,
                     sender: 'me',
                     timestamp: new Date(data.created_at).toLocaleTimeString('ja-JP', {
                         hour: '2-digit',
@@ -327,7 +412,6 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                 };
                 setMessages((prev) => [...prev, newMessage]);
 
-                // Scroll to bottom after sending
                 setTimeout(() => {
                     flatListRef.current?.scrollToEnd({ animated: true });
                 }, 100);
@@ -335,7 +419,11 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
         } catch (error: any) {
             console.error('Error sending message:', error);
             Alert.alert('エラー', `メッセージの送信に失敗しました: ${error.message || error}`);
-            setInputText(content); // Restore input on error
+            // Restore inputs on error
+            setInputText(content);
+            setSelectedImage(imageUri);
+        } finally {
+            setIsSending(false);
         }
     };
 
@@ -441,6 +529,7 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                     behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                     keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
                 >
+                    {/* Reply Preview */}
                     {replyingTo && (
                         <View style={styles.replyPreviewBar}>
                             <View style={styles.replyPreviewContent}>
@@ -450,7 +539,7 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                                         {replyingTo.sender === 'me' ? '自分' : partnerName}への返信
                                     </Text>
                                     <Text style={styles.replyPreviewText} numberOfLines={1}>
-                                        {replyingTo.text}
+                                        {replyingTo.text || '画像'}
                                     </Text>
                                 </View>
                             </View>
@@ -459,8 +548,19 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                             </TouchableOpacity>
                         </View>
                     )}
+
+                    {/* Image Preview */}
+                    {selectedImage && (
+                        <View style={styles.imagePreviewBar}>
+                            <Image source={{ uri: selectedImage }} style={styles.imagePreview} />
+                            <TouchableOpacity onPress={() => setSelectedImage(null)} style={styles.closeImageButton}>
+                                <Ionicons name="close-circle" size={24} color="#ef4444" />
+                            </TouchableOpacity>
+                        </View>
+                    )}
+
                     <View style={styles.inputContainer}>
-                        <TouchableOpacity style={styles.attachButton}>
+                        <TouchableOpacity style={styles.attachButton} onPress={handlePickImage} disabled={isSending}>
                             <Ionicons name="image-outline" size={24} color="#9ca3af" />
                         </TouchableOpacity>
 
@@ -472,21 +572,26 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                             onChangeText={setInputText}
                             multiline
                             maxLength={1000}
+                            editable={!isSending}
                         />
 
                         <TouchableOpacity
                             style={[
                                 styles.sendButton,
-                                !inputText.trim() && styles.sendButtonDisabled
+                                (!inputText.trim() && !selectedImage) || isSending ? styles.sendButtonDisabled : null
                             ]}
                             onPress={handleSend}
-                            disabled={!inputText.trim()}
+                            disabled={(!inputText.trim() && !selectedImage) || isSending}
                         >
-                            <Ionicons
-                                name="send"
-                                size={20}
-                                color={inputText.trim() ? 'white' : '#9ca3af'}
-                            />
+                            {isSending ? (
+                                <ActivityIndicator size="small" color="white" />
+                            ) : (
+                                <Ionicons
+                                    name="send"
+                                    size={20}
+                                    color={inputText.trim() || selectedImage ? 'white' : '#9ca3af'}
+                                />
+                            )}
                         </TouchableOpacity>
                     </View>
                 </KeyboardAvoidingView>
@@ -602,6 +707,18 @@ const styles = StyleSheet.create({
         color: '#1f2937',
         fontSize: 15,
         lineHeight: 22,
+    },
+    messageImageMe: {
+        width: 200,
+        height: 150,
+        borderRadius: 12,
+        marginBottom: 4,
+    },
+    messageImageOther: {
+        width: 200,
+        height: 150,
+        borderRadius: 12,
+        marginBottom: 4,
     },
     timestamp: {
         fontSize: 10,
@@ -734,6 +851,45 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         width: 50,
+        height: '100%',
+    },
+    // Image Preview Styles
+    imagePreviewBar: {
+        padding: 12,
+        backgroundColor: '#F9FAFB',
+        borderTopWidth: 1,
+        borderTopColor: '#E5E7EB',
+        position: 'relative',
+        alignItems: 'flex-start',
+    },
+    imagePreview: {
+        width: 100,
+        height: 100,
+        borderRadius: 8,
+    },
+    closeImageButton: {
+        position: 'absolute',
+        top: 4,
+        left: 104,
+        backgroundColor: 'white',
+        borderRadius: 12,
+    },
+    // Image Modal Styles
+    imageModalContainer: {
+        flex: 1,
+        backgroundColor: 'black',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    imageModalCloseButton: {
+        position: 'absolute',
+        top: 40,
+        right: 20,
+        zIndex: 1,
+        padding: 10,
+    },
+    fullScreenImage: {
+        width: '100%',
         height: '100%',
     },
 });
