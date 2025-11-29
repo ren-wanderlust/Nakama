@@ -16,3 +16,11 @@ export interface Profile {
     isStudent: boolean;
     createdAt: string;
 }
+
+export interface Theme {
+    id: string;
+    icon: string;
+    title: string;
+    image_url: string;
+    participant_count?: number;
+}

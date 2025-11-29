@@ -2,14 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Dimensions, Modal, TextInput, Alert, ImageBackground, RefreshControl, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
-
-interface Theme {
-    id: string;
-    icon: string;
-    title: string;
-    image_url: string;
-    participant_count?: number;
-}
+import { Theme } from '../types';
 
 interface ThemeCardProps {
     icon: string;
@@ -50,7 +43,7 @@ const ThemeCard = ({ icon, title, count, image, onPress }: ThemeCardProps) => (
 );
 
 interface ChallengeCardPageProps {
-    onThemeSelect?: (themeName: string) => void;
+    onThemeSelect?: (theme: Theme) => void;
 }
 
 export function ChallengeCardPage({ onThemeSelect }: ChallengeCardPageProps) {
@@ -183,7 +176,7 @@ export function ChallengeCardPage({ onThemeSelect }: ChallengeCardPageProps) {
                                 title={item.title}
                                 count={item.participant_count || 0}
                                 image={item.image_url}
-                                onPress={() => onThemeSelect?.(item.title)}
+                                onPress={() => onThemeSelect?.(item)}
                             />
                         ))}
                     </View>
@@ -229,7 +222,7 @@ export function ChallengeCardPage({ onThemeSelect }: ChallengeCardPageProps) {
                                             count={item.participant_count || 0}
                                             image={item.image_url}
                                             onPress={() => {
-                                                onThemeSelect?.(item.title);
+                                                onThemeSelect?.(item);
                                                 setIsSearchModalVisible(false);
                                             }}
                                         />
