@@ -1,9 +1,15 @@
-import React, { useState, useMemo, useCallback } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Dimensions, Modal, TextInput, Alert, TouchableWithoutFeedback, Keyboard, ImageBackground, RefreshControl } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Dimensions, Modal, TextInput, Alert, ImageBackground, RefreshControl, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { supabase } from '../lib/supabase';
 
-import { Profile } from '../types';
-import { isProfileMatchingTheme } from '../utils/themeMatching';
+interface Theme {
+    id: string;
+    icon: string;
+    title: string;
+    image_url: string;
+    participant_count?: number;
+}
 
 interface ThemeCardProps {
     icon: string;
@@ -45,92 +51,90 @@ const ThemeCard = ({ icon, title, count, image, onPress }: ThemeCardProps) => (
 
 interface ChallengeCardPageProps {
     onThemeSelect?: (themeName: string) => void;
-    profiles?: Profile[];
 }
 
-const ICON_OPTIONS = ['🚀', '💻', '🎨', '🗣️', '💼', '💰', '🌍', '❤️', '📚', '🎮', '🎵', '⚽️'];
-
-const INITIAL_THEMES = [
-    { id: 1, icon: '🤖', title: 'AIプロダクト開発', count: 127, image: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=800&q=80' },
-    { id: 2, icon: '📱', title: 'モバイルアプリ開発', count: 203, image: 'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?auto=format&fit=crop&w=800&q=80' },
-    { id: 3, icon: '🚀', title: 'スタートアップ起業', count: 342, image: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=800&q=80' },
-    { id: 4, icon: '⛓️', title: 'Web3 / ブロックチェーン', count: 78, image: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&w=800&q=80' },
-    { id: 5, icon: '🏙️', title: '地方創生 / まちづくり', count: 85, image: 'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?auto=format&fit=crop&w=800&q=80' },
-    { id: 6, icon: '👗', title: 'D2C / ブランド立ち上げ', count: 94, image: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=800&q=80' },
-    { id: 7, icon: '🔥', title: 'ハッカソン / ビジコン', count: 110, image: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=800&q=80' },
-    { id: 8, icon: '📚', title: 'EdTech / 教育', count: 62, image: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=800&q=80' },
-    { id: 9, icon: '🤝', title: '学生団体 / コミュニティ', count: 156, image: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=800&q=80' },
-    { id: 10, icon: '💻', title: 'Vibeコーディング', count: 42, image: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=800&q=80' },
-    { id: 11, icon: '🎮', title: 'ゲーム制作 / エンタメ', count: 45, image: 'https://images.unsplash.com/photo-1552820728-8b83bb6b773f?auto=format&fit=crop&w=800&q=80' },
-    { id: 12, icon: '📹', title: '動画・メディア運営', count: 68, image: 'https://images.unsplash.com/photo-1586899028174-e7098604235b?auto=format&fit=crop&w=800&q=80' },
-];
-
-export function ChallengeCardPage({ onThemeSelect, profiles = [] }: ChallengeCardPageProps) {
-    const [themes, setThemes] = useState(INITIAL_THEMES);
+export function ChallengeCardPage({ onThemeSelect }: ChallengeCardPageProps) {
+    const [themes, setThemes] = useState<Theme[]>([]);
     const [refreshing, setRefreshing] = useState(false);
-
-    const DEFAULT_IMAGES = [
-        'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=400&q=80',
-        'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=400&q=80',
-        'https://images.unsplash.com/photo-1552664730-d307ca884978?w=400&q=80',
-        'https://images.unsplash.com/photo-1531482615713-2afd69097998?w=400&q=80',
-    ];
-
-    const [isModalVisible, setIsModalVisible] = useState(false);
-    const [newThemeTitle, setNewThemeTitle] = useState('');
-    const [selectedIcon, setSelectedIcon] = useState(ICON_OPTIONS[0]);
+    const [loading, setLoading] = useState(true);
 
     const [isSearchModalVisible, setIsSearchModalVisible] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
 
-    // 参加人数を集計するロジック
-    const countParticipants = useCallback((themeTitle: string) => {
-        if (!profiles || profiles.length === 0) return 0;
-        return profiles.filter(profile => isProfileMatchingTheme(profile, themeTitle)).length;
-    }, [profiles]);
+    const fetchThemes = async () => {
+        try {
+            // Fetch themes
+            const { data: themesData, error: themesError } = await supabase
+                .from('themes')
+                .select('*');
 
-    // テーマを参加人数順（降順）にソート
-    const sortedThemes = useMemo(() => {
-        const themesWithCount = themes.map(theme => ({
-            ...theme,
-            dynamicCount: countParticipants(theme.title)
-        }));
-        return themesWithCount.sort((a, b) => b.dynamicCount - a.dynamicCount);
-    }, [themes, countParticipants]);
+            if (themesError) throw themesError;
 
-    const filteredThemes = sortedThemes.filter(theme =>
-        theme.title.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+            // Fetch participant counts
+            // Note: For a large app, this should be a view or a separate count query per item, or stored in the themes table.
+            // For now, we'll fetch all participants to count them client-side or do a join if possible.
+            // A better approach for scalability is to use a database function or view.
+            // Let's try to get counts by grouping. Supabase JS client doesn't support simple GroupBy count easily without rpc.
+            // We will fetch all participants for now (assuming not too many yet) or just fetch counts per theme.
+
+            // Optimization: Fetch participant counts using a separate query or RPC is better.
+            // For simplicity in this step, we will just fetch themes. 
+            // To show real counts, we would ideally have a 'participant_count' column in 'themes' updated via triggers,
+            // or fetch counts individually.
+
+            // Let's fetch all participants to count (Not scalable but works for MVP)
+            const { data: participantsData, error: participantsError } = await supabase
+                .from('theme_participants')
+                .select('theme_id');
+
+            if (participantsError) throw participantsError;
+
+            const counts: Record<string, number> = {};
+            participantsData?.forEach((p: any) => {
+                counts[p.theme_id] = (counts[p.theme_id] || 0) + 1;
+            });
+
+            const formattedThemes: Theme[] = themesData.map((theme: any) => ({
+                id: theme.id,
+                icon: theme.icon,
+                title: theme.title,
+                image_url: theme.image_url,
+                participant_count: counts[theme.id] || 0,
+            }));
+
+            // Sort by count descending
+            formattedThemes.sort((a, b) => (b.participant_count || 0) - (a.participant_count || 0));
+
+            setThemes(formattedThemes);
+        } catch (error) {
+            console.error('Error fetching themes:', error);
+            Alert.alert('エラー', 'テーマの取得に失敗しました');
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchThemes();
+    }, []);
 
     const onRefresh = useCallback(() => {
         setRefreshing(true);
-        // 擬似的なリロード処理（本来はAPIからデータを再取得する）
-        setTimeout(() => {
-            setRefreshing(false);
-        }, 1500);
+        fetchThemes();
     }, []);
 
-    const handleCreateTheme = () => {
-        if (!newThemeTitle.trim()) {
-            Alert.alert('エラー', 'テーマ名を入力してください');
-            return;
-        }
+    const filteredThemes = themes.filter(theme =>
+        theme.title.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
-        const newTheme = {
-            id: Date.now(),
-            icon: selectedIcon,
-            title: newThemeTitle,
-            count: 0,
-            image: DEFAULT_IMAGES[Math.floor(Math.random() * DEFAULT_IMAGES.length)]
-        };
-        setThemes([newTheme, ...themes]);
-
-        console.log('New Theme Created:', newTheme);
-        Alert.alert('完了', 'テーマを作成しました！');
-        setIsModalVisible(false);
-        setNewThemeTitle('');
-        setSelectedIcon(ICON_OPTIONS[0]);
-    };
+    if (loading && !refreshing) {
+        return (
+            <View style={[styles.container, styles.loadingContainer]}>
+                <ActivityIndicator size="large" color="#009688" />
+            </View>
+        );
+    }
 
     return (
         <View style={styles.container}>
@@ -172,13 +176,13 @@ export function ChallengeCardPage({ onThemeSelect, profiles = [] }: ChallengeCar
             >
                 <View style={styles.gridContainer}>
                     <View style={styles.grid}>
-                        {sortedThemes.map((item) => (
+                        {themes.map((item) => (
                             <ThemeCard
                                 key={item.id}
                                 icon={item.icon}
                                 title={item.title}
-                                count={item.dynamicCount} // ソート済みの計算結果を使用
-                                image={item.image}
+                                count={item.participant_count || 0}
+                                image={item.image_url}
                                 onPress={() => onThemeSelect?.(item.title)}
                             />
                         ))}
@@ -186,73 +190,6 @@ export function ChallengeCardPage({ onThemeSelect, profiles = [] }: ChallengeCar
                 </View>
                 <View style={{ height: 100 }} />
             </ScrollView>
-
-            {/* FAB */}
-            <TouchableOpacity
-                style={styles.fab}
-                onPress={() => setIsModalVisible(true)}
-            >
-                <Ionicons name="add" size={30} color="white" />
-            </TouchableOpacity>
-
-            {/* Create Theme Modal */}
-            <Modal
-                visible={isModalVisible}
-                transparent={true}
-                animationType="fade"
-                onRequestClose={() => setIsModalVisible(false)}
-            >
-                <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                    <View style={styles.modalOverlay}>
-                        <View style={styles.modalContent}>
-                            <Text style={styles.modalTitle}>新しい挑戦テーマを作成</Text>
-
-                            <Text style={styles.inputLabel}>どんなテーマで募集しますか？</Text>
-                            <TextInput
-                                style={styles.textInput}
-                                placeholder="例: 週末ハッカソン仲間募集"
-                                value={newThemeTitle}
-                                onChangeText={setNewThemeTitle}
-                            />
-
-                            <Text style={styles.inputLabel}>アイコンを選んでください</Text>
-                            <View style={styles.iconGrid}>
-                                {ICON_OPTIONS.map((icon) => (
-                                    <TouchableOpacity
-                                        key={icon}
-                                        style={[
-                                            styles.iconOption,
-                                            selectedIcon === icon && styles.iconOptionSelected
-                                        ]}
-                                        onPress={() => setSelectedIcon(icon)}
-                                    >
-                                        <Text style={styles.iconText}>{icon}</Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </View>
-
-                            <View style={styles.modalButtons}>
-                                <TouchableOpacity
-                                    style={styles.cancelButton}
-                                    onPress={() => setIsModalVisible(false)}
-                                >
-                                    <Text style={styles.cancelButtonText}>キャンセル</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    style={[
-                                        styles.createButton,
-                                        !newThemeTitle.trim() && styles.createButtonDisabled
-                                    ]}
-                                    onPress={handleCreateTheme}
-                                    disabled={!newThemeTitle.trim()}
-                                >
-                                    <Text style={styles.createButtonText}>作成する</Text>
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-                    </View>
-                </TouchableWithoutFeedback>
-            </Modal>
 
             {/* Search Modal */}
             <Modal
@@ -289,8 +226,8 @@ export function ChallengeCardPage({ onThemeSelect, profiles = [] }: ChallengeCar
                                             key={item.id}
                                             icon={item.icon}
                                             title={item.title}
-                                            count={countParticipants(item.title)}
-                                            image={item.image}
+                                            count={item.participant_count || 0}
+                                            image={item.image_url}
                                             onPress={() => {
                                                 onThemeSelect?.(item.title);
                                                 setIsSearchModalVisible(false);
@@ -315,6 +252,10 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#FAFAFA',
+    },
+    loadingContainer: {
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     header: {
         height: 90,
@@ -450,119 +391,6 @@ const styles = StyleSheet.create({
         fontSize: 11,
         color: '#FFEB3B', // Yellow accent
         fontWeight: 'bold',
-    },
-    fab: {
-        position: 'absolute',
-        bottom: 110,
-        right: 20,
-        width: 60,
-        height: 60,
-        borderRadius: 30,
-        backgroundColor: '#009688',
-        alignItems: 'center',
-        justifyContent: 'center',
-        elevation: 6,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-    },
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 20,
-    },
-    modalContent: {
-        backgroundColor: 'white',
-        borderRadius: 20,
-        padding: 24,
-        width: '100%',
-        maxWidth: 400,
-        elevation: 5,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 4,
-    },
-    modalTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#111827',
-        marginBottom: 20,
-        textAlign: 'center',
-    },
-    inputLabel: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#374151',
-        marginBottom: 8,
-    },
-    textInput: {
-        borderWidth: 1,
-        borderColor: '#D1D5DB',
-        borderRadius: 8,
-        padding: 12,
-        fontSize: 16,
-        marginBottom: 20,
-        backgroundColor: '#F9FAFB',
-    },
-    iconGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 12,
-        marginBottom: 24,
-        justifyContent: 'center',
-    },
-    iconOption: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: '#F3F4F6',
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderWidth: 2,
-        borderColor: 'transparent',
-    },
-    iconOptionSelected: {
-        borderColor: '#009688',
-        backgroundColor: '#E0F2F1',
-    },
-    iconText: {
-        fontSize: 24,
-    },
-    modalButtons: {
-        flexDirection: 'row',
-        gap: 12,
-    },
-    cancelButton: {
-        flex: 1,
-        paddingVertical: 12,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: '#D1D5DB',
-        alignItems: 'center',
-    },
-    cancelButtonText: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#6B7280',
-    },
-    createButton: {
-        flex: 1,
-        paddingVertical: 12,
-        borderRadius: 8,
-        backgroundColor: '#009688',
-        alignItems: 'center',
-    },
-    createButtonDisabled: {
-        backgroundColor: '#9CA3AF',
-    },
-    createButtonText: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: 'white',
     },
     searchModalContainer: {
         flex: 1,
