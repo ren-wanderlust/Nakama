@@ -162,6 +162,7 @@ function AppContent() {
   React.useEffect(() => {
     if (session?.user) {
       fetchCurrentUser();
+      fetchProfiles();
     }
   }, [session]);
 
@@ -432,6 +433,24 @@ function AppContent() {
     return (
       <SafeAreaProvider>
         <NotificationsPage onBack={() => setShowNotifications(false)} />
+      </SafeAreaProvider>
+    );
+  }
+
+  // Show settings page if active
+  if (showSettings) {
+    return (
+      <SafeAreaProvider>
+        <SettingsPage
+          onBack={() => setShowSettings(false)}
+          onLogout={signOut}
+          onOpenTerms={() => {
+            Alert.alert('利用規約', '利用規約の内容...');
+          }}
+          onOpenPrivacy={() => {
+            Alert.alert('プライバシーポリシー', 'プライバシーポリシーの内容...');
+          }}
+        />
       </SafeAreaProvider>
     );
   }

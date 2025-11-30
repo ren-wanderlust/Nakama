@@ -1,6 +1,23 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Switch, Alert, SafeAreaView } from 'react-native';
+import {
+    StyleSheet,
+    Text,
+    View,
+    TouchableOpacity,
+    ScrollView,
+    Switch,
+    Alert,
+    SafeAreaView,
+    Modal,
+    TextInput,
+    KeyboardAvoidingView,
+    Platform,
+    TouchableWithoutFeedback,
+    Keyboard,
+    ActivityIndicator
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { supabase } from '../lib/supabase';
 
 interface SettingsPageProps {
     onBack: () => void;
@@ -11,6 +28,17 @@ interface SettingsPageProps {
 
 export function SettingsPage({ onBack, onLogout, onOpenTerms, onOpenPrivacy }: SettingsPageProps) {
     const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+
+    // Email Change State
+    const [isEmailModalVisible, setIsEmailModalVisible] = useState(false);
+    const [newEmail, setNewEmail] = useState('');
+    const [isUpdatingEmail, setIsUpdatingEmail] = useState(false);
+
+    // Password Change State
+    const [isPasswordModalVisible, setIsPasswordModalVisible] = useState(false);
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
 
     const handleLogout = () => {
         Alert.alert(
@@ -25,6 +53,49 @@ export function SettingsPage({ onBack, onLogout, onOpenTerms, onOpenPrivacy }: S
                 }
             ]
         );
+    };
+
+    const handleUpdateEmail = async () => {
+        if (!newEmail.trim() || !newEmail.includes('@')) {
+            Alert.alert('エラー', '正しいメールアドレスを入力してください。');
+            return;
+        }
+        setIsUpdatingEmail(true);
+        try {
+            const { error } = await supabase.auth.updateUser({ email: newEmail });
+            if (error) throw error;
+            Alert.alert('確認メール送信', '新しいメールアドレスに確認メールを送信しました。\nメール内のリンクをクリックして変更を完了してください。');
+            setIsEmailModalVisible(false);
+            setNewEmail('');
+        } catch (error: any) {
+            Alert.alert('エラー', 'メールアドレスの更新に失敗しました: ' + error.message);
+        } finally {
+            setIsUpdatingEmail(false);
+        }
+    };
+
+    const handleUpdatePassword = async () => {
+        if (newPassword.length < 8) {
+            Alert.alert('エラー', 'パスワードは8文字以上で入力してください。');
+            return;
+        }
+        if (newPassword !== confirmPassword) {
+            Alert.alert('エラー', 'パスワードが一致しません。');
+            return;
+        }
+        setIsUpdatingPassword(true);
+        try {
+            const { error } = await supabase.auth.updateUser({ password: newPassword });
+            if (error) throw error;
+            Alert.alert('完了', 'パスワードを変更しました。');
+            setIsPasswordModalVisible(false);
+            setNewPassword('');
+            setConfirmPassword('');
+        } catch (error: any) {
+            Alert.alert('エラー', 'パスワードの更新に失敗しました: ' + error.message);
+        } finally {
+            setIsUpdatingPassword(false);
+        }
     };
 
     const renderSectionHeader = (title: string) => (
@@ -56,13 +127,7 @@ export function SettingsPage({ onBack, onLogout, onOpenTerms, onOpenPrivacy }: S
         </TouchableOpacity>
     );
 
-    const handleFeatureNotImplemented = () => {
-        Alert.alert("開発中", "この機能は現在開発中です。");
-    };
-
     const handleOpenURL = async (url: string) => {
-        // In a real app, you would use Linking.openURL(url)
-        // For now, we'll just show an alert with the URL
         Alert.alert("外部リンク", `${url} を開きます`);
     };
 
@@ -90,11 +155,11 @@ export function SettingsPage({ onBack, onLogout, onOpenTerms, onOpenPrivacy }: S
                     ), undefined, true, '#FF9500')}
                 </View>
 
-                {/* Account */}
-                {renderSectionHeader('アカウント')}
+                {/* Account Settings */}
+                {renderSectionHeader('アカウント設定')}
                 <View style={styles.sectionContainer}>
-                    {renderItem('person-outline', 'アカウント設定', <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />, handleFeatureNotImplemented, false, '#007AFF')}
-                    {renderItem('ban-outline', 'ブロックリスト', <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />, handleFeatureNotImplemented, true, '#FF3B30')}
+                    {renderItem('mail-outline', 'メールアドレス変更', <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />, () => setIsEmailModalVisible(true), false, '#007AFF')}
+                    {renderItem('lock-closed-outline', 'パスワード変更', <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />, () => setIsPasswordModalVisible(true), true, '#007AFF')}
                 </View>
 
                 {/* Legal */}
@@ -111,34 +176,106 @@ export function SettingsPage({ onBack, onLogout, onOpenTerms, onOpenPrivacy }: S
                         <Text style={styles.logoutText}>ログアウト</Text>
                     </TouchableOpacity>
                 </View>
-
-                {/* Delete Account */}
-                <View style={styles.deleteAccountContainer}>
-                    <TouchableOpacity
-                        style={styles.deleteAccountButton}
-                        onPress={() => {
-                            Alert.alert(
-                                "アカウント削除",
-                                "本当にアカウントを削除しますか？この操作は取り消せません。\nすべてのデータが完全に削除されます。",
-                                [
-                                    { text: "キャンセル", style: "cancel" },
-                                    {
-                                        text: "削除する",
-                                        style: "destructive",
-                                        onPress: () => {
-                                            Alert.alert("完了", "アカウント削除のリクエストを受け付けました。\n（デモ版のため実際の削除は行われません）", [
-                                                { text: "OK", onPress: onLogout }
-                                            ]);
-                                        }
-                                    }
-                                ]
-                            );
-                        }}
-                    >
-                        <Text style={styles.deleteAccountText}>アカウントを削除する</Text>
-                    </TouchableOpacity>
-                </View>
             </ScrollView>
+
+            {/* Email Change Modal */}
+            <Modal
+                visible={isEmailModalVisible}
+                animationType="slide"
+                transparent={true}
+                onRequestClose={() => setIsEmailModalVisible(false)}
+            >
+                <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                    <View style={styles.modalOverlay}>
+                        <KeyboardAvoidingView
+                            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                            style={styles.modalContent}
+                        >
+                            <View style={styles.modalHeader}>
+                                <Text style={styles.modalTitle}>メールアドレス変更</Text>
+                                <TouchableOpacity onPress={() => setIsEmailModalVisible(false)}>
+                                    <Ionicons name="close" size={24} color="#333" />
+                                </TouchableOpacity>
+                            </View>
+                            <View style={styles.modalBody}>
+                                <Text style={styles.inputLabel}>新しいメールアドレス</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    value={newEmail}
+                                    onChangeText={setNewEmail}
+                                    placeholder="example@email.com"
+                                    keyboardType="email-address"
+                                    autoCapitalize="none"
+                                />
+                                <TouchableOpacity
+                                    style={[styles.saveButton, isUpdatingEmail && styles.disabledButton]}
+                                    onPress={handleUpdateEmail}
+                                    disabled={isUpdatingEmail}
+                                >
+                                    {isUpdatingEmail ? (
+                                        <ActivityIndicator color="white" />
+                                    ) : (
+                                        <Text style={styles.saveButtonText}>変更メールを送信</Text>
+                                    )}
+                                </TouchableOpacity>
+                            </View>
+                        </KeyboardAvoidingView>
+                    </View>
+                </TouchableWithoutFeedback>
+            </Modal>
+
+            {/* Password Change Modal */}
+            <Modal
+                visible={isPasswordModalVisible}
+                animationType="slide"
+                transparent={true}
+                onRequestClose={() => setIsPasswordModalVisible(false)}
+            >
+                <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                    <View style={styles.modalOverlay}>
+                        <KeyboardAvoidingView
+                            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                            style={styles.modalContent}
+                        >
+                            <View style={styles.modalHeader}>
+                                <Text style={styles.modalTitle}>パスワード変更</Text>
+                                <TouchableOpacity onPress={() => setIsPasswordModalVisible(false)}>
+                                    <Ionicons name="close" size={24} color="#333" />
+                                </TouchableOpacity>
+                            </View>
+                            <View style={styles.modalBody}>
+                                <Text style={styles.inputLabel}>新しいパスワード</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    value={newPassword}
+                                    onChangeText={setNewPassword}
+                                    placeholder="8文字以上"
+                                    secureTextEntry
+                                />
+                                <Text style={styles.inputLabel}>新しいパスワード（確認）</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    value={confirmPassword}
+                                    onChangeText={setConfirmPassword}
+                                    placeholder="もう一度入力してください"
+                                    secureTextEntry
+                                />
+                                <TouchableOpacity
+                                    style={[styles.saveButton, isUpdatingPassword && styles.disabledButton]}
+                                    onPress={handleUpdatePassword}
+                                    disabled={isUpdatingPassword}
+                                >
+                                    {isUpdatingPassword ? (
+                                        <ActivityIndicator color="white" />
+                                    ) : (
+                                        <Text style={styles.saveButtonText}>変更する</Text>
+                                    )}
+                                </TouchableOpacity>
+                            </View>
+                        </KeyboardAvoidingView>
+                    </View>
+                </TouchableWithoutFeedback>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -232,17 +369,61 @@ const styles = StyleSheet.create({
         color: '#FF3B30',
         fontWeight: '400',
     },
-    deleteAccountContainer: {
-        marginTop: 32,
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'flex-end',
+    },
+    modalContent: {
+        backgroundColor: 'white',
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        paddingBottom: 40,
+        maxHeight: '80%',
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 40,
+        padding: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#eee',
     },
-    deleteAccountButton: {
-        padding: 12,
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
     },
-    deleteAccountText: {
+    modalBody: {
+        padding: 20,
+    },
+    inputLabel: {
         fontSize: 14,
-        color: '#999',
-        textDecorationLine: 'underline',
+        fontWeight: '600',
+        color: '#333',
+        marginBottom: 8,
+        marginTop: 16,
+    },
+    input: {
+        backgroundColor: '#f9fafb',
+        borderWidth: 1,
+        borderColor: '#e5e7eb',
+        borderRadius: 8,
+        padding: 12,
+        fontSize: 16,
+    },
+    saveButton: {
+        backgroundColor: '#009688',
+        paddingVertical: 14,
+        borderRadius: 8,
+        alignItems: 'center',
+        marginTop: 32,
+    },
+    disabledButton: {
+        opacity: 0.7,
+    },
+    saveButtonText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: 'bold',
     },
 });
