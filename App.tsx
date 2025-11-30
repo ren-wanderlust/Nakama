@@ -26,6 +26,7 @@ import { Profile, Theme } from './types';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { supabase } from './lib/supabase';
 import { Alert } from 'react-native';
+import { TERMS_OF_SERVICE, PRIVACY_POLICY } from './constants/LegalTexts';
 
 // Placeholder component for tabs under development
 const PlaceholderScreen = ({ title }: { title: string }) => (
@@ -437,6 +438,19 @@ function AppContent() {
     );
   }
 
+  // Show legal document if active
+  if (legalDocument) {
+    return (
+      <SafeAreaProvider>
+        <LegalDocumentPage
+          title={legalDocument.title}
+          content={legalDocument.content}
+          onBack={() => setLegalDocument(null)}
+        />
+      </SafeAreaProvider>
+    );
+  }
+
   // Show settings page if active
   if (showSettings) {
     return (
@@ -445,10 +459,10 @@ function AppContent() {
           onBack={() => setShowSettings(false)}
           onLogout={signOut}
           onOpenTerms={() => {
-            Alert.alert('利用規約', '利用規約の内容...');
+            setLegalDocument({ title: '利用規約', content: TERMS_OF_SERVICE });
           }}
           onOpenPrivacy={() => {
-            Alert.alert('プライバシーポリシー', 'プライバシーポリシーの内容...');
+            setLegalDocument({ title: 'プライバシーポリシー', content: PRIVACY_POLICY });
           }}
         />
       </SafeAreaProvider>
