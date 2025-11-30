@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, FlatList, Image, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, FlatList, Image, ActivityIndicator, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 
@@ -23,6 +23,13 @@ interface TalkPageProps {
 export function TalkPage({ onOpenChat }: TalkPageProps) {
     const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+
+    const onRefresh = async () => {
+        setRefreshing(true);
+        await fetchChatRooms();
+        setRefreshing(false);
+    };
 
     useEffect(() => {
         fetchChatRooms();
@@ -241,6 +248,9 @@ export function TalkPage({ onOpenChat }: TalkPageProps) {
                         </TouchableOpacity>
                     )}
                     contentContainerStyle={styles.listContent}
+                    refreshControl={
+                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#009688']} />
+                    }
                 />
             ) : (
                 <View style={styles.emptyContainer}>
@@ -249,6 +259,9 @@ export function TalkPage({ onOpenChat }: TalkPageProps) {
                     <Text style={styles.emptySubText}>
                         マッチングした相手とメッセージを始めましょう！
                     </Text>
+                    <TouchableOpacity onPress={onRefresh} style={{ marginTop: 20, padding: 10 }}>
+                        <Text style={{ color: '#009688' }}>再読み込み</Text>
+                    </TouchableOpacity>
                 </View>
             )}
         </View>

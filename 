@@ -1,0 +1,23 @@
+wq
+Merge branch 'main' of https://github.com/ren-wanderlust/Bizyou into feature/function-adding
+# Please enter a commit message to explain why this merge is necessary,
+# especially if it merges an updated upstream into a topic branch.
+#
+# Lines starting with '#' will be ignored, and an empty message aborts
+# the commit.
+#
+# It looks like you may be committing a merge.
+A
+# If this is not correct, please run
+#	git update-ref -d MERGE_HEAD
+# and try again.
+
+
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#
+# On branch feature/function-adding
+# Your branch is up to date with 'origin/feature/function-adding'.
+#
+# All conflicts fixed but you are still merging.
+#

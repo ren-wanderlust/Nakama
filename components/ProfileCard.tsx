@@ -69,6 +69,9 @@ export function ProfileCard({ profile, isLiked, onLike, onSelect }: ProfileCardP
             onPress={onSelect}
             activeOpacity={0.9}
         >
+            {/* Like Button */}
+
+
             {/* Header: Avatar & Basic Info */}
             <View style={styles.header}>
                 <Image
@@ -221,4 +224,5 @@ const styles = StyleSheet.create({
         color: '#4B5563',
         fontWeight: '500',
     },
+
 });

@@ -637,6 +637,7 @@ function AppContent() {
             likedProfileIds={likedProfiles}
             allProfiles={displayProfiles}
             onProfileSelect={setSelectedProfile}
+            onLike={handleLike}
           />
         )}
         {activeTab === 'challenge' && (

@@ -11,11 +11,12 @@ interface LikesPageProps {
     likedProfileIds: Set<string>;
     allProfiles: Profile[];
     onProfileSelect: (profile: Profile) => void;
+    onLike: (profileId: string) => void;
 }
 
 
 
-export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect }: LikesPageProps) {
+export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLike }: LikesPageProps) {
     const { session } = useAuth();
     const [activeTab, setActiveTab] = useState<'received' | 'sent'>('sent');
     const [receivedLikes, setReceivedLikes] = useState<Profile[]>([]);
@@ -109,8 +110,8 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect }: Lik
                     <View style={styles.gridItem}>
                         <ProfileCard
                             profile={item}
-                            isLiked={true} // Always liked in this view (or received like)
-                            onLike={() => { }} // No-op or unlike logic
+                            isLiked={activeTab === 'sent'} // True if sent tab, False if received tab (waiting for like back)
+                            onLike={() => onLike(item.id)}
                             onSelect={() => onProfileSelect(item)}
                         />
                     </View>
