@@ -81,27 +81,39 @@ function AppContent() {
   const [selectedTheme, setSelectedTheme] = useState<Theme | null>(null);
   const [matchedProfile, setMatchedProfile] = useState<Profile | null>(null);
 
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const PAGE_SIZE = 20;
+
   // Fetch profiles from Supabase
-  const fetchProfiles = async () => {
+  const fetchProfiles = async (pageNumber = 0, shouldRefresh = false) => {
+    if (!shouldRefresh && (!hasMore || loadingMore)) return;
+
     try {
+      if (pageNumber > 0) setLoadingMore(true);
+
+      const from = pageNumber * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+
       const { data, error } = await supabase
         .from('profiles')
-        .select('*');
+        .select('*')
+        .order('created_at', { ascending: false })
+        .range(from, to);
 
       if (error) throw error;
 
       if (data) {
-        // Map Supabase data to Profile type if necessary (snake_case to camelCase)
-        // Assuming the table columns match the Profile type or we map them here
         const mappedProfiles: Profile[] = data.map((item: any) => ({
           id: item.id,
           name: item.name,
           age: item.age,
-          location: item.location || '', // Handle optional fields
+          location: item.location || '',
           university: item.university,
           company: item.company,
           image: item.image,
-          challengeTheme: item.challenge_theme || '', // Map snake_case
+          challengeTheme: item.challenge_theme || '',
           theme: item.theme || '',
           bio: item.bio,
           skills: item.skills || [],
@@ -111,11 +123,31 @@ function AppContent() {
           isStudent: item.is_student,
           createdAt: item.created_at,
         }));
-        setDisplayProfiles(mappedProfiles);
+
+        if (shouldRefresh) {
+          setDisplayProfiles(mappedProfiles);
+        } else {
+          setDisplayProfiles(prev => {
+            const existingIds = new Set(prev.map(p => p.id));
+            const newProfiles = mappedProfiles.filter(p => !existingIds.has(p.id));
+            return [...prev, ...newProfiles];
+          });
+        }
+
+        setHasMore(data.length === PAGE_SIZE);
+        setPage(pageNumber);
       }
     } catch (error) {
       console.error('Error fetching profiles:', error);
       Alert.alert('エラー', 'データの取得に失敗しました');
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
+  const loadMoreProfiles = () => {
+    if (!loadingMore && hasMore) {
+      fetchProfiles(page + 1);
     }
   };
 
@@ -265,7 +297,9 @@ function AppContent() {
 
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
-    await fetchProfiles();
+    setPage(0);
+    setHasMore(true);
+    await fetchProfiles(0, true);
     await fetchMatches();
     setRefreshing(false);
   }, []);
@@ -664,6 +698,15 @@ function AppContent() {
             contentContainerStyle={styles.listContent}
             columnWrapperStyle={styles.columnWrapper}
             showsVerticalScrollIndicator={false}
+            onEndReached={loadMoreProfiles}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={
+              loadingMore ? (
+                <View style={{ paddingVertical: 20 }}>
+                  <ActivityIndicator size="small" color="#009688" />
+                </View>
+              ) : null
+            }
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#009688']} />
             }
