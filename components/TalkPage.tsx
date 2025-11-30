@@ -14,6 +14,7 @@ interface ChatRoom {
     unreadCount: number;
     timestamp: string;
     isOnline?: boolean;
+    isUnreplied: boolean;
 }
 
 interface TalkPageProps {
@@ -105,7 +106,8 @@ export function TalkPage({ onOpenChat }: TalkPageProps) {
                             roomsMap.set(partnerId, {
                                 lastMessage: msg.content,
                                 timestamp: msg.created_at,
-                                unreadCount: 0
+                                unreadCount: 0,
+                                lastSenderId: msg.sender_id
                             });
                         }
                     }
@@ -119,7 +121,8 @@ export function TalkPage({ onOpenChat }: TalkPageProps) {
                         lastMessage: 'マッチングしました！メッセージを送ってみましょう',
                         timestamp: new Date().toISOString(),
                         unreadCount: 0,
-                        isNewMatch: true
+                        isNewMatch: true,
+                        lastSenderId: null // No messages yet
                     });
                 }
             });
@@ -155,6 +158,9 @@ export function TalkPage({ onOpenChat }: TalkPageProps) {
                     timestamp = `${lastMsgDate.getMonth() + 1}/${lastMsgDate.getDate()}`;
                 }
 
+                // Determine if unreplied: last message was from partner
+                const isUnreplied = roomData.lastSenderId === partnerId;
+
                 return {
                     id: partnerId,
                     partnerId: partnerId,
@@ -166,6 +172,7 @@ export function TalkPage({ onOpenChat }: TalkPageProps) {
                     unreadCount: roomData.unreadCount,
                     timestamp: timestamp,
                     isOnline: false,
+                    isUnreplied: isUnreplied,
                 };
             });
 
@@ -227,7 +234,12 @@ export function TalkPage({ onOpenChat }: TalkPageProps) {
                                             {item.partnerAge}歳 · {item.partnerLocation}
                                         </Text>
                                     </View>
-                                    <Text style={styles.timestamp}>{item.timestamp}</Text>
+                                    <View style={styles.rightInfo}>
+                                        <Text style={styles.timestamp}>{item.timestamp}</Text>
+                                        {item.isUnreplied && (
+                                            <Text style={styles.unrepliedBadge}>未返信</Text>
+                                        )}
+                                    </View>
                                 </View>
 
                                 <View style={styles.messageRow}>
@@ -329,13 +341,18 @@ const styles = StyleSheet.create({
     topRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'baseline',
+        alignItems: 'flex-start', // Changed from baseline to flex-start for multiline right info
         marginBottom: 4,
     },
     nameContainer: {
         flexDirection: 'row',
         alignItems: 'baseline',
         gap: 8,
+        flex: 1, // Allow taking space
+    },
+    rightInfo: {
+        alignItems: 'flex-end',
+        justifyContent: 'center',
     },
     name: {
         fontSize: 16,
@@ -349,6 +366,12 @@ const styles = StyleSheet.create({
     timestamp: {
         fontSize: 12,
         color: '#9ca3af',
+    },
+    unrepliedBadge: {
+        fontSize: 11,
+        fontWeight: 'bold',
+        color: '#FF5252',
+        marginTop: 4,
     },
     messageRow: {
         flexDirection: 'row',
