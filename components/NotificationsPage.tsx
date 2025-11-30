@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 
 export interface Notification {
     id: string;
-    type: 'important' | 'update' | 'psychology' | 'other';
+    type: 'important' | 'update' | 'psychology' | 'other' | 'like' | 'match';
     title: string;
     content?: string;
     date: string;
@@ -27,10 +27,20 @@ export function NotificationsPage({ onBack }: NotificationsPageProps) {
 
     const fetchNotifications = async () => {
         try {
-            const { data, error } = await supabase
+            const { data: { user } } = await supabase.auth.getUser();
+
+            let query = supabase
                 .from('notifications')
                 .select('*')
                 .order('created_at', { ascending: false });
+
+            if (user) {
+                query = query.or(`user_id.is.null,user_id.eq.${user.id}`);
+            } else {
+                query = query.is('user_id', null);
+            }
+
+            const { data, error } = await query;
 
             if (error) throw error;
 
@@ -66,6 +76,10 @@ export function NotificationsPage({ onBack }: NotificationsPageProps) {
                 return { backgroundColor: '#9E9E9E', text: 'アップデート' };
             case 'psychology':
                 return { backgroundColor: '#E040FB', text: '心理テスト' };
+            case 'like':
+                return { backgroundColor: '#FF7F11', text: 'いいね' };
+            case 'match':
+                return { backgroundColor: '#009688', text: 'マッチング' };
             default:
                 return { backgroundColor: '#2196F3', text: 'お知らせ' };
         }

@@ -27,16 +27,28 @@ export function TalkPage({ onOpenChat }: TalkPageProps) {
     useEffect(() => {
         fetchChatRooms();
 
-        // Subscribe to new messages to update the list
-        const subscription = supabase
+        // Subscribe to new messages
+        const messageSubscription = supabase
             .channel('public:messages')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => {
                 fetchChatRooms();
             })
             .subscribe();
 
+        // Subscribe to new likes (matches)
+        const likesSubscription = supabase
+            .channel('public:likes')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'likes' }, () => {
+                fetchChatRooms();
+            })
+            .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'likes' }, () => {
+                fetchChatRooms(); // Handle unmatch
+            })
+            .subscribe();
+
         return () => {
-            subscription.unsubscribe();
+            supabase.removeChannel(messageSubscription);
+            supabase.removeChannel(likesSubscription);
         };
     }, []);
 

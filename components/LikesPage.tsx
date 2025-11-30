@@ -76,10 +76,19 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect }: Lik
     }, [session, activeTab]);
 
     // Filter profiles based on likedProfileIds
-    const sentLikes = allProfiles.filter(profile => likedProfileIds.has(profile.id));
+    // Exclude those who are also in receivedLikes (Matched)
+    const receivedLikeIds = new Set(receivedLikes.map(p => p.id));
+    const sentLikes = allProfiles.filter(profile =>
+        likedProfileIds.has(profile.id) && !receivedLikeIds.has(profile.id)
+    );
+
+    // Filter receivedLikes to exclude those who are also in likedProfileIds (Matched)
+    const displayReceivedLikes = receivedLikes.filter(profile =>
+        !likedProfileIds.has(profile.id)
+    );
 
     const renderContent = () => {
-        const data = activeTab === 'received' ? receivedLikes : sentLikes;
+        const data = activeTab === 'received' ? displayReceivedLikes : sentLikes;
         const emptyMessage = activeTab === 'received' ? 'まだいいねがありません' : 'まだいいねを送っていません';
         const emptySubMessage = activeTab === 'received' ? 'プロフィールを充実させて待ちましょう！' : '気になる相手を探してみましょう！';
 
@@ -135,18 +144,18 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect }: Lik
                                 style={styles.tabGradient}
                             >
                                 <Text style={styles.tabTextActive}>あなたに興味あり</Text>
-                                {receivedLikes.length > 0 && (
+                                {displayReceivedLikes.length > 0 && (
                                     <View style={styles.badge}>
-                                        <Text style={styles.badgeText}>{receivedLikes.length}</Text>
+                                        <Text style={styles.badgeText}>{displayReceivedLikes.length}</Text>
                                     </View>
                                 )}
                             </LinearGradient>
                         ) : (
                             <View style={styles.tabContentInactive}>
                                 <Text style={styles.tabTextInactive}>あなたに興味あり</Text>
-                                {receivedLikes.length > 0 && (
+                                {displayReceivedLikes.length > 0 && (
                                     <View style={styles.badge}>
-                                        <Text style={styles.badgeText}>{receivedLikes.length}</Text>
+                                        <Text style={styles.badgeText}>{displayReceivedLikes.length}</Text>
                                     </View>
                                 )}
                             </View>

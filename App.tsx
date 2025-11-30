@@ -1,3 +1,4 @@
+// Trigger rebuild
 import React, { useState } from 'react';
 import { StyleSheet, Text, View, SafeAreaView, FlatList, TouchableOpacity, Platform, RefreshControl, ActivityIndicator, Modal } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
@@ -26,6 +27,7 @@ import { Profile, Theme } from './types';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { supabase } from './lib/supabase';
 import { Alert } from 'react-native';
+import { TERMS_OF_SERVICE, PRIVACY_POLICY } from './constants/LegalTexts';
 
 // Placeholder component for tabs under development
 const PlaceholderScreen = ({ title }: { title: string }) => (
@@ -68,6 +70,7 @@ function AppContent() {
   const [legalDocument, setLegalDocument] = useState<{ title: string; content: string } | null>(null);
 
   const [currentUser, setCurrentUser] = useState<Profile | null>(null);
+  const [isLoadingUser, setIsLoadingUser] = useState(false);
 
   const [sortOrder, setSortOrder] = useState<'recommended' | 'newest'>('recommended');
   const [isSortModalOpen, setIsSortModalOpen] = useState(false);
@@ -118,12 +121,13 @@ function AppContent() {
   // Fetch current user profile
   const fetchCurrentUser = async () => {
     if (!session?.user) return;
+    setIsLoadingUser(true);
     try {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', session.user.id)
-        .maybeSingle(); // Use maybeSingle instead of single to handle 0 rows gracefully
+        .maybeSingle();
 
       if (error) throw error;
 
@@ -147,20 +151,83 @@ function AppContent() {
           createdAt: data.created_at,
         };
         setCurrentUser(mappedUser);
+      } else {
+        console.log('No profile found for user');
       }
     } catch (error: any) {
       console.error('Error fetching current user:', error);
+    } finally {
+      setIsLoadingUser(false);
     }
   };
 
   React.useEffect(() => {
-    fetchProfiles();
-  }, []);
-
-  React.useEffect(() => {
     if (session?.user) {
       fetchCurrentUser();
+      fetchProfiles();
     }
+  }, [session]);
+
+  // Realtime subscription for matching
+  React.useEffect(() => {
+    if (!session?.user) return;
+
+    const subscription = supabase
+      .channel('public:likes:matching')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'likes',
+        filter: `receiver_id=eq.${session.user.id}`
+      }, async (payload) => {
+        const newLike = payload.new;
+        const senderId = newLike.sender_id;
+
+        // Check if I have already liked this user
+        const { data: myLike } = await supabase
+          .from('likes')
+          .select('*')
+          .eq('sender_id', session.user.id)
+          .eq('receiver_id', senderId)
+          .maybeSingle();
+
+        if (myLike) {
+          // It's a match! (initiated by the other user)
+          // Fetch sender's profile to display modal
+          const { data: senderProfile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', senderId)
+            .single();
+
+          if (senderProfile) {
+            const profile: Profile = {
+              id: senderProfile.id,
+              name: senderProfile.name,
+              age: senderProfile.age,
+              location: senderProfile.location || '',
+              university: senderProfile.university,
+              company: senderProfile.company,
+              image: senderProfile.image,
+              challengeTheme: senderProfile.challenge_theme || '',
+              theme: senderProfile.theme || '',
+              bio: senderProfile.bio,
+              skills: senderProfile.skills || [],
+              seekingFor: senderProfile.seeking_for || [],
+              seekingRoles: senderProfile.seeking_roles || [],
+              statusTags: senderProfile.status_tags || [],
+              isStudent: senderProfile.is_student,
+              createdAt: senderProfile.created_at,
+            };
+            setMatchedProfile(profile);
+          }
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
   }, [session]);
 
   const onRefresh = React.useCallback(async () => {
@@ -265,6 +332,18 @@ function AppContent() {
             receiver_id: profileId
           });
 
+        // Create notification for like
+        if (currentUser) {
+          await supabase.from('notifications').insert({
+            user_id: profileId,
+            sender_id: session.user.id,
+            type: 'like',
+            title: 'いいねが届きました！',
+            content: `${currentUser.name}さんからいいねが届きました。`,
+            image_url: currentUser.image
+          });
+        }
+
         // Check for match
         const { data: reverseLike } = await supabase
           .from('likes')
@@ -278,6 +357,29 @@ function AppContent() {
           const matchedUser = displayProfiles.find(p => p.id === profileId);
           if (matchedUser) {
             setMatchedProfile(matchedUser);
+
+            // Create notifications for match
+            if (currentUser) {
+              // Notify partner
+              await supabase.from('notifications').insert({
+                user_id: profileId,
+                sender_id: session.user.id,
+                type: 'match',
+                title: 'マッチング成立！',
+                content: `${currentUser.name}さんとマッチングしました！メッセージを送ってみましょう。`,
+                image_url: currentUser.image
+              });
+
+              // Notify self
+              await supabase.from('notifications').insert({
+                user_id: session.user.id,
+                sender_id: profileId,
+                type: 'match',
+                title: 'マッチング成立！',
+                content: `${matchedUser.name}さんとマッチングしました！メッセージを送ってみましょう。`,
+                image_url: matchedUser.image
+              });
+            }
           }
         }
       }
@@ -433,6 +535,37 @@ function AppContent() {
       </SafeAreaProvider>
     );
   }
+
+  // Show legal document if active
+  if (legalDocument) {
+    return (
+      <SafeAreaProvider>
+        <LegalDocumentPage
+          title={legalDocument.title}
+          content={legalDocument.content}
+          onBack={() => setLegalDocument(null)}
+        />
+      </SafeAreaProvider>
+    );
+  }
+
+  // Show settings page if active
+  if (showSettings) {
+    return (
+      <SafeAreaProvider>
+        <SettingsPage
+          onBack={() => setShowSettings(false)}
+          onLogout={signOut}
+          onOpenTerms={() => {
+            setLegalDocument({ title: '利用規約', content: TERMS_OF_SERVICE });
+          }}
+          onOpenPrivacy={() => {
+            setLegalDocument({ title: 'プライバシーポリシー', content: PRIVACY_POLICY });
+          }}
+        />
+      </SafeAreaProvider>
+    );
+  }
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="auto" />
@@ -518,15 +651,32 @@ function AppContent() {
             })}
           />
         )}
-        {activeTab === 'profile' && currentUser && (
-          <MyPage
-            profile={currentUser}
-            onLogout={signOut}
-            onEditProfile={handleEditProfile}
-            onOpenNotifications={() => setShowNotifications(true)}
-            onSettingsPress={() => setShowSettings(true)}
-            onHelpPress={() => setShowHelp(true)}
-          />
+        {activeTab === 'profile' && (
+          isLoadingUser ? (
+            <View style={styles.centerContainer}>
+              <ActivityIndicator size="large" color="#009688" />
+              <Text>プロフィールを読み込み中...</Text>
+            </View>
+          ) : currentUser ? (
+            <MyPage
+              profile={currentUser}
+              onLogout={signOut}
+              onEditProfile={handleEditProfile}
+              onOpenNotifications={() => setShowNotifications(true)}
+              onSettingsPress={() => setShowSettings(true)}
+              onHelpPress={() => setShowHelp(true)}
+            />
+          ) : (
+            <View style={styles.centerContainer}>
+              <Text>プロフィールの読み込みに失敗しました。</Text>
+              <TouchableOpacity onPress={fetchCurrentUser} style={{ marginTop: 10, padding: 10, backgroundColor: '#009688', borderRadius: 5 }}>
+                <Text style={{ color: 'white' }}>再読み込み</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={signOut} style={{ marginTop: 20 }}>
+                <Text style={{ color: 'red' }}>ログアウト</Text>
+              </TouchableOpacity>
+            </View>
+          )
         )}
       </View>
 
