@@ -35,6 +35,36 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
     const handleDeleteAccount = async () => {
         setIsDeleting(true);
         try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error('No user found');
+
+            // 1. Delete avatar images
+            const { data: avatarFiles } = await supabase.storage
+                .from('avatars')
+                .list(`${user.id}/`);
+
+            if (avatarFiles && avatarFiles.length > 0) {
+                const filesToRemove = avatarFiles.map(x => `${user.id}/${x.name}`);
+                const { error: removeError } = await supabase.storage
+                    .from('avatars')
+                    .remove(filesToRemove);
+                if (removeError) console.error('Error removing avatars:', removeError);
+            }
+
+            // 2. Delete chat images
+            const { data: chatFiles } = await supabase.storage
+                .from('chat-images')
+                .list(`${user.id}/`);
+
+            if (chatFiles && chatFiles.length > 0) {
+                const filesToRemove = chatFiles.map(x => `${user.id}/${x.name}`);
+                const { error: removeError } = await supabase.storage
+                    .from('chat-images')
+                    .remove(filesToRemove);
+                if (removeError) console.error('Error removing chat images:', removeError);
+            }
+
+            // 3. Delete account data and auth user
             const { error } = await supabase.rpc('delete_account');
             if (error) throw error;
 
