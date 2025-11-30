@@ -91,12 +91,16 @@ export function TalkPage({ onOpenChat }: TalkPageProps) {
             if (messages) {
                 for (const msg of messages) {
                     const partnerId = msg.sender_id === user.id ? msg.receiver_id : msg.sender_id;
-                    if (!roomsMap.has(partnerId)) {
-                        roomsMap.set(partnerId, {
-                            lastMessage: msg.content,
-                            timestamp: msg.created_at,
-                            unreadCount: 0
-                        });
+
+                    // Only show chat if currently matched
+                    if (matchedIds.has(partnerId)) {
+                        if (!roomsMap.has(partnerId)) {
+                            roomsMap.set(partnerId, {
+                                lastMessage: msg.content,
+                                timestamp: msg.created_at,
+                                unreadCount: 0
+                            });
+                        }
                     }
                 }
             }

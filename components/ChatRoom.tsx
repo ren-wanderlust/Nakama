@@ -454,28 +454,62 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
         }
     };
 
+    const handleUnmatch = () => {
+        Alert.alert(
+            'マッチング解除',
+            '本当にマッチングを解除しますか？\nこの操作は取り消せません。',
+            [
+                { text: 'キャンセル', style: 'cancel' },
+                {
+                    text: '解除する',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            if (!currentUserId) return;
+
+                            // 1. Delete my like (sender = me, receiver = partner)
+                            const { error: myError } = await supabase
+                                .from('likes')
+                                .delete()
+                                .eq('sender_id', currentUserId)
+                                .eq('receiver_id', partnerId);
+
+                            if (myError) throw myError;
+
+                            // 2. Delete partner's like (sender = partner, receiver = me)
+                            // This prevents immediate rematch if I like them again
+                            const { error: partnerError } = await supabase
+                                .from('likes')
+                                .delete()
+                                .eq('sender_id', partnerId)
+                                .eq('receiver_id', currentUserId);
+
+                            if (partnerError) {
+                                console.warn('Could not delete partner like:', partnerError);
+                                // Continue anyway, as my like is deleted so match is broken
+                            }
+
+                            onBack();
+                        } catch (error) {
+                            console.error('Error unmatching:', error);
+                            Alert.alert('エラー', 'マッチング解除に失敗しました');
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
     const handleMenuPress = () => {
         Alert.alert(
             'メニュー',
             '',
             [
                 { text: '相手のプロフィールを見る', onPress: onPartnerProfilePress },
-                { text: '通知をオフにする', onPress: () => Alert.alert('完了', '通知をオフにしました') },
                 {
-                    text: 'ブロックする',
+                    text: 'マッチング解除',
                     style: 'destructive',
-                    onPress: () => Alert.alert('確認', '本当にブロックしますか？', [
-                        { text: 'キャンセル', style: 'cancel' },
-                        { text: 'ブロック実行', style: 'destructive', onPress: () => console.log('Blocked') }
-                    ])
-                },
-                {
-                    text: '通報する',
-                    style: 'destructive',
-                    onPress: () => Alert.alert('通報', '不適切なユーザーとして報告しますか？', [
-                        { text: 'キャンセル', style: 'cancel' },
-                        { text: '通報する', style: 'destructive', onPress: () => Alert.alert('完了', '通報を受け付けました') }
-                    ])
+                    onPress: handleUnmatch
                 },
                 { text: 'キャンセル', style: 'cancel' },
             ],
