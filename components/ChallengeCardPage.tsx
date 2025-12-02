@@ -44,9 +44,10 @@ const ThemeCard = ({ icon, title, count, image, onPress }: ThemeCardProps) => (
 
 interface ChallengeCardPageProps {
     onThemeSelect?: (theme: Theme) => void;
+    hideHeader?: boolean;
 }
 
-export function ChallengeCardPage({ onThemeSelect }: ChallengeCardPageProps) {
+export function ChallengeCardPage({ onThemeSelect, hideHeader = false }: ChallengeCardPageProps) {
     const [themes, setThemes] = useState<Theme[]>([]);
     const [refreshing, setRefreshing] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -132,28 +133,30 @@ export function ChallengeCardPage({ onThemeSelect }: ChallengeCardPageProps) {
     return (
         <View style={styles.container}>
             {/* Header - Navigation Bar Style */}
-            <View style={styles.header}>
-                <View style={styles.headerTitleContainer}>
-                    <View style={styles.logoRow}>
-                        <Ionicons name="bulb-outline" size={24} color="#374151" style={{ marginRight: 4 }} />
-                        <Text style={styles.arrowDecoration}>{'>>'}</Text>
-                        <Text style={styles.headerLogoText}>挑戦テーマ</Text>
-                        <Ionicons name="settings-outline" size={20} color="#0d9488" style={{ marginLeft: 4, marginTop: 4 }} />
+            {!hideHeader && (
+                <View style={styles.header}>
+                    <View style={styles.headerTitleContainer}>
+                        <View style={styles.logoRow}>
+                            <Ionicons name="bulb-outline" size={24} color="#374151" style={{ marginRight: 4 }} />
+                            <Text style={styles.arrowDecoration}>{'>>'}</Text>
+                            <Text style={styles.headerLogoText}>挑戦テーマ</Text>
+                            <Ionicons name="settings-outline" size={20} color="#0d9488" style={{ marginLeft: 4, marginTop: 4 }} />
+                        </View>
+                        <View style={styles.underlineContainer}>
+                            <View style={styles.underline} />
+                            <Ionicons name="chevron-down" size={12} color="#0d9488" style={styles.underlineIcon} />
+                            <View style={styles.underline} />
+                        </View>
                     </View>
-                    <View style={styles.underlineContainer}>
-                        <View style={styles.underline} />
-                        <Ionicons name="chevron-down" size={12} color="#0d9488" style={styles.underlineIcon} />
-                        <View style={styles.underline} />
-                    </View>
-                </View>
 
-                <TouchableOpacity
-                    style={styles.searchButton}
-                    onPress={() => setIsSearchModalVisible(true)}
-                >
-                    <Ionicons name="search-outline" size={28} color="#333" />
-                </TouchableOpacity>
-            </View>
+                    <TouchableOpacity
+                        style={styles.searchButton}
+                        onPress={() => setIsSearchModalVisible(true)}
+                    >
+                        <Ionicons name="search-outline" size={28} color="#333" />
+                    </TouchableOpacity>
+                </View>
+            )}
 
             <ScrollView
                 style={styles.content}

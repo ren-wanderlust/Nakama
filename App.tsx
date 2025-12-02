@@ -1,6 +1,6 @@
 // Trigger rebuild
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, SafeAreaView, FlatList, TouchableOpacity, Platform, RefreshControl, ActivityIndicator, Modal } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { StyleSheet, Text, View, SafeAreaView, FlatList, TouchableOpacity, Platform, RefreshControl, ActivityIndicator, Modal, UIManager, LayoutAnimation, Dimensions } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,11 +23,18 @@ import { ThemeDetailPage } from './components/ThemeDetailPage';
 import { LegalDocumentPage } from './components/LegalDocumentPage';
 import { OnboardingScreen } from './components/OnboardingScreen';
 import { MatchingModal } from './components/MatchingModal';
+import { UserProjectPage } from './components/UserProjectPage';
 import { Profile, Theme } from './types';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { supabase } from './lib/supabase';
 import { Alert } from 'react-native';
 import { TERMS_OF_SERVICE, PRIVACY_POLICY } from './constants/LegalTexts';
+
+if (Platform.OS === 'android') {
+  if (UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+  }
+}
 
 // Placeholder component for tabs under development
 const PlaceholderScreen = ({ title }: { title: string }) => (
@@ -56,6 +63,8 @@ function AppContent() {
   const [likedProfiles, setLikedProfiles] = useState<Set<string>>(new Set());
   const [matchedProfileIds, setMatchedProfileIds] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState('search');
+  const [searchTab, setSearchTab] = useState<'users' | 'projects'>('users');
+  const searchListRef = useRef<FlatList>(null);
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
   const [activeChatRoom, setActiveChatRoom] = useState<{
     partnerId: string;
@@ -527,246 +536,314 @@ function AppContent() {
     );
   }
 
-  // Show theme detail if selected
-  if (selectedTheme) {
-    return (
-      <SafeAreaProvider>
-        <ThemeDetailPage
-          theme={selectedTheme}
-          onBack={() => setSelectedTheme(null)}
-          profiles={displayProfiles}
-          onProfileSelect={setSelectedProfile}
-          onLike={handleLike}
-          likedProfileIds={likedProfiles}
-          currentUser={currentUser}
-        />
-      </SafeAreaProvider>
-    );
-  }
-
-  // Show profile detail if selected
-  if (selectedProfile) {
-    return (
-      <SafeAreaProvider>
-        <ProfileDetail
-          profile={selectedProfile}
-          onBack={() => setSelectedProfile(null)}
-          onLike={() => handleLike(selectedProfile.id)}
-          onChat={() => {
-            setActiveChatRoom({
-              partnerId: selectedProfile.id,
-              partnerName: selectedProfile.name,
-              partnerImage: selectedProfile.image,
-            });
-          }}
-          isLiked={likedProfiles.has(selectedProfile.id)}
-        />
-      </SafeAreaProvider>
-    );
-  }
-
-  // Show chat room if active
-  if (activeChatRoom) {
-    return (
-      <SafeAreaProvider>
-        <ChatRoom
-          partnerId={activeChatRoom.partnerId}
-          partnerName={activeChatRoom.partnerName}
-          partnerImage={activeChatRoom.partnerImage}
-          onBack={() => setActiveChatRoom(null)}
-          onPartnerProfilePress={() => {
-            const partner = displayProfiles.find(p => p.name === activeChatRoom.partnerName);
-            if (partner) {
-              setSelectedProfile(partner);
-            }
-          }}
-        />
-      </SafeAreaProvider>
-    );
-  }
-
-  // Show profile edit screen if active
-  if (showProfileEdit) {
-    return (
-      <SafeAreaProvider>
-        <ProfileEdit
-          initialProfile={currentUser!}
-          onSave={handleSaveProfile}
-          onCancel={() => setShowProfileEdit(false)}
-        />
-      </SafeAreaProvider>
-    );
-  }
-
-  // Show notifications page if active
-  if (showNotifications) {
-    return (
-      <SafeAreaProvider>
-        <NotificationsPage onBack={() => setShowNotifications(false)} />
-      </SafeAreaProvider>
-    );
-  }
-
-  // Show legal document if active
-  if (legalDocument) {
-    return (
-      <SafeAreaProvider>
-        <LegalDocumentPage
-          title={legalDocument.title}
-          content={legalDocument.content}
-          onBack={() => setLegalDocument(null)}
-        />
-      </SafeAreaProvider>
-    );
-  }
-
-  // Show settings page if active
-  if (showSettings) {
-    return (
-      <SafeAreaProvider>
-        <SettingsPage
-          onBack={() => setShowSettings(false)}
-          onLogout={signOut}
-          onOpenTerms={() => {
-            setLegalDocument({ title: '利用規約', content: TERMS_OF_SERVICE });
-          }}
-          onOpenPrivacy={() => {
-            setLegalDocument({ title: 'プライバシーポリシー', content: PRIVACY_POLICY });
-          }}
-        />
-      </SafeAreaProvider>
-    );
-  }
+  // Main App Render with Modals
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="auto" />
-      <View style={styles.headerContainer}>
-        {activeTab !== 'likes' && activeTab !== 'talk' && activeTab !== 'challenge' && activeTab !== 'profile' && (
-          <View style={styles.headerTop}>
-            <View style={styles.headerLeft} />
-            <Text style={styles.headerTitle}>Nakama</Text>
-            <TouchableOpacity
-              style={styles.notificationButton}
-              onPress={() => setShowNotifications(true)}
-            >
-              <Ionicons name="notifications-outline" size={24} color="#374151" />
-            </TouchableOpacity>
-          </View>
-        )}
+      <View style={{ flex: 1 }}>
+        {/* Header */}
+        {/* Header */}
+        <View style={styles.headerContainer}>
+          {activeTab !== 'search' && activeTab !== 'likes' && activeTab !== 'talk' && activeTab !== 'challenge' && activeTab !== 'profile' && (
+            <View style={styles.headerTop}>
+              <View style={styles.headerLeft} />
+              <Text style={styles.headerTitle}>Nakama</Text>
+              <TouchableOpacity
+                style={styles.notificationButton}
+                onPress={() => setShowNotifications(true)}
+              >
+                <Ionicons name="notifications-outline" size={24} color="#374151" />
+              </TouchableOpacity>
+            </View>
+          )}
 
-        {activeTab === 'search' && (
-          <View style={styles.searchControlBar}>
-            <TouchableOpacity
-              style={[styles.filterButton, isFilterActive && styles.filterButtonActive]}
-              onPress={() => setIsFilterOpen(true)}
-            >
-              <Ionicons name="search" size={20} color={isFilterActive ? "#FF5252" : "#9CA3AF"} />
-              <Text style={[styles.controlButtonText, isFilterActive && styles.controlButtonTextActive]}>
-                絞り込み
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.sortButton}
-              onPress={() => setIsSortModalOpen(true)}
-            >
-              <Text style={styles.controlButtonText}>
-                {sortOrder === 'recommended' ? 'おすすめ順' : '新着順'}
-              </Text>
-              <Ionicons name="chevron-down" size={16} color="#374151" />
-            </TouchableOpacity>
-          </View>
-        )}
-      </View>
-
-      <View style={styles.contentArea}>
-        {activeTab === 'search' && (
-          <FlatList
-            data={sortedProfiles}
-            renderItem={({ item }) => (
-              <View style={styles.gridItem}>
-                <ProfileCard
-                  profile={item}
-                  isLiked={likedProfiles.has(item.id)}
-                  onLike={() => handleLike(item.id)}
-                  onSelect={() => setSelectedProfile(item)}
-                />
-              </View>
-            )}
-            keyExtractor={(item) => item.id}
-            numColumns={2}
-            contentContainerStyle={styles.listContent}
-            columnWrapperStyle={styles.columnWrapper}
-            showsVerticalScrollIndicator={false}
-            onEndReached={loadMoreProfiles}
-            onEndReachedThreshold={0.5}
-            ListFooterComponent={
-              loadingMore ? (
-                <View style={{ paddingVertical: 20 }}>
-                  <ActivityIndicator size="small" color="#009688" />
+          {activeTab === 'search' && (
+            <View>
+              <View style={styles.headerTop}>
+                <View style={{ flex: 1 }} />
+                <View style={styles.tabContainer}>
+                  <TouchableOpacity
+                    style={[styles.tabButton, searchTab === 'users' && styles.tabButtonActive]}
+                    onPress={() => {
+                      setSearchTab('users');
+                      searchListRef.current?.scrollToIndex({ index: 0, animated: true });
+                    }}
+                  >
+                    <Text style={[styles.tabText, searchTab === 'users' && styles.tabTextActive]}>さがす</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.tabButton, searchTab === 'projects' && styles.tabButtonActive]}
+                    onPress={() => {
+                      setSearchTab('projects');
+                      searchListRef.current?.scrollToIndex({ index: 1, animated: true });
+                    }}
+                  >
+                    <Text style={[styles.tabText, searchTab === 'projects' && styles.tabTextActive]}>For You</Text>
+                  </TouchableOpacity>
                 </View>
-              ) : null
-            }
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#009688']} />
-            }
-          />
-        )}
-        {activeTab === 'likes' && (
-          <LikesPage
-            likedProfileIds={likedProfiles}
-            allProfiles={displayProfiles}
-            onProfileSelect={setSelectedProfile}
-            onLike={handleLike}
-          />
-        )}
-        {activeTab === 'challenge' && (
-          <ChallengeCardPage onThemeSelect={setSelectedTheme} />
-        )}
-        {activeTab === 'talk' && (
-          <TalkPage
-            onOpenChat={(room) => setActiveChatRoom({
-              partnerId: room.partnerId,
-              partnerName: room.partnerName,
-              partnerImage: room.partnerImage,
-            })}
-          />
-        )}
-        {activeTab === 'profile' && (
-          isLoadingUser ? (
-            <View style={styles.centerContainer}>
-              <ActivityIndicator size="large" color="#009688" />
-              <Text>プロフィールを読み込み中...</Text>
+                <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                  <TouchableOpacity
+                    style={styles.notificationButton}
+                    onPress={() => setShowNotifications(true)}
+                  >
+                    <Ionicons name="notifications-outline" size={24} color="#374151" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {searchTab === 'users' && (
+                <View style={styles.searchControlBar}>
+                  <TouchableOpacity
+                    style={[styles.filterButton, isFilterActive && styles.filterButtonActive]}
+                    onPress={() => setIsFilterOpen(true)}
+                  >
+                    <Ionicons name="search" size={20} color={isFilterActive ? "#FF5252" : "#9CA3AF"} />
+                    <Text style={[styles.controlButtonText, isFilterActive && styles.controlButtonTextActive]}>
+                      絞り込み
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.sortButton}
+                    onPress={() => setIsSortModalOpen(true)}
+                  >
+                    <Text style={styles.controlButtonText}>
+                      {sortOrder === 'recommended' ? 'おすすめ順' : '新着順'}
+                    </Text>
+                    <Ionicons name="chevron-down" size={16} color="#374151" />
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
-          ) : currentUser ? (
-            <MyPage
-              profile={currentUser}
-              onLogout={signOut}
-              onEditProfile={handleEditProfile}
-              onOpenNotifications={() => setShowNotifications(true)}
-              onSettingsPress={() => setShowSettings(true)}
-              onHelpPress={() => setShowHelp(true)}
+          )}
+        </View>
+
+        {/* Content */}
+        <View style={styles.contentArea}>
+          {activeTab === 'search' && (
+            <FlatList
+              ref={searchListRef}
+              data={['users', 'projects']}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              keyExtractor={(item) => item}
+              onMomentumScrollEnd={(e) => {
+                const index = Math.round(e.nativeEvent.contentOffset.x / Dimensions.get('window').width);
+                setSearchTab(index === 0 ? 'users' : 'projects');
+              }}
+              renderItem={({ item }) => (
+                <View style={{ width: Dimensions.get('window').width, flex: 1 }}>
+                  {item === 'users' ? (
+                    <FlatList
+                      data={sortedProfiles}
+                      renderItem={({ item }) => (
+                        <View style={styles.gridItem}>
+                          <ProfileCard
+                            profile={item}
+                            isLiked={likedProfiles.has(item.id)}
+                            onLike={() => handleLike(item.id)}
+                            onSelect={() => setSelectedProfile(item)}
+                          />
+                        </View>
+                      )}
+                      keyExtractor={(item) => item.id}
+                      numColumns={2}
+                      contentContainerStyle={styles.listContent}
+                      columnWrapperStyle={styles.columnWrapper}
+                      showsVerticalScrollIndicator={false}
+                      onEndReached={loadMoreProfiles}
+                      onEndReachedThreshold={0.5}
+                      ListFooterComponent={
+                        loadingMore ? (
+                          <View style={{ paddingVertical: 20 }}>
+                            <ActivityIndicator size="small" color="#009688" />
+                          </View>
+                        ) : null
+                      }
+                      refreshControl={
+                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#009688']} />
+                      }
+                    />
+                  ) : (
+                    <UserProjectPage
+                      currentUser={currentUser}
+                      onChat={(partnerId, partnerName, partnerImage) => {
+                        setActiveChatRoom({
+                          partnerId,
+                          partnerName,
+                          partnerImage,
+                        });
+                      }}
+                    />
+                  )}
+                </View>
+              )}
             />
-          ) : (
-            <View style={styles.centerContainer}>
-              <Text>プロフィールの読み込みに失敗しました。</Text>
-              <TouchableOpacity onPress={fetchCurrentUser} style={{ marginTop: 10, padding: 10, backgroundColor: '#009688', borderRadius: 5 }}>
-                <Text style={{ color: 'white' }}>再読み込み</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={signOut} style={{ marginTop: 20 }}>
-                <Text style={{ color: 'red' }}>ログアウト</Text>
-              </TouchableOpacity>
-            </View>
-          )
-        )}
+          )}
+          {activeTab === 'likes' && (
+            <LikesPage
+              likedProfileIds={likedProfiles}
+              allProfiles={displayProfiles}
+              onProfileSelect={setSelectedProfile}
+              onLike={handleLike}
+            />
+          )}
+          {activeTab === 'challenge' && (
+            <ChallengeCardPage onThemeSelect={setSelectedTheme} />
+          )}
+          {activeTab === 'talk' && (
+            <TalkPage
+              onOpenChat={(room) => setActiveChatRoom({
+                partnerId: room.partnerId,
+                partnerName: room.partnerName,
+                partnerImage: room.partnerImage,
+              })}
+            />
+          )}
+          {activeTab === 'profile' && (
+            isLoadingUser ? (
+              <View style={styles.centerContainer}>
+                <ActivityIndicator size="large" color="#009688" />
+                <Text>プロフィールを読み込み中...</Text>
+              </View>
+            ) : currentUser ? (
+              <MyPage
+                profile={currentUser}
+                onLogout={signOut}
+                onEditProfile={handleEditProfile}
+                onOpenNotifications={() => setShowNotifications(true)}
+                onSettingsPress={() => setShowSettings(true)}
+                onHelpPress={() => setShowHelp(true)}
+              />
+            ) : (
+              <View style={styles.centerContainer}>
+                <Text>プロフィールの読み込みに失敗しました。</Text>
+                <TouchableOpacity onPress={fetchCurrentUser} style={{ marginTop: 10, padding: 10, backgroundColor: '#009688', borderRadius: 5 }}>
+                  <Text style={{ color: 'white' }}>再読み込み</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={signOut} style={{ marginTop: 20 }}>
+                  <Text style={{ color: 'red' }}>ログアウト</Text>
+                </TouchableOpacity>
+              </View>
+            )
+          )}
+        </View>
+
+        <BottomNav activeTab={activeTab} onTabChange={(tab) => {
+          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+          setActiveTab(tab);
+        }} />
       </View>
 
-      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+      {/* Modals */}
+      <Modal visible={!!selectedTheme} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setSelectedTheme(null)}>
+        <SafeAreaProvider>
+          {selectedTheme && (
+            <ThemeDetailPage
+              theme={selectedTheme}
+              onBack={() => setSelectedTheme(null)}
+              profiles={displayProfiles}
+              onProfileSelect={setSelectedProfile}
+              onLike={handleLike}
+              likedProfileIds={likedProfiles}
+              currentUser={currentUser}
+            />
+          )}
+        </SafeAreaProvider>
+      </Modal>
+
+      <Modal visible={!!selectedProfile} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setSelectedProfile(null)}>
+        <SafeAreaProvider>
+          {selectedProfile && (
+            <ProfileDetail
+              profile={selectedProfile}
+              onBack={() => setSelectedProfile(null)}
+              onLike={() => handleLike(selectedProfile.id)}
+              onChat={() => {
+                setActiveChatRoom({
+                  partnerId: selectedProfile.id,
+                  partnerName: selectedProfile.name,
+                  partnerImage: selectedProfile.image,
+                });
+              }}
+              isLiked={likedProfiles.has(selectedProfile.id)}
+            />
+          )}
+        </SafeAreaProvider>
+      </Modal>
+
+      <Modal visible={!!activeChatRoom} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setActiveChatRoom(null)}>
+        <SafeAreaProvider>
+          {activeChatRoom && (
+            <ChatRoom
+              partnerId={activeChatRoom.partnerId}
+              partnerName={activeChatRoom.partnerName}
+              partnerImage={activeChatRoom.partnerImage}
+              onBack={() => setActiveChatRoom(null)}
+              onPartnerProfilePress={() => {
+                const partner = displayProfiles.find(p => p.name === activeChatRoom.partnerName);
+                if (partner) {
+                  setSelectedProfile(partner);
+                }
+              }}
+            />
+          )}
+        </SafeAreaProvider>
+      </Modal>
+
+      <Modal visible={showProfileEdit} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowProfileEdit(false)}>
+        <SafeAreaProvider>
+          <ProfileEdit
+            initialProfile={currentUser!}
+            onSave={handleSaveProfile}
+            onCancel={() => setShowProfileEdit(false)}
+          />
+        </SafeAreaProvider>
+      </Modal>
+
+      <Modal visible={showNotifications} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowNotifications(false)}>
+        <SafeAreaProvider>
+          <NotificationsPage onBack={() => setShowNotifications(false)} />
+        </SafeAreaProvider>
+      </Modal>
+
+      <Modal visible={showSettings} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowSettings(false)}>
+        <SafeAreaProvider>
+          <SettingsPage
+            onBack={() => setShowSettings(false)}
+            onLogout={signOut}
+            onOpenTerms={() => {
+              setLegalDocument({ title: '利用規約', content: TERMS_OF_SERVICE });
+            }}
+            onOpenPrivacy={() => {
+              setLegalDocument({ title: 'プライバシーポリシー', content: PRIVACY_POLICY });
+            }}
+          />
+        </SafeAreaProvider>
+      </Modal>
+
+      <Modal visible={showHelp} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowHelp(false)}>
+        <SafeAreaProvider>
+          <HelpPage onBack={() => setShowHelp(false)} />
+        </SafeAreaProvider>
+      </Modal>
+
+      <Modal visible={!!legalDocument} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setLegalDocument(null)}>
+        <SafeAreaProvider>
+          <LegalDocumentPage
+            title={legalDocument?.title || ''}
+            content={legalDocument?.content || ''}
+            onBack={() => setLegalDocument(null)}
+          />
+        </SafeAreaProvider>
+      </Modal>
 
       <FilterModal
         visible={isFilterOpen}
         onClose={() => setIsFilterOpen(false)}
         onApply={(criteria) => {
+          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
           setFilterCriteria(criteria);
           setIsFilterOpen(false);
         }}
@@ -779,18 +856,19 @@ function AppContent() {
         animationType="fade"
         onRequestClose={() => setIsSortModalOpen(false)}
       >
-        <TouchableOpacity
-          style={styles.modalBackdrop}
-          activeOpacity={1}
-          onPress={() => setIsSortModalOpen(false)}
-        />
-        <View style={styles.modalOverlay}>
+        <View style={styles.modalOverlay} pointerEvents="box-none">
+          <TouchableOpacity
+            style={styles.modalBackdrop}
+            activeOpacity={1}
+            onPress={() => setIsSortModalOpen(false)}
+          />
           <View style={styles.sortModalContent}>
             <Text style={styles.sortModalTitle}>並び替え</Text>
 
             <TouchableOpacity
               style={styles.sortOption}
               onPress={() => {
+                LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
                 setSortOrder('recommended');
                 setIsSortModalOpen(false);
               }}
@@ -805,6 +883,7 @@ function AppContent() {
             <TouchableOpacity
               style={styles.sortOption}
               onPress={() => {
+                LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
                 setSortOrder('newest');
                 setIsSortModalOpen(false);
               }}
@@ -1007,6 +1086,29 @@ const styles = StyleSheet.create({
     marginTop: 10,
     color: '#009688',
     fontSize: 16,
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 24,
+  },
+  tabButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  tabButtonActive: {
+    borderBottomColor: '#FF5252',
+  },
+  tabText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#9CA3AF',
+  },
+  tabTextActive: {
+    color: '#FF5252',
   },
 });
 
