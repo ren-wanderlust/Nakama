@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     StyleSheet,
     Text,
@@ -13,12 +13,14 @@ import {
     Keyboard,
     Alert,
     Image,
-    ActivityIndicator
+    ActivityIndicator,
+    Modal
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../lib/supabase';
+import universitiesData from '../assets/japanese_universities.json';
 
 interface SignupFlowProps {
     onComplete: () => void;
@@ -39,8 +41,55 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
     const [age, setAge] = useState('');
     const [university, setUniversity] = useState('');
     const [bio, setBio] = useState('');
+    const [showUniversityModal, setShowUniversityModal] = useState(false);
+    const [searchInput, setSearchInput] = useState('');
+    const [filteredUniversities, setFilteredUniversities] = useState<string[]>([]);
+    const [allUniversities, setAllUniversities] = useState<string[]>([]);
+    const [isLoadingUniversities, setIsLoadingUniversities] = useState(false);
 
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Load universities from JSON
+    useEffect(() => {
+        const loadUniversities = () => {
+            setIsLoadingUniversities(true);
+            try {
+                // Load from JSON file (converted from CSV)
+                const universities = universitiesData as string[];
+                if (universities && universities.length > 0) {
+                    setAllUniversities(universities);
+                    setFilteredUniversities(universities);
+                } else {
+                    throw new Error('Universities data is empty');
+                }
+            } catch (error) {
+                console.error('Error loading universities:', error);
+                // Fallback to empty list instead of alert to avoid blocking the flow
+                setAllUniversities([]);
+                setFilteredUniversities([]);
+            } finally {
+                setIsLoadingUniversities(false);
+            }
+        };
+        
+        loadUniversities();
+    }, []);
+
+    // Filter universities by search input (partial match)
+    useEffect(() => {
+        if (!searchInput.trim()) {
+            setFilteredUniversities(allUniversities);
+            return;
+        }
+
+        const searchTerm = searchInput.trim().toLowerCase();
+        const filtered = allUniversities.filter(uni => {
+            // Check if search term is included in university name (case-insensitive)
+            return uni.toLowerCase().includes(searchTerm);
+        });
+        
+        setFilteredUniversities(filtered);
+    }, [searchInput, allUniversities]);
 
     // Step 3: Tags (same as ProfileEdit)
     const [seekingFor, setSeekingFor] = useState<string[]>([]);
@@ -224,7 +273,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
         if (!university.trim()) {
             newErrors.university = true;
             isValid = false;
-            if (!errorMessage) errorMessage = '職種 / 大学名を入力してください。';
+            if (!errorMessage) errorMessage = '大学名を入力してください。';
         } else {
             newErrors.university = false;
         }
@@ -544,25 +593,118 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
             </View>
 
             <View style={styles.formGroup}>
-                <Text style={styles.label}>職種 / 大学名</Text>
-                <TextInput
-                    value={university}
-                    onChangeText={(text) => {
-                        setUniversity(text);
-                        if (errors.university) setErrors({ ...errors, university: false });
-                    }}
-                    placeholder="例: 東京大学 / 株式会社〇〇"
-                    textContentType="none"
-                    autoComplete="off"
-                    importantForAutofill="no"
-                    autoCorrect={false}
-                    spellCheck={false}
+                <Text style={styles.label}>大学名</Text>
+                <TouchableOpacity
+                    onPress={() => setShowUniversityModal(true)}
                     style={[
                         styles.input,
+                        styles.dropdownButton,
                         { backgroundColor: '#ffffff' },
                         errors.university && styles.inputError
                     ]}
-                />
+                >
+                    <Text style={[styles.dropdownText, !university && styles.dropdownPlaceholder]}>
+                        {university || '大学名を選択してください'}
+                    </Text>
+                    <Ionicons name="chevron-down" size={20} color="#6b7280" />
+                </TouchableOpacity>
+                
+                <Modal
+                    visible={showUniversityModal}
+                    transparent={true}
+                    animationType="fade"
+                    onRequestClose={() => {
+                        setShowUniversityModal(false);
+                        setSearchInput('');
+                    }}
+                >
+                    <TouchableOpacity
+                        style={styles.modalOverlay}
+                        activeOpacity={1}
+                        onPress={() => {
+                            setShowUniversityModal(false);
+                            setSearchInput('');
+                        }}
+                    >
+                        <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
+                            <View style={styles.modalHeader}>
+                                <Text style={styles.modalTitle}>大学名を選択</Text>
+                                <TouchableOpacity
+                                    onPress={() => {
+                                        setShowUniversityModal(false);
+                                        setSearchInput('');
+                                    }}
+                                >
+                                    <Ionicons name="close" size={24} color="#374151" />
+                                </TouchableOpacity>
+                            </View>
+                            
+                            {/* Search Input */}
+                            <View style={styles.hiraganaInputContainer}>
+                                <Text style={styles.hiraganaLabel}>大学名を検索</Text>
+                                <TextInput
+                                    value={searchInput}
+                                    onChangeText={(text) => {
+                                        setSearchInput(text);
+                                    }}
+                                    placeholder="例: 東京、けいおう、とうきょう"
+                                    style={styles.hiraganaInput}
+                                    autoFocus={true}
+                                    autoCapitalize="none"
+                                    autoCorrect={false}
+                                />
+                                {searchInput && (
+                                    <TouchableOpacity
+                                        onPress={() => setSearchInput('')}
+                                        style={styles.clearButton}
+                                    >
+                                        <Ionicons name="close-circle" size={20} color="#6b7280" />
+                                    </TouchableOpacity>
+                                )}
+                            </View>
+
+                            {/* University List */}
+                            {isLoadingUniversities ? (
+                                <View style={styles.loadingContainer}>
+                                    <ActivityIndicator size="large" color="#0d9488" />
+                                    <Text style={styles.loadingText}>読み込み中...</Text>
+                                </View>
+                            ) : (
+                                <ScrollView style={styles.universityList}>
+                                    {filteredUniversities.length === 0 ? (
+                                        <View style={styles.emptyContainer}>
+                                            <Text style={styles.emptyText}>
+                                                {searchInput.trim()
+                                                    ? `「${searchInput}」に一致する大学が見つかりませんでした`
+                                                    : '大学名を入力して検索してください'}
+                                            </Text>
+                                        </View>
+                                    ) : (
+                                        filteredUniversities.map((uni, index) => (
+                                            <TouchableOpacity
+                                                key={`${uni}-${index}`}
+                                                style={styles.modalOption}
+                                                onPress={() => {
+                                                    setUniversity(uni);
+                                                    if (errors.university) {
+                                                        setErrors({ ...errors, university: false });
+                                                    }
+                                                    setShowUniversityModal(false);
+                                                    setSearchInput('');
+                                                }}
+                                            >
+                                                <Text style={styles.modalOptionText}>{uni}</Text>
+                                                {university === uni && (
+                                                    <Ionicons name="checkmark" size={20} color="#0d9488" />
+                                                )}
+                                            </TouchableOpacity>
+                                        ))
+                                    )}
+                                </ScrollView>
+                            )}
+                        </View>
+                    </TouchableOpacity>
+                </Modal>
             </View>
 
             <View style={styles.formGroup}>
@@ -938,5 +1080,149 @@ const styles = StyleSheet.create({
         color: 'white',
         fontSize: 16,
         fontWeight: 'bold',
+    },
+    dropdownButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingRight: 12,
+    },
+    dropdownText: {
+        fontSize: 16,
+        color: '#000',
+    },
+    dropdownPlaceholder: {
+        color: '#9ca3af',
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    modalContent: {
+        backgroundColor: 'white',
+        borderRadius: 12,
+        width: '90%',
+        maxHeight: '70%',
+        overflow: 'hidden',
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#e5e7eb',
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#111827',
+    },
+    modalOption: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f3f4f6',
+    },
+    modalOptionText: {
+        fontSize: 16,
+        color: '#374151',
+    },
+    modalInputContainer: {
+        padding: 16,
+    },
+    modalTextInput: {
+        backgroundColor: 'white',
+        borderWidth: 1,
+        borderColor: '#d1d5db',
+        borderRadius: 8,
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        fontSize: 16,
+        color: '#000',
+        marginTop: 8,
+        marginBottom: 16,
+    },
+    modalButtonContainer: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    modalButton: {
+        flex: 1,
+        paddingVertical: 12,
+        borderRadius: 8,
+        alignItems: 'center',
+    },
+    modalButtonCancel: {
+        backgroundColor: '#f3f4f6',
+    },
+    modalButtonCancelText: {
+        color: '#374151',
+        fontSize: 16,
+        fontWeight: '500',
+    },
+    modalButtonConfirm: {
+        backgroundColor: '#0d9488',
+    },
+    modalButtonConfirmText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    hiraganaInputContainer: {
+        padding: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#e5e7eb',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    hiraganaLabel: {
+        fontSize: 14,
+        fontWeight: '500',
+        color: '#374151',
+        minWidth: 120,
+    },
+    hiraganaInput: {
+        flex: 1,
+        backgroundColor: '#f9fafb',
+        borderWidth: 1,
+        borderColor: '#d1d5db',
+        borderRadius: 8,
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        fontSize: 18,
+        textAlign: 'center',
+        color: '#000',
+    },
+    clearButton: {
+        padding: 4,
+    },
+    universityList: {
+        maxHeight: 400,
+    },
+    loadingContainer: {
+        padding: 40,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    loadingText: {
+        marginTop: 12,
+        fontSize: 14,
+        color: '#6b7280',
+    },
+    emptyContainer: {
+        padding: 40,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    emptyText: {
+        fontSize: 14,
+        color: '#6b7280',
+        textAlign: 'center',
     },
 });
