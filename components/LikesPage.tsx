@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, FlatList, SafeAreaView, Image } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, FlatList, SafeAreaView, Image, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Profile } from '../types';
@@ -20,61 +20,71 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
     const { session } = useAuth();
     const [activeTab, setActiveTab] = useState<'received' | 'sent'>('sent');
     const [receivedLikes, setReceivedLikes] = useState<Profile[]>([]);
+    const [loading, setLoading] = useState(true);
 
     React.useEffect(() => {
         const fetchReceivedLikes = async () => {
-            if (!session?.user) return;
-
-            const { data: likes, error } = await supabase
-                .from('likes')
-                .select('sender_id')
-                .eq('receiver_id', session.user.id);
-
-            if (error) {
-                console.error('Error fetching received likes:', error);
+            if (!session?.user) {
+                setLoading(false);
                 return;
             }
 
-            if (likes && likes.length > 0) {
-                const senderIds = likes.map(l => l.sender_id);
-                const { data: profiles, error: profilesError } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .in('id', senderIds);
+            try {
+                const { data: likes, error } = await supabase
+                    .from('likes')
+                    .select('sender_id')
+                    .eq('receiver_id', session.user.id);
 
-                if (profilesError) {
-                    console.error('Error fetching profiles for received likes:', profilesError);
+                if (error) {
+                    console.error('Error fetching received likes:', error);
                     return;
                 }
 
-                if (profiles) {
-                    const mappedProfiles: Profile[] = profiles.map((item: any) => ({
-                        id: item.id,
-                        name: item.name,
-                        age: item.age,
-                        location: item.location || '',
-                        university: item.university,
-                        company: item.company,
-                        image: item.image,
-                        challengeTheme: item.challenge_theme || '',
-                        theme: item.theme || '',
-                        bio: item.bio,
-                        skills: item.skills || [],
-                        seekingFor: item.seeking_for || [],
-                        seekingRoles: item.seeking_roles || [],
-                        statusTags: item.status_tags || [],
-                        isStudent: item.is_student,
-                        createdAt: item.created_at,
-                    }));
-                    setReceivedLikes(mappedProfiles);
+                if (likes && likes.length > 0) {
+                    const senderIds = likes.map(l => l.sender_id);
+                    const { data: profiles, error: profilesError } = await supabase
+                        .from('profiles')
+                        .select('*')
+                        .in('id', senderIds);
+
+                    if (profilesError) {
+                        console.error('Error fetching profiles for received likes:', profilesError);
+                        return;
+                    }
+
+                    if (profiles) {
+                        const mappedProfiles: Profile[] = profiles.map((item: any) => ({
+                            id: item.id,
+                            name: item.name,
+                            age: item.age,
+                            location: item.location || '',
+                            university: item.university,
+                            company: item.company,
+                            image: item.image,
+                            challengeTheme: item.challenge_theme || '',
+                            theme: item.theme || '',
+                            bio: item.bio,
+                            skills: item.skills || [],
+                            seekingFor: item.seeking_for || [],
+                            seekingRoles: item.seeking_roles || [],
+                            statusTags: item.status_tags || [],
+                            isStudent: item.is_student,
+                            createdAt: item.created_at,
+                        }));
+                        setReceivedLikes(mappedProfiles);
+                    }
+                } else {
+                    setReceivedLikes([]);
                 }
-            } else {
-                setReceivedLikes([]);
+            } catch (error) {
+                console.error('Error in fetchReceivedLikes:', error);
+            } finally {
+                setLoading(false);
             }
         };
 
         fetchReceivedLikes();
-    }, [session, activeTab]);
+    }, [session]);
 
     // Filter profiles based on likedProfileIds
     // Exclude those who are also in receivedLikes (Matched)
@@ -89,6 +99,14 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
     );
 
     const renderContent = () => {
+        if (loading) {
+            return (
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="small" color="#009688" />
+                </View>
+            );
+        }
+
         const data = activeTab === 'received' ? displayReceivedLikes : sentLikes;
         const emptyMessage = activeTab === 'received' ? 'まだいいねがありません' : 'まだいいねを送っていません';
         const emptySubMessage = activeTab === 'received' ? 'プロフィールを充実させて待ちましょう！' : '気になる相手を探してみましょう！';
@@ -282,8 +300,9 @@ const styles = StyleSheet.create({
     emptyContainer: {
         flex: 1,
         alignItems: 'center',
-        justifyContent: 'center',
-        padding: 32,
+        justifyContent: 'flex-start',
+        paddingTop: 120,
+        paddingHorizontal: 32,
     },
     emptyText: {
         fontSize: 16,
@@ -294,5 +313,10 @@ const styles = StyleSheet.create({
     emptySubText: {
         fontSize: 14,
         color: '#9ca3af',
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
 });
