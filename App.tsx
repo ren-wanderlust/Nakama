@@ -631,6 +631,10 @@ function AppContent() {
                 const index = Math.round(e.nativeEvent.contentOffset.x / Dimensions.get('window').width);
                 setSearchTab(index === 0 ? 'users' : 'projects');
               }}
+              getItemLayout={(data, index) => (
+                { length: Dimensions.get('window').width, offset: Dimensions.get('window').width * index, index }
+              )}
+              initialScrollIndex={searchTab === 'users' ? 0 : 1}
               renderItem={({ item }) => (
                 <View style={{ width: Dimensions.get('window').width, flex: 1 }}>
                   {item === 'users' ? (
