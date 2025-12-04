@@ -80,7 +80,7 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
 
     return (
         <View style={styles.container}>
-            <SafeAreaView style={{ flex: 1 }}>
+            <View style={{ flex: 1 }}>
                 <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
                     {/* Header Area */}
@@ -190,7 +190,7 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                         <Text style={styles.versionText}>Nakama v1.0.0</Text>
                     </View>
                 </ScrollView>
-            </SafeAreaView>
+            </View>
 
             {/* Image Preview Modal */}
             <Modal
@@ -231,9 +231,10 @@ const styles = StyleSheet.create({
     },
     headerContainer: {
         alignItems: 'center',
-        paddingVertical: 20,
+        paddingTop: 0,
+        paddingBottom: 20,
         paddingHorizontal: 20,
-        backgroundColor: '#FAFAFA',
+        backgroundColor: 'white',
     },
     pageTitle: {
         fontSize: 18,
