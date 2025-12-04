@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
     },
     header: {
         backgroundColor: 'white',
-        paddingTop: 16, // SafeArea handled by parent or header height
+        paddingTop: 0, // SafeArea handled by parent or header height
         paddingBottom: 12,
         borderBottomWidth: 1,
         borderBottomColor: '#e5e7eb',
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: 'bold',
         textAlign: 'center',
-        marginBottom: 16,
+        marginBottom: 24,
         color: '#111827',
     },
     tabContainer: {
