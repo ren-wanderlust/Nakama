@@ -1,8 +1,8 @@
 // Trigger rebuild
 import React, { useState, useRef } from 'react';
-import { StyleSheet, Text, View, SafeAreaView, FlatList, TouchableOpacity, Platform, RefreshControl, ActivityIndicator, Modal, UIManager, LayoutAnimation, Dimensions } from 'react-native';
+import { StyleSheet, Text, View, FlatList, TouchableOpacity, Platform, RefreshControl, ActivityIndicator, Modal, UIManager, LayoutAnimation, Dimensions } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LoginScreen } from './components/LoginScreen';
 import { ProfileCard } from './components/ProfileCard';
@@ -45,6 +45,7 @@ const PlaceholderScreen = ({ title }: { title: string }) => (
 );
 
 function AppContent() {
+  const insets = useSafeAreaInsets();
   const { session, loading: authLoading, signOut } = useAuth();
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean | null>(null);
   const [showSignup, setShowSignup] = useState(false);
@@ -538,12 +539,12 @@ function AppContent() {
 
   // Main App Render with Modals
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['left', 'right']}>
       <StatusBar style="auto" />
       <View style={{ flex: 1 }}>
         {/* Header */}
         {/* Header */}
-        <View style={styles.headerContainer}>
+        <View style={[styles.headerContainer, { paddingTop: insets.top }]}>
           {activeTab !== 'search' && activeTab !== 'likes' && activeTab !== 'talk' && activeTab !== 'challenge' && activeTab !== 'profile' && (
             <View style={styles.headerTop}>
               <View style={styles.headerLeft} />
@@ -920,7 +921,7 @@ const styles = StyleSheet.create({
   // ... (existing styles)
   container: {
     flex: 1,
-    backgroundColor: '#FAFAFA', // Updated to requested color
+    backgroundColor: 'white', // Updated to match header
   },
   centerContainer: {
     flex: 1,
@@ -930,6 +931,7 @@ const styles = StyleSheet.create({
   },
   contentArea: {
     flex: 1,
+    backgroundColor: '#FAFAFA',
     // paddingBottom handled in FlatList contentContainerStyle
   },
   placeholderTitle: {

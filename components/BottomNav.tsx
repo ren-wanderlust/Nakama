@@ -20,7 +20,7 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
     ];
 
     return (
-        <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 10) }]}>
+        <View style={[styles.container, { paddingBottom: Math.max(insets.bottom - 10, 0) }]}>
             <View style={styles.tabBar}>
                 {tabs.map((tab) => {
                     const isActive = activeTab === tab.id;
@@ -59,8 +59,6 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
 const styles = StyleSheet.create({
     container: {
         backgroundColor: 'white',
-        borderTopWidth: 1,
-        borderTopColor: '#e5e7eb',
         position: 'absolute',
         bottom: 0,
         left: 0,
@@ -69,7 +67,7 @@ const styles = StyleSheet.create({
     tabBar: {
         flexDirection: 'row',
         justifyContent: 'space-around',
-        paddingTop: 8,
+        paddingTop: 15,
     },
     tabButton: {
         flex: 1,
