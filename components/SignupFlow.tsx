@@ -29,7 +29,7 @@ interface SignupFlowProps {
 }
 
 export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
-    const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7>(1);
+    const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6>(1);
 
     // Step 1: Email and Password
     const [email, setEmail] = useState('');
@@ -286,6 +286,14 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
         const newErrors = { ...errors };
         let errorMessage = '';
 
+        if (!imageUri) {
+            newErrors.image = true;
+            isValid = false;
+            if (!errorMessage) errorMessage = 'プロフィール画像を設定してください。';
+        } else {
+            newErrors.image = false;
+        }
+
         if (!nickname.trim()) {
             newErrors.nickname = true;
             isValid = false;
@@ -303,27 +311,6 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
     };
 
     const validateStep3 = () => {
-        let isValid = true;
-        const newErrors = { ...errors };
-        let errorMessage = '';
-
-        if (!imageUri) {
-            newErrors.image = true;
-            isValid = false;
-            if (!errorMessage) errorMessage = 'プロフィール画像を設定してください。';
-        } else {
-            newErrors.image = false;
-        }
-
-        setErrors(newErrors);
-
-        if (!isValid) {
-            Alert.alert('エラー', errorMessage || '入力内容を確認してください。');
-        }
-        return isValid;
-    };
-
-    const validateStep4 = () => {
         let isValid = true;
         const newErrors = { ...errors };
         let errorMessage = '';
@@ -352,7 +339,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
         return isValid;
     };
 
-    const validateStep5 = () => {
+    const validateStep4 = () => {
         let isValid = true;
         const newErrors = { ...errors };
 
@@ -378,7 +365,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
         return isValid;
     };
 
-    const validateStep6 = () => {
+    const validateStep5 = () => {
         let isValid = true;
         const newErrors = { ...errors };
 
@@ -404,8 +391,8 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
         return isValid;
     };
 
-    const validateStep7 = () => {
-        // Step7は任意入力なので、常にtrueを返す
+    const validateStep6 = () => {
+        // Step6は任意入力なので、常にtrueを返す
         // ただし、20字以内のチェックは行う
         const newErrors = { ...errors };
         
@@ -490,21 +477,19 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
             if (validateStep4()) setStep(5);
         } else if (step === 5) {
             if (validateStep5()) setStep(6);
-        } else if (step === 6) {
-            if (validateStep6()) setStep(7);
         }
     };
 
     const handleBack = () => {
         if (step > 1) {
-            setStep((step - 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7);
+            setStep((step - 1) as 1 | 2 | 3 | 4 | 5 | 6);
         } else {
             onCancel();
         }
     };
 
     const handleComplete = async () => {
-        if (validateStep7()) {
+        if (validateStep6()) {
             setIsSubmitting(true);
             try {
                 // 0. 既存のセッションをクリア（過去にログインしていたアカウントのセッションを削除）
@@ -698,7 +683,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
     const renderProgressBar = () => (
         <View style={styles.progressBarContainer}>
             <View style={styles.progressBarBg}>
-                <View style={[styles.progressBarFill, { width: `${(step / 7) * 100}%` }]} />
+                <View style={[styles.progressBarFill, { width: `${(step / 6) * 100}%` }]} />
             </View>
         </View>
     );
@@ -778,11 +763,35 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
 
     const renderStep2 = () => (
         <View style={styles.stepContainer}>
-            <Text style={styles.stepTitle}>ニックネームを入力</Text>
+            <Text style={styles.stepTitle}>プロフィールを設定</Text>
             <Text style={styles.stepSubtitle}>
-                他のユーザーに表示される名前を入力してください
+                あなたのプロフィール画像とニックネームを設定してください
             </Text>
 
+            {/* アイコン画像を上に配置 */}
+            <View style={styles.imagePickerContainer}>
+                <TouchableOpacity 
+                    onPress={pickImage} 
+                    style={[
+                        styles.imagePicker,
+                        errors.image && styles.imagePickerError
+                    ]}
+                >
+                    {imageUri ? (
+                        <Image source={{ uri: imageUri }} style={styles.profileImage} />
+                    ) : (
+                        <View style={styles.imagePlaceholder}>
+                            <Ionicons name="camera" size={40} color="#9ca3af" />
+                            <Text style={styles.imagePlaceholderText}>画像を選択</Text>
+                        </View>
+                    )}
+                </TouchableOpacity>
+                {errors.image && (
+                    <Text style={styles.errorText}>プロフィール画像を選択してください</Text>
+                )}
+            </View>
+
+            {/* ニックネームを下に配置 */}
             <View style={styles.formGroup}>
                 <TextInput
                     value={nickname}
@@ -807,37 +816,6 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
     );
 
     const renderStep3 = () => (
-        <View style={styles.stepContainer}>
-            <Text style={styles.stepTitle}>プロフィール画像を設定</Text>
-            <Text style={styles.stepSubtitle}>
-                あなたのプロフィール画像を選択してください
-            </Text>
-
-            <View style={styles.imagePickerContainer}>
-                <TouchableOpacity 
-                    onPress={pickImage} 
-                    style={[
-                        styles.imagePicker,
-                        errors.image && styles.imagePickerError
-                    ]}
-                >
-                    {imageUri ? (
-                        <Image source={{ uri: imageUri }} style={styles.profileImage} />
-                    ) : (
-                        <View style={styles.imagePlaceholder}>
-                            <Ionicons name="camera" size={40} color="#9ca3af" />
-                            <Text style={styles.imagePlaceholderText}>画像を選択</Text>
-                        </View>
-                    )}
-                </TouchableOpacity>
-                {errors.image && (
-                    <Text style={styles.errorText}>プロフィール画像を選択してください</Text>
-                )}
-            </View>
-        </View>
-    );
-
-    const renderStep4 = () => (
         <View style={styles.stepContainer}>
             <Text style={styles.stepTitle}>大学と学年を選択</Text>
             <Text style={styles.stepSubtitle}>
@@ -1021,7 +999,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
         </View>
     );
 
-    const renderStep5 = () => {
+    const renderStep4 = () => {
         const roleOptions = [
             { id: 'engineer', label: 'エンジニア' },
             { id: 'ideaman', label: 'アイディアマン' },
@@ -1100,7 +1078,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
         );
     };
 
-    const renderStep6 = () => {
+    const renderStep5 = () => {
         const seekingOptions = [
             { id: 'engineer', label: 'エンジニア' },
             { id: 'designer', label: 'デザイナー' },
@@ -1179,7 +1157,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
         );
     };
 
-    const renderStep7 = () => {
+    const renderStep6 = () => {
         const characterCount = bio.length;
         const maxLength = 20;
 
@@ -1245,7 +1223,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                 </View>
                 
                 <TouchableOpacity
-                    onPress={step === 7 ? handleComplete : handleNext}
+                    onPress={step === 6 ? handleComplete : handleNext}
                     activeOpacity={0.7}
                     disabled={isSubmitting || isCheckingEmail}
                     style={styles.nextButtonHeader}
@@ -1254,7 +1232,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                         <ActivityIndicator color="#FF8C00" size="small" />
                     ) : (
                         <Text style={styles.nextButtonText}>
-                            {step === 7 ? '登録' : '次へ'}
+                            {step === 6 ? '登録' : '次へ'}
                         </Text>
                     )}
                 </TouchableOpacity>
@@ -1273,7 +1251,6 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                         {step === 4 && renderStep4()}
                         {step === 5 && renderStep5()}
                         {step === 6 && renderStep6()}
-                        {step === 7 && renderStep7()}
                     </View>
                 </TouchableWithoutFeedback>
             </ScrollView>
