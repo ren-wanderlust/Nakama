@@ -27,6 +27,7 @@ interface Project {
 interface UserProjectPageProps {
     currentUser: Profile | null;
     onChat: (ownerId: string, ownerName: string, ownerImage: string) => void;
+    sortOrder?: 'recommended' | 'newest' | 'deadline';
 }
 
 const ProjectCard = ({ project, onPress }: { project: Project; onPress: () => void }) => {
@@ -74,7 +75,7 @@ const ProjectCard = ({ project, onPress }: { project: Project; onPress: () => vo
     );
 };
 
-export function UserProjectPage({ currentUser, onChat }: UserProjectPageProps) {
+export function UserProjectPage({ currentUser, onChat, sortOrder = 'recommended' }: UserProjectPageProps) {
     const [projects, setProjects] = useState<Project[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -83,7 +84,7 @@ export function UserProjectPage({ currentUser, onChat }: UserProjectPageProps) {
 
     const fetchProjects = async () => {
         try {
-            const { data, error } = await supabase
+            let query = supabase
                 .from('projects')
                 .select(`
                     *,
@@ -93,8 +94,15 @@ export function UserProjectPage({ currentUser, onChat }: UserProjectPageProps) {
                         image,
                         university
                     )
-                `)
-                .order('created_at', { ascending: false });
+                `);
+
+            if (sortOrder === 'deadline') {
+                query = query.order('deadline', { ascending: true });
+            } else {
+                query = query.order('created_at', { ascending: false });
+            }
+
+            const { data, error } = await query;
 
             if (error) throw error;
 
@@ -114,7 +122,7 @@ export function UserProjectPage({ currentUser, onChat }: UserProjectPageProps) {
 
     useEffect(() => {
         fetchProjects();
-    }, []);
+    }, [sortOrder]);
 
     const onRefresh = useCallback(() => {
         setRefreshing(true);

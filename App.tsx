@@ -84,13 +84,14 @@ function AppContent() {
   const [currentUser, setCurrentUser] = useState<Profile | null>(null);
   const [isLoadingUser, setIsLoadingUser] = useState(false);
 
-  const [sortOrder, setSortOrder] = useState<'recommended' | 'newest'>('recommended');
+  const [sortOrder, setSortOrder] = useState<'recommended' | 'newest' | 'deadline'>('recommended');
   const [isSortModalOpen, setIsSortModalOpen] = useState(false);
 
   const [displayProfiles, setDisplayProfiles] = useState<Profile[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedTheme, setSelectedTheme] = useState<Theme | null>(null);
   const [matchedProfile, setMatchedProfile] = useState<Profile | null>(null);
+  const [pendingAppsCount, setPendingAppsCount] = useState(0);
 
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
@@ -190,6 +191,25 @@ function AppContent() {
       console.error('Error fetching matches:', error);
     }
   };
+
+  // Fetch pending applications count
+  React.useEffect(() => {
+    if (!session?.user) return;
+    const fetchPendingApps = async () => {
+      const { count } = await supabase
+        .from('project_applications')
+        .select('id, projects!inner(owner_id)', { count: 'exact', head: true })
+        .eq('projects.owner_id', session.user.id)
+        .eq('status', 'pending');
+      setPendingAppsCount(count || 0);
+    };
+    fetchPendingApps();
+    // Subscribe to changes
+    const channel = supabase.channel('pending_apps_count')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'project_applications' }, fetchPendingApps)
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [session?.user]);
 
   // Fetch current user profile
   const fetchCurrentUser = async () => {
@@ -609,7 +629,7 @@ function AppContent() {
                   onPress={() => setIsSortModalOpen(true)}
                 >
                   <Text style={styles.controlButtonText}>
-                    {sortOrder === 'recommended' ? 'おすすめ順' : '新着順'}
+                    {sortOrder === 'recommended' ? 'おすすめ順' : sortOrder === 'newest' ? '新着順' : '締め切り順'}
                   </Text>
                   <Ionicons name="chevron-down" size={16} color="#374151" />
                 </TouchableOpacity>
@@ -671,6 +691,7 @@ function AppContent() {
                     />
                   ) : (
                     <UserProjectPage
+                      sortOrder={sortOrder}
                       currentUser={currentUser}
                       onChat={(partnerId, partnerName, partnerImage) => {
                         setActiveChatRoom({
@@ -739,7 +760,7 @@ function AppContent() {
         <BottomNav activeTab={activeTab} onTabChange={(tab) => {
           LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
           setActiveTab(tab);
-        }} currentUser={currentUser} />
+        }} currentUser={currentUser} badges={{ profile: pendingAppsCount }} />
       </View>
 
       {/* Modals */}
@@ -901,6 +922,21 @@ function AppContent() {
                 sortOrder === 'newest' && styles.sortOptionTextActive
               ]}>新着順</Text>
               {sortOrder === 'newest' && <Ionicons name="checkmark" size={20} color="#0d9488" />}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.sortOption}
+              onPress={() => {
+                LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                setSortOrder('deadline');
+                setIsSortModalOpen(false);
+              }}
+            >
+              <Text style={[
+                styles.sortOptionText,
+                sortOrder === 'deadline' && styles.sortOptionTextActive
+              ]}>締め切り順</Text>
+              {sortOrder === 'deadline' && <Ionicons name="checkmark" size={20} color="#0d9488" />}
             </TouchableOpacity>
           </View>
         </View>
