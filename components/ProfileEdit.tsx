@@ -27,14 +27,14 @@ interface ProfileEditProps {
 }
 
 export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditProps) {
-    const [name, setName] = useState(initialProfile.name);
-    const [age, setAge] = useState(initialProfile.age.toString());
+    const [name, setName] = useState(initialProfile.name || '');
+    const [age, setAge] = useState(initialProfile.age?.toString() || '');
     const [university, setUniversity] = useState(initialProfile.university || initialProfile.company || '');
-    const [bio, setBio] = useState(initialProfile.bio);
+    const [bio, setBio] = useState(initialProfile.bio || '');
     const [seekingFor, setSeekingFor] = useState<string[]>(initialProfile.seekingFor || []);
     const [skills, setSkills] = useState<string[]>(initialProfile.skills || []);
     const [seekingRoles, setSeekingRoles] = useState<string[]>(initialProfile.seekingRoles || []);
-    const [image, setImage] = useState(initialProfile.image);
+    const [image, setImage] = useState(initialProfile.image || '');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const seekingForOptions = ['起業に興味あり', 'ビジネスメンバー探し', 'アイデア模索中', 'まずは話してみたい', 'コミュニティ形成', '壁打ち相手募集'];
