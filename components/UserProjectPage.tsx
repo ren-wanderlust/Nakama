@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Dimensions, ImageBackground, RefreshControl, ActivityIndicator, Modal, Alert } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Dimensions, Image, RefreshControl, ActivityIndicator, Modal, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
@@ -14,6 +14,12 @@ interface Project {
     owner_id: string;
     created_at: string;
     deadline?: string | null;
+    owner?: {
+        id: string;
+        name: string;
+        image: string;
+        university: string;
+    };
 }
 
 interface UserProjectPageProps {
@@ -21,26 +27,35 @@ interface UserProjectPageProps {
     onChat: (ownerId: string, ownerName: string, ownerImage: string) => void;
 }
 
-const ProjectCard = ({ project, onPress }: { project: Project; onPress: () => void }) => (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.9}>
-        <ImageBackground
-            source={{ uri: project.image_url || 'https://via.placeholder.com/300x200?text=No+Image' }}
-            style={styles.cardBackground}
-            imageStyle={{ borderRadius: 16 }}
-        >
-            <View style={styles.cardOverlay}>
+const ProjectCard = ({ project, onPress }: { project: Project; onPress: () => void }) => {
+    const deadlineDate = project.deadline ? new Date(project.deadline) : null;
+    const deadlineString = deadlineDate
+        ? `${deadlineDate.getMonth() + 1}/${deadlineDate.getDate()}まで`
+        : '';
+
+    return (
+        <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
+            <View style={styles.cardInner}>
+                <Image
+                    source={{ uri: project.owner?.image || 'https://via.placeholder.com/50' }}
+                    style={styles.authorIcon}
+                />
                 <View style={styles.cardContent}>
-                    <Text style={styles.cardTitle} numberOfLines={2}>{project.title}</Text>
-                </View>
-                <View style={styles.cardFooter}>
-                    <View style={styles.actionLink}>
-                        <Text style={styles.actionLinkText}>👉 詳細を見る</Text>
+                    <View style={styles.cardHeader}>
+                        <Text style={styles.cardTitle} numberOfLines={1}>{project.title}</Text>
+                        {deadlineString ? (
+                            <View style={styles.deadlineBadge}>
+                                <Ionicons name="time-outline" size={14} color="#D32F2F" />
+                                <Text style={styles.deadlineText}>{deadlineString}</Text>
+                            </View>
+                        ) : null}
                     </View>
+                    <Text style={styles.cardDescription} numberOfLines={2}>{project.description}</Text>
                 </View>
             </View>
-        </ImageBackground>
-    </TouchableOpacity>
-);
+        </TouchableOpacity>
+    );
+};
 
 export function UserProjectPage({ currentUser, onChat }: UserProjectPageProps) {
     const [projects, setProjects] = useState<Project[]>([]);
@@ -53,17 +68,27 @@ export function UserProjectPage({ currentUser, onChat }: UserProjectPageProps) {
         try {
             const { data, error } = await supabase
                 .from('projects')
-                .select('*')
+                .select(`
+                    *,
+                    owner:profiles!owner_id (
+                        id,
+                        name,
+                        image,
+                        university
+                    )
+                `)
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
 
             if (data) {
-                setProjects(data);
+                // Map the data to match the Project interface if necessary
+                // Supabase returns owner as an object or array depending on relation type
+                // Assuming one-to-one or many-to-one, it returns object.
+                setProjects(data as any);
             }
         } catch (error) {
             console.error('Error fetching projects:', error);
-            // Don't alert on initial load if table doesn't exist yet to avoid annoying user before setup
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -201,53 +226,65 @@ const styles = StyleSheet.create({
     },
     grid: {
         flexDirection: 'column',
-        gap: 16,
+        gap: 12,
     },
     card: {
         width: '100%',
-        height: 200,
+        backgroundColor: 'white',
         borderRadius: 16,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 4,
-        marginBottom: 4,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+        elevation: 3,
     },
-    cardBackground: {
-        flex: 1,
-        borderRadius: 16,
-        overflow: 'hidden',
+    cardInner: {
+        flexDirection: 'row',
+        padding: 16,
+        alignItems: 'flex-start',
     },
-    cardOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.3)',
-        padding: 12,
-        justifyContent: 'flex-end',
+    authorIcon: {
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        marginRight: 16,
+        backgroundColor: '#EEE',
     },
     cardContent: {
-        marginBottom: 8,
+        flex: 1,
+        justifyContent: 'center',
+    },
+    cardHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 6,
     },
     cardTitle: {
-        fontSize: 16,
+        fontSize: 18,
         fontWeight: 'bold',
-        color: 'white',
-        textShadowColor: 'rgba(0, 0, 0, 0.5)',
-        textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 4,
+        color: '#111827',
+        flex: 1,
+        marginRight: 8,
     },
-    cardFooter: {
-        width: '100%',
+    deadlineBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FFEBEE',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 12,
     },
-    actionLink: {
-        borderTopWidth: 1,
-        borderTopColor: 'rgba(255,255,255,0.3)',
-        paddingTop: 6,
-    },
-    actionLinkText: {
-        fontSize: 11,
-        color: '#FFEB3B',
+    deadlineText: {
+        fontSize: 12,
+        color: '#D32F2F',
         fontWeight: 'bold',
+        marginLeft: 4,
+    },
+    cardDescription: {
+        fontSize: 14,
+        color: '#4B5563',
+        lineHeight: 20,
     },
     emptyContainer: {
         alignItems: 'center',
@@ -268,7 +305,7 @@ const styles = StyleSheet.create({
     fab: {
         position: 'absolute',
         right: 20,
-        bottom: 100, // Adjusted to avoid overlap with bottom nav
+        bottom: 100,
         width: 56,
         height: 56,
         borderRadius: 28,

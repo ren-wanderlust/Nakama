@@ -5,7 +5,6 @@ import {
     View,
     TextInput,
     TouchableOpacity,
-    Image,
     Alert,
     ActivityIndicator,
     ScrollView,
@@ -13,7 +12,6 @@ import {
     Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
@@ -36,55 +34,7 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
     const [description, setDescription] = useState(project?.description || '');
     const [deadline, setDeadline] = useState<Date | null>(project?.deadline ? new Date(project.deadline) : null);
     const [showDatePicker, setShowDatePicker] = useState(false);
-    const [image, setImage] = useState<string | null>(project?.image_url || null);
     const [loading, setLoading] = useState(false);
-
-    const pickImage = async () => {
-        const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            allowsEditing: true,
-            aspect: [16, 9],
-            quality: 0.8,
-        });
-
-        if (!result.canceled) {
-            setImage(result.assets[0].uri);
-        }
-    };
-
-    const uploadImage = async (uri: string): Promise<string | null> => {
-        try {
-            if (uri.startsWith('http')) return uri; // Already uploaded
-
-            const ext = uri.split('.').pop();
-            const fileName = `${Date.now()}.${ext}`;
-            const filePath = `${currentUser.id}/${fileName}`;
-
-            const formData = new FormData();
-            formData.append('file', {
-                uri,
-                name: fileName,
-                type: `image/${ext}`,
-            } as any);
-
-            const { error } = await supabase.storage
-                .from('project-images')
-                .upload(filePath, formData, {
-                    upsert: false,
-                });
-
-            if (error) throw error;
-
-            const { data } = supabase.storage
-                .from('project-images')
-                .getPublicUrl(filePath);
-
-            return data.publicUrl;
-        } catch (error) {
-            console.error('Error uploading image:', error);
-            return null;
-        }
-    };
 
     const handleSave = async () => {
         if (!title.trim()) {
@@ -94,16 +44,11 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
 
         setLoading(true);
         try {
-            let imageUrl = image;
-            if (image && !image.startsWith('http')) {
-                imageUrl = await uploadImage(image);
-            }
-
             const projectData = {
                 owner_id: currentUser.id,
                 title: title.trim(),
                 description: description.trim(),
-                image_url: imageUrl,
+                image_url: null, // No image for now
                 deadline: deadline ? deadline.toISOString() : null,
             };
 
@@ -169,17 +114,6 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
                 style={{ flex: 1 }}
             >
                 <ScrollView style={styles.content}>
-                    <TouchableOpacity style={styles.imageContainer} onPress={pickImage}>
-                        {image ? (
-                            <Image source={{ uri: image }} style={styles.image} />
-                        ) : (
-                            <View style={styles.placeholderImage}>
-                                <Ionicons name="camera-outline" size={40} color="#9CA3AF" />
-                                <Text style={styles.placeholderText}>カバー画像を追加</Text>
-                            </View>
-                        )}
-                    </TouchableOpacity>
-
                     <View style={styles.formGroup}>
                         <Text style={styles.label}>プロジェクト名</Text>
                         <TextInput
@@ -273,28 +207,6 @@ const styles = StyleSheet.create({
     content: {
         flex: 1,
         padding: 20,
-    },
-    imageContainer: {
-        width: '100%',
-        height: 200,
-        borderRadius: 12,
-        marginBottom: 24,
-        overflow: 'hidden',
-        backgroundColor: '#F3F4F6',
-    },
-    image: {
-        width: '100%',
-        height: '100%',
-    },
-    placeholderImage: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    placeholderText: {
-        marginTop: 8,
-        color: '#9CA3AF',
-        fontSize: 14,
     },
     formGroup: {
         marginBottom: 20,
