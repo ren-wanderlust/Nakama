@@ -13,6 +13,8 @@ interface Project {
     owner_id: string;
     created_at: string;
     deadline?: string | null;
+    required_roles?: string[];
+    tags?: string[];
     owner?: {
         id: string;
         name: string;
@@ -276,11 +278,6 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
             </Modal>
 
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-                <Image
-                    source={{ uri: project.image_url || 'https://via.placeholder.com/400x300?text=No+Image' }}
-                    style={styles.coverImage}
-                />
-
                 <View style={styles.infoContainer}>
                     <Text style={styles.title}>{project.title}</Text>
 
@@ -327,6 +324,40 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                     </View>
 
                     <View style={styles.divider} />
+
+                    {/* Tags Section */}
+                    {((project.required_roles && project.required_roles.length > 0) || (project.tags && project.tags.length > 0)) && (
+                        <>
+                            <View style={styles.tagsSection}>
+                                {project.required_roles && project.required_roles.length > 0 && (
+                                    <View style={styles.tagGroup}>
+                                        <Text style={styles.tagLabel}>募集メンバー</Text>
+                                        <View style={styles.tagContainer}>
+                                            {project.required_roles.map((role, index) => (
+                                                <View key={index} style={styles.roleTag}>
+                                                    <Text style={styles.roleTagText}>{role}</Text>
+                                                </View>
+                                            ))}
+                                        </View>
+                                    </View>
+                                )}
+
+                                {project.tags && project.tags.length > 0 && (
+                                    <View style={styles.tagGroup}>
+                                        <Text style={styles.tagLabel}>テーマ</Text>
+                                        <View style={styles.tagContainer}>
+                                            {project.tags.map((tag, index) => (
+                                                <View key={index} style={styles.themeTag}>
+                                                    <Text style={styles.themeTagText}>#{tag}</Text>
+                                                </View>
+                                            ))}
+                                        </View>
+                                    </View>
+                                )}
+                            </View>
+                            <View style={styles.divider} />
+                        </>
+                    )}
 
                     <Text style={styles.sectionTitle}>プロジェクト詳細</Text>
                     <Text style={styles.description}>{project.description}</Text>
@@ -415,17 +446,10 @@ const styles = StyleSheet.create({
     content: {
         flex: 1,
     },
-    coverImage: {
-        width: '100%',
-        height: 300,
-        resizeMode: 'cover',
-    },
     infoContainer: {
         padding: 24,
+        paddingTop: 100,
         backgroundColor: 'white',
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-        marginTop: -24,
     },
     title: {
         fontSize: 24,
@@ -510,6 +534,44 @@ const styles = StyleSheet.create({
         height: 1,
         backgroundColor: '#F3F4F6',
         marginBottom: 24,
+    },
+    tagsSection: {
+        marginBottom: 24,
+        gap: 16,
+    },
+    tagGroup: {
+        gap: 8,
+    },
+    tagLabel: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#374151',
+    },
+    tagContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+    },
+    roleTag: {
+        backgroundColor: '#E0F2F1',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 16,
+    },
+    roleTagText: {
+        color: '#009688',
+        fontSize: 13,
+        fontWeight: '600',
+    },
+    themeTag: {
+        backgroundColor: '#F3F4F6',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 16,
+    },
+    themeTagText: {
+        color: '#4B5563',
+        fontSize: 13,
     },
     sectionTitle: {
         fontSize: 18,

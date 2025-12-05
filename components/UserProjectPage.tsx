@@ -14,6 +14,8 @@ interface Project {
     owner_id: string;
     created_at: string;
     deadline?: string | null;
+    required_roles?: string[];
+    tags?: string[];
     owner?: {
         id: string;
         name: string;
@@ -51,6 +53,21 @@ const ProjectCard = ({ project, onPress }: { project: Project; onPress: () => vo
                         ) : null}
                     </View>
                     <Text style={styles.cardDescription} numberOfLines={2}>{project.description}</Text>
+
+                    {((project.required_roles && project.required_roles.length > 0) || (project.tags && project.tags.length > 0)) && (
+                        <View style={styles.cardTags}>
+                            {project.required_roles?.map((role, i) => (
+                                <View key={`role-${i}`} style={styles.miniRoleTag}>
+                                    <Text style={styles.miniRoleTagText}>{role}</Text>
+                                </View>
+                            ))}
+                            {project.tags?.map((tag, i) => (
+                                <View key={`tag-${i}`} style={styles.miniThemeTag}>
+                                    <Text style={styles.miniThemeTagText}>#{tag}</Text>
+                                </View>
+                            ))}
+                        </View>
+                    )}
                 </View>
             </View>
         </TouchableOpacity>
@@ -285,6 +302,33 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#4B5563',
         lineHeight: 20,
+    },
+    cardTags: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 6,
+        marginTop: 8,
+    },
+    miniRoleTag: {
+        backgroundColor: '#E0F2F1',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 12,
+    },
+    miniRoleTagText: {
+        fontSize: 11,
+        color: '#009688',
+        fontWeight: '600',
+    },
+    miniThemeTag: {
+        backgroundColor: '#F3F4F6',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 12,
+    },
+    miniThemeTagText: {
+        fontSize: 11,
+        color: '#4B5563',
     },
     emptyContainer: {
         alignItems: 'center',

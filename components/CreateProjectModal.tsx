@@ -14,7 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { supabase } from '../lib/supabase';
-import { Profile } from '../types';
+import { Profile, Theme } from '../types';
 
 interface CreateProjectModalProps {
     currentUser: Profile;
@@ -26,6 +26,8 @@ interface CreateProjectModalProps {
         description: string;
         image_url: string | null;
         deadline?: string | null;
+        required_roles?: string[];
+        tags?: string[];
     };
 }
 
@@ -35,6 +37,42 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
     const [deadline, setDeadline] = useState<Date | null>(project?.deadline ? new Date(project.deadline) : null);
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [loading, setLoading] = useState(false);
+
+    const [themes, setThemes] = useState<Theme[]>([]);
+    const [selectedRoles, setSelectedRoles] = useState<string[]>(project?.required_roles || []);
+    const [selectedThemes, setSelectedThemes] = useState<string[]>(project?.tags || []);
+
+    const ROLES = ['エンジニア', 'デザイナー', 'マーケター', 'アイディアマン'];
+
+    useEffect(() => {
+        fetchThemes();
+    }, []);
+
+    const fetchThemes = async () => {
+        try {
+            const { data, error } = await supabase.from('themes').select('*');
+            if (error) throw error;
+            if (data) setThemes(data);
+        } catch (error) {
+            console.error('Error fetching themes:', error);
+        }
+    };
+
+    const toggleRole = (role: string) => {
+        if (selectedRoles.includes(role)) {
+            setSelectedRoles(selectedRoles.filter(r => r !== role));
+        } else {
+            setSelectedRoles([...selectedRoles, role]);
+        }
+    };
+
+    const toggleTheme = (themeTitle: string) => {
+        if (selectedThemes.includes(themeTitle)) {
+            setSelectedThemes(selectedThemes.filter(t => t !== themeTitle));
+        } else {
+            setSelectedThemes([...selectedThemes, themeTitle]);
+        }
+    };
 
     const handleSave = async () => {
         if (!title.trim()) {
@@ -48,8 +86,10 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
                 owner_id: currentUser.id,
                 title: title.trim(),
                 description: description.trim(),
-                image_url: null, // No image for now
+                image_url: null,
                 deadline: deadline ? deadline.toISOString() : null,
+                required_roles: selectedRoles,
+                tags: selectedThemes,
             };
 
             let error;
@@ -123,6 +163,48 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
                             onChangeText={setTitle}
                             maxLength={50}
                         />
+                    </View>
+
+                    <View style={styles.formGroup}>
+                        <Text style={styles.label}>募集するメンバー</Text>
+                        <View style={styles.chipContainer}>
+                            {ROLES.map((role) => (
+                                <TouchableOpacity
+                                    key={role}
+                                    style={[
+                                        styles.chip,
+                                        selectedRoles.includes(role) && styles.chipActive
+                                    ]}
+                                    onPress={() => toggleRole(role)}
+                                >
+                                    <Text style={[
+                                        styles.chipText,
+                                        selectedRoles.includes(role) && styles.chipTextActive
+                                    ]}>{role}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    </View>
+
+                    <View style={styles.formGroup}>
+                        <Text style={styles.label}>プロジェクトのテーマ</Text>
+                        <View style={styles.chipContainer}>
+                            {themes.map((theme) => (
+                                <TouchableOpacity
+                                    key={theme.id}
+                                    style={[
+                                        styles.chip,
+                                        selectedThemes.includes(theme.title) && styles.chipActive
+                                    ]}
+                                    onPress={() => toggleTheme(theme.title)}
+                                >
+                                    <Text style={[
+                                        styles.chipText,
+                                        selectedThemes.includes(theme.title) && styles.chipTextActive
+                                    ]}>{theme.title}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
                     </View>
 
                     <View style={styles.formGroup}>
@@ -249,5 +331,30 @@ const styles = StyleSheet.create({
     },
     clearDateButton: {
         padding: 8,
+    },
+    chipContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+    },
+    chip: {
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 20,
+        backgroundColor: '#F3F4F6',
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+    },
+    chipActive: {
+        backgroundColor: '#E0F2F1',
+        borderColor: '#009688',
+    },
+    chipText: {
+        fontSize: 14,
+        color: '#374151',
+    },
+    chipTextActive: {
+        color: '#009688',
+        fontWeight: 'bold',
     },
 });
