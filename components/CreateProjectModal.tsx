@@ -124,12 +124,13 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
     };
 
     const onDateChange = (event: any, selectedDate?: Date) => {
-        if (Platform.OS === 'android') {
-            setShowDatePicker(false);
-        }
-
         if (selectedDate) {
             setDeadline(selectedDate);
+            // 日付が選択されたらカレンダーを閉じる
+            setShowDatePicker(false);
+        } else if (Platform.OS === 'android') {
+            // Androidでキャンセルされた場合
+            setShowDatePicker(false);
         }
     };
 
