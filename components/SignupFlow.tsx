@@ -18,6 +18,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { Session } from '@supabase/supabase-js';
+import * as SecureStore from 'expo-secure-store';
 import { supabase } from '../lib/supabase';
 import universitiesData from '../assets/japanese_universities.json';
 
@@ -182,6 +184,62 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
         }
     };
 
+    const validateEmailFormat = (emailToValidate: string): boolean => {
+        // Supabaseと同様のメールアドレスフォーマット検証
+        // RFC 5322に準拠した簡易的な正規表現
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        
+        // より厳密な検証（Supabaseの検証に近い）
+        // - ローカル部分（@の前）: 1文字以上、スペースなし
+        // - ドメイン部分（@の後）: ドットを含む、TLD（トップレベルドメイン）が存在
+        // - 全体的にスペースが含まれていない
+        if (!emailRegex.test(emailToValidate)) {
+            return false;
+        }
+        
+        // 追加の検証
+        const parts = emailToValidate.split('@');
+        if (parts.length !== 2) {
+            return false;
+        }
+        
+        const [localPart, domain] = parts;
+        
+        // ローカル部分の検証
+        if (localPart.length === 0 || localPart.length > 64) {
+            return false;
+        }
+        
+        // ドメイン部分の検証
+        if (domain.length === 0 || domain.length > 255) {
+            return false;
+        }
+        
+        // ドメインにドットが含まれているか
+        if (!domain.includes('.')) {
+            return false;
+        }
+        
+        // ドメインの最後がドットでないか
+        if (domain.endsWith('.')) {
+            return false;
+        }
+        
+        // 連続するドットがないか
+        if (domain.includes('..')) {
+            return false;
+        }
+        
+        // TLD（最後の部分）が2文字以上か
+        const domainParts = domain.split('.');
+        const tld = domainParts[domainParts.length - 1];
+        if (tld.length < 2) {
+            return false;
+        }
+        
+        return true;
+    };
+
     const validateStep1 = () => {
         let isValid = true;
         const newErrors = { ...errors };
@@ -191,7 +249,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
             newErrors.email = true;
             isValid = false;
             if (!errorMessage) errorMessage = 'メールアドレスを入力してください。';
-        } else if (!email.includes('@')) {
+        } else if (!validateEmailFormat(email.trim())) {
             newErrors.email = true;
             isValid = false;
             if (!errorMessage) errorMessage = '正しいメールアドレスを入力してください。';
@@ -449,6 +507,35 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
         if (validateStep7()) {
             setIsSubmitting(true);
             try {
+                // 0. 既存のセッションをクリア（過去にログインしていたアカウントのセッションを削除）
+                await supabase.auth.signOut();
+                
+                // SecureStoreから直接セッションを削除（Supabaseが使用するキーを直接削除）
+                if (Platform.OS !== 'web') {
+                    try {
+                        // Supabaseが使用するキー名の形式: sb-{project-ref}-auth-token
+                        const projectRef = 'qexnfdidlqewfxskkqow';
+                        const authKey = `sb-${projectRef}-auth-token`;
+                        await SecureStore.deleteItemAsync(authKey);
+                        
+                        // 念のため、他の可能性のあるキーも削除
+                        await SecureStore.deleteItemAsync(`sb-${projectRef}-auth-token-code-verifier`);
+                    } catch (secureStoreError) {
+                        console.log('SecureStore削除エラー（無視可能）:', secureStoreError);
+                    }
+                }
+                
+                // signOutの完了を確実にするため、少し待機
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                // セッションが確実に削除されたことを確認
+                const { data: { session: checkSession } } = await supabase.auth.getSession();
+                if (checkSession) {
+                    // セッションが残っている場合、再度signOutを試行
+                    await supabase.auth.signOut();
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                }
+
                 // 1. Sign up
                 const { data: { user }, error: signUpError } = await supabase.auth.signUp({
                     email,
@@ -490,77 +577,113 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                     throw signUpError;
                 }
 
-                if (user) {
-                    let uploadedImageUrl = imageUri;
+                if (!user) {
+                    throw new Error('ユーザーの作成に失敗しました');
+                }
 
-                    // 2. Upload image if exists
-                    if (imageUri) {
-                        try {
-                            const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
-                                const xhr = new XMLHttpRequest();
-                                xhr.onload = function () {
-                                    resolve(xhr.response);
-                                };
-                                xhr.onerror = function (e) {
-                                    console.log(e);
-                                    reject(new TypeError('Network request failed'));
-                                };
-                                xhr.responseType = 'arraybuffer';
-                                xhr.open('GET', imageUri, true);
-                                xhr.send(null);
+                // 2. 確実にサインインする
+                const { data: { session: signInSession }, error: signInError } = await supabase.auth.signInWithPassword({
+                    email,
+                    password,
+                });
+
+                if (signInError) {
+                    throw new Error(`サインインに失敗しました: ${signInError.message}`);
+                }
+
+                if (!signInSession) {
+                    throw new Error('セッションの取得に失敗しました');
+                }
+
+                // セッションが確実に設定されるまで待機（最大3秒）
+                let currentSession: Session | null = signInSession;
+                let attempts = 0;
+                while (!currentSession && attempts < 6) {
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    const { data: { session: checkSession } } = await supabase.auth.getSession();
+                    currentSession = checkSession;
+                    attempts++;
+                }
+
+                if (!currentSession) {
+                    throw new Error('セッションの設定に失敗しました。もう一度お試しください。');
+                }
+
+                let uploadedImageUrl = imageUri;
+
+                // 3. Upload image if exists
+                if (imageUri) {
+                    try {
+                        const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+                            const xhr = new XMLHttpRequest();
+                            xhr.onload = function () {
+                                resolve(xhr.response);
+                            };
+                            xhr.onerror = function (e) {
+                                console.log(e);
+                                reject(new TypeError('Network request failed'));
+                            };
+                            xhr.responseType = 'arraybuffer';
+                            xhr.open('GET', imageUri, true);
+                            xhr.send(null);
+                        });
+
+                        const fileExt = imageUri.split('.').pop()?.toLowerCase() ?? 'jpg';
+                        const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+                        const filePath = `${fileName}`;
+
+                        const { error: uploadError } = await supabase.storage
+                            .from('avatars')
+                            .upload(filePath, arrayBuffer, {
+                                contentType: `image/${fileExt}`,
+                                upsert: true,
                             });
 
-                            const fileExt = imageUri.split('.').pop()?.toLowerCase() ?? 'jpg';
-                            const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-                            const filePath = `${fileName}`;
-
-                            const { error: uploadError } = await supabase.storage
-                                .from('avatars')
-                                .upload(filePath, arrayBuffer, {
-                                    contentType: `image/${fileExt}`,
-                                    upsert: true,
-                                });
-
-                            if (uploadError) {
-                                console.log('Image upload warning (RLS policy):', uploadError.message);
-                                uploadedImageUrl = 'https://placehold.co/400x400/png';
-                            } else {
-                                const { data: { publicUrl } } = supabase.storage
-                                    .from('avatars')
-                                    .getPublicUrl(filePath);
-                                uploadedImageUrl = publicUrl;
-                            }
-                        } catch (uploadErr) {
-                            console.log('Image upload exception:', uploadErr);
+                        if (uploadError) {
+                            console.log('Image upload warning (RLS policy):', uploadError.message);
                             uploadedImageUrl = 'https://placehold.co/400x400/png';
+                        } else {
+                            const { data: { publicUrl } } = supabase.storage
+                                .from('avatars')
+                                .getPublicUrl(filePath);
+                            uploadedImageUrl = publicUrl;
                         }
+                    } catch (uploadErr) {
+                        console.log('Image upload exception:', uploadErr);
+                        uploadedImageUrl = 'https://placehold.co/400x400/png';
                     }
+                }
 
-                    // 3. Insert profile
-                    const { error: profileError } = await supabase
-                        .from('profiles')
-                        .insert([
-                            {
-                                id: user.id,
-                                name: nickname,
-                                university: university,
-                                bio: bio,
-                                image: uploadedImageUrl,
-                                skills: skills.includes('other') && otherRoleText.trim()
-                                    ? [...skills.filter(s => s !== 'other'), otherRoleText.trim()]
-                                    : skills,
-                                seeking_roles: seekingRoles.includes('other') && otherSeekingText.trim()
-                                    ? [...seekingRoles.filter(s => s !== 'other'), otherSeekingText.trim()]
-                                    : seekingRoles,
-                                is_student: true,
-                                created_at: new Date().toISOString(),
-                            }
-                        ]);
+                // 4. Insert profile
+                const { error: profileError } = await supabase
+                    .from('profiles')
+                    .insert([
+                        {
+                            id: user.id,
+                            name: nickname,
+                            university: university,
+                            bio: bio,
+                            image: uploadedImageUrl,
+                            skills: skills.includes('other') && otherRoleText.trim()
+                                ? [...skills.filter(s => s !== 'other'), otherRoleText.trim()]
+                                : skills,
+                            seeking_roles: seekingRoles.includes('other') && otherSeekingText.trim()
+                                ? [...seekingRoles.filter(s => s !== 'other'), otherSeekingText.trim()]
+                                : seekingRoles,
+                            is_student: true,
+                            created_at: new Date().toISOString(),
+                        }
+                    ]);
 
-                    if (profileError) {
-                        console.error('Profile creation error:', profileError);
-                        Alert.alert('注意', 'ユーザー登録は完了しましたが、プロフィールの保存に失敗しました。');
-                    }
+                if (profileError) {
+                    console.error('Profile creation error:', profileError);
+                    Alert.alert('注意', 'ユーザー登録は完了しましたが、プロフィールの保存に失敗しました。');
+                }
+
+                // セッションが確実に設定されていることを再確認
+                const { data: { session: finalSession } } = await supabase.auth.getSession();
+                if (!finalSession) {
+                    throw new Error('セッションの確認に失敗しました。もう一度お試しください。');
                 }
 
                 onComplete();
@@ -1108,6 +1231,35 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
 
     return (
         <SafeAreaView style={styles.container}>
+            {/* Header with Back, Progress Bar, and Next Button */}
+            <View style={styles.header}>
+                <TouchableOpacity
+                    onPress={handleBack}
+                    style={styles.backButton}
+                >
+                    <Ionicons name="arrow-back" size={24} color="#111827" />
+                </TouchableOpacity>
+                
+                <View style={styles.headerCenter}>
+                    {renderProgressBar()}
+                </View>
+                
+                <TouchableOpacity
+                    onPress={step === 7 ? handleComplete : handleNext}
+                    activeOpacity={0.7}
+                    disabled={isSubmitting || isCheckingEmail}
+                    style={styles.nextButtonHeader}
+                >
+                    {isSubmitting || isCheckingEmail ? (
+                        <ActivityIndicator color="#FF8C00" size="small" />
+                    ) : (
+                        <Text style={styles.nextButtonText}>
+                            {step === 7 ? '登録' : '次へ'}
+                        </Text>
+                    )}
+                </TouchableOpacity>
+            </View>
+
             <ScrollView 
                 contentContainerStyle={styles.scrollContent}
                 keyboardShouldPersistTaps="handled"
@@ -1125,24 +1277,6 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                     </View>
                 </TouchableWithoutFeedback>
             </ScrollView>
-
-                <View style={styles.footer}>
-                    {renderProgressBar()}
-                    <TouchableOpacity
-                        onPress={step === 7 ? handleComplete : handleNext}
-                        activeOpacity={0.7}
-                        disabled={isSubmitting || isCheckingEmail}
-                        style={styles.nextButton}
-                    >
-                        {isSubmitting || isCheckingEmail ? (
-                            <ActivityIndicator color="#FFD700" />
-                        ) : (
-                            <Text style={styles.nextButtonText}>
-                                {step === 7 ? '登録してはじめる' : '次へ'}
-                            </Text>
-                        )}
-                    </TouchableOpacity>
-                </View>
 
                 {/* Email Exists Modal */}
                 <Modal
@@ -1191,7 +1325,7 @@ const styles = StyleSheet.create({
     scrollContent: {
         flexGrow: 1,
         paddingHorizontal: 24,
-        paddingTop: 40,
+        paddingTop: 24,
         paddingBottom: 24,
         justifyContent: 'flex-start',
     },
@@ -1228,8 +1362,26 @@ const styles = StyleSheet.create({
     inputError: {
         borderColor: '#ef4444',
     },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        backgroundColor: '#ffffff',
+        borderBottomWidth: 1,
+        borderBottomColor: '#f3f4f6',
+    },
+    backButton: {
+        padding: 8,
+        minWidth: 40,
+    },
+    headerCenter: {
+        flex: 1,
+        paddingHorizontal: 16,
+    },
     progressBarContainer: {
-        marginBottom: 16,
+        marginBottom: 0,
     },
     progressBarBg: {
         height: 4,
@@ -1242,18 +1394,12 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFD700',
         borderRadius: 2,
     },
-    footer: {
-        paddingHorizontal: 24,
-        paddingTop: 16,
-        paddingBottom: 32,
-        backgroundColor: '#ffffff',
-        borderTopWidth: 1,
-        borderTopColor: '#f3f4f6',
-    },
-    nextButton: {
+    nextButtonHeader: {
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        minWidth: 60,
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 12,
     },
     nextButtonText: {
         color: '#FF8C00',
