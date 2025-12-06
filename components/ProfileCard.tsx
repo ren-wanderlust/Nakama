@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, View, Image, TouchableOpacity, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Profile } from '../types';
+import { AnimatedHeartButton } from './AnimatedLikeButton';
 
 interface ProfileCardProps {
     profile: Profile;
@@ -69,8 +70,14 @@ export function ProfileCard({ profile, isLiked, onLike, onSelect }: ProfileCardP
             onPress={onSelect}
             activeOpacity={0.9}
         >
-            {/* Like Button */}
-
+            {/* Like Button - Top Right */}
+            <View style={styles.likeButtonContainer}>
+                <AnimatedHeartButton
+                    isLiked={isLiked}
+                    onPress={onLike}
+                    size="small"
+                />
+            </View>
 
             {/* Header: Avatar & Basic Info */}
             <View style={styles.header}>
@@ -133,6 +140,7 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         padding: 16,
         marginBottom: 16,
+        position: 'relative',
         // Soft shadow
         shadowColor: "#000",
         shadowOffset: {
@@ -144,6 +152,12 @@ const styles = StyleSheet.create({
         elevation: 3,
         borderWidth: 1,
         borderColor: '#F3F4F6',
+    },
+    likeButtonContainer: {
+        position: 'absolute',
+        top: 8,
+        right: 8,
+        zIndex: 10,
     },
     header: {
         flexDirection: 'row',

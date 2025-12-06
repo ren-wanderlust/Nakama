@@ -28,7 +28,7 @@ export function Skeleton({ width: w = '100%', height = 20, borderRadius = 4, sty
         );
         animation.start();
         return () => animation.stop();
-    }, []);
+    }, [shimmerAnim]);
 
     const translateX = shimmerAnim.interpolate({
         inputRange: [0, 1],

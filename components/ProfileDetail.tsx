@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, View, Image, TouchableOpacity, ScrollView, SafeAreaView, Dimensions, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Profile } from '../types';
+import { AnimatedLikeButton } from './AnimatedLikeButton';
 
 interface ProfileDetailProps {
     profile: Profile;
@@ -215,19 +216,15 @@ export function ProfileDetail({ profile, onBack, onLike, onChat, isLiked }: Prof
             </ScrollView >
 
             {/* Footer Action Button */}
-            < View style={styles.footer} >
-                <TouchableOpacity
-                    style={[styles.likeButton, isLiked && styles.likedButton]}
+            <View style={styles.footer}>
+                <AnimatedLikeButton
+                    isLiked={isLiked}
                     onPress={onLike}
-                    activeOpacity={0.8}
-                >
-                    <Ionicons name={isLiked ? "heart" : "heart"} size={24} color="white" style={{ marginRight: 8 }} />
-                    <Text style={styles.likeButtonText}>
-                        {isLiked ? 'いいね済み' : 'いいね！'}
-                    </Text>
-                </TouchableOpacity>
-            </View >
-        </SafeAreaView >
+                    showLabel={true}
+                    style={{ width: '100%' }}
+                />
+            </View>
+        </SafeAreaView>
     );
 }
 
