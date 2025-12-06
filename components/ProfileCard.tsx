@@ -25,26 +25,47 @@ const TAG_COLORS: Record<string, { bg: string; text: string }> = {
     'ゲーム開発': { bg: '#E3F2FD', text: '#1565C0' },
     'AI / データ': { bg: '#E3F2FD', text: '#1565C0' },
     'ノーコード': { bg: '#E3F2FD', text: '#1565C0' },
+    'エンジニア': { bg: '#E3F2FD', text: '#1565C0' },
     // デザイナー系 (Purple)
     'UI / UXデザイン': { bg: '#F3E5F5', text: '#7B1FA2' },
     'グラフィック / イラスト': { bg: '#F3E5F5', text: '#7B1FA2' },
+    'デザイナー': { bg: '#F3E5F5', text: '#7B1FA2' },
     // マーケ系 (Orange)
     'マーケティング': { bg: '#FFF3E0', text: '#E65100' },
     'SNS運用': { bg: '#FFF3E0', text: '#E65100' },
     'ライター': { bg: '#FFF3E0', text: '#E65100' },
+    'マーケター': { bg: '#FFF3E0', text: '#E65100' },
     // ビジネス系 (Green)
     'セールス (営業)': { bg: '#E8F5E9', text: '#2E7D32' },
     '事業開発 (BizDev)': { bg: '#E8F5E9', text: '#2E7D32' },
     // クリエイター系 (Red)
     '動画編集': { bg: '#FFEBEE', text: '#C62828' },
     '3D / CG': { bg: '#FFEBEE', text: '#C62828' },
+    'クリエイター': { bg: '#FFEBEE', text: '#C62828' },
     // PM系 (Indigo)
     'PM / ディレクター': { bg: '#E8EAF6', text: '#283593' },
     'コミュニティ運営': { bg: '#E8EAF6', text: '#283593' },
+    // アイディアマン (Yellow/Gold)
+    'アイディアマン': { bg: '#FFF8E1', text: '#F57F17' },
     // その他 (Gray/Teal)
     '財務 / 会計': { bg: '#E0F2F1', text: '#00695C' },
     '法務 / 知財': { bg: '#E0F2F1', text: '#00695C' },
     '英語 / 語学': { bg: '#F5F5F5', text: '#424242' },
+};
+
+// English to Japanese tag translation map
+const TAG_TRANSLATIONS: Record<string, string> = {
+    'engineer': 'エンジニア',
+    'designer': 'デザイナー',
+    'marketer': 'マーケター',
+    'creator': 'クリエイター',
+    'ideaman': 'アイディアマン',
+    'other': 'その他',
+};
+
+// Translate tag if it's in English
+const translateTag = (tag: string): string => {
+    return TAG_TRANSLATIONS[tag.toLowerCase()] || tag;
 };
 
 // タグの種類に応じて色とアイコンを返す関数
@@ -116,10 +137,11 @@ export function ProfileCard({ profile, isLiked, onLike, onSelect }: ProfileCardP
             {/* Skills */}
             <View style={styles.skillsContainer}>
                 {profile.skills.slice(0, 3).map((skill, index) => {
-                    const tagColor = TAG_COLORS[skill] || { bg: '#F5F5F5', text: '#666666' };
+                    const translatedSkill = translateTag(skill);
+                    const tagColor = TAG_COLORS[translatedSkill] || { bg: '#F5F5F5', text: '#666666' };
                     return (
                         <View key={index} style={[styles.skillTag, { backgroundColor: tagColor.bg }]}>
-                            <Text style={[styles.skillText, { color: tagColor.text }]} numberOfLines={1}># {skill}</Text>
+                            <Text style={[styles.skillText, { color: tagColor.text }]} numberOfLines={1}># {translatedSkill}</Text>
                         </View>
                     );
                 })}

@@ -587,6 +587,8 @@ function AppContent() {
     if (session?.user && profile.id === session.user.id) return false;
     // Exclude matched users
     if (matchedProfileIds.has(profile.id)) return false;
+    // Exclude users I already liked
+    if (likedProfiles.has(profile.id)) return false;
 
     if (!filterCriteria) return true;
 
@@ -1330,20 +1332,23 @@ function AppContent() {
               {sortOrder === 'newest' && <Ionicons name="checkmark" size={20} color="#0d9488" />}
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.sortOption}
-              onPress={() => {
-                LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                setSortOrder('deadline');
-                setIsSortModalOpen(false);
-              }}
-            >
-              <Text style={[
-                styles.sortOptionText,
-                sortOrder === 'deadline' && styles.sortOptionTextActive
-              ]}>締め切り順</Text>
-              {sortOrder === 'deadline' && <Ionicons name="checkmark" size={20} color="#0d9488" />}
-            </TouchableOpacity>
+            {/* Show deadline option only for projects tab */}
+            {searchTab === 'projects' && (
+              <TouchableOpacity
+                style={styles.sortOption}
+                onPress={() => {
+                  LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                  setSortOrder('deadline');
+                  setIsSortModalOpen(false);
+                }}
+              >
+                <Text style={[
+                  styles.sortOptionText,
+                  sortOrder === 'deadline' && styles.sortOptionTextActive
+                ]}>締め切り順</Text>
+                {sortOrder === 'deadline' && <Ionicons name="checkmark" size={20} color="#0d9488" />}
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </Modal>
