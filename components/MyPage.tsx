@@ -158,6 +158,9 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                         pendingCount: counts[p.id] || 0
                     }));
 
+                    // Sort by pending count (descending) - projects with more pending apps first
+                    projectsWithCounts.sort((a: any, b: any) => (b.pendingCount || 0) - (a.pendingCount || 0));
+
                     const totalPending = projectsWithCounts.reduce((sum: number, p: any) => sum + (p.pendingCount || 0), 0);
                     if (onBadgeUpdate) onBadgeUpdate(totalPending);
 
