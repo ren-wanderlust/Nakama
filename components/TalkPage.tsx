@@ -22,13 +22,16 @@ interface ChatRoom {
     isUnreplied: boolean;
     type: 'individual' | 'group';
     rawTimestamp: string;
+    projectId?: string;  // For group chats
 }
 
 interface TalkPageProps {
     onOpenChat?: (room: ChatRoom) => void;
+    onViewProfile?: (partnerId: string) => void;
+    onViewProject?: (projectId: string) => void;
 }
 
-export function TalkPage({ onOpenChat }: TalkPageProps) {
+export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageProps) {
     const [talkTab, setTalkTab] = useState<'individual' | 'team'>('team');
     const talkListRef = useRef<FlatList>(null);
     const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
@@ -187,7 +190,9 @@ export function TalkPage({ onOpenChat }: TalkPageProps) {
                 .from('chat_rooms')
                 .select(`
                     id,
+                    project_id,
                     project:projects (
+                        id,
                         title,
                         image_url,
                         owner:profiles!owner_id (
@@ -243,7 +248,8 @@ export function TalkPage({ onOpenChat }: TalkPageProps) {
                         rawTimestamp: lastMsg?.created_at || room.created_at || '1970-01-01T00:00:00.000Z', // Fallback to old for empty rooms
                         isOnline: false,
                         isUnreplied: false,
-                        type: 'group' as const
+                        type: 'group' as const,
+                        projectId: room.project_id || room.project?.id,
                     };
                 });
 
@@ -276,13 +282,17 @@ export function TalkPage({ onOpenChat }: TalkPageProps) {
                             onPress={() => onOpenChat?.(item)}
                             activeOpacity={0.7}
                         >
-                            {/* Avatar */}
-                            <View style={styles.avatarContainer}>
+                            {/* Avatar - Tappable for profile */}
+                            <TouchableOpacity
+                                style={styles.avatarContainer}
+                                onPress={() => onViewProfile?.(item.partnerId)}
+                                activeOpacity={0.7}
+                            >
                                 <Image
                                     source={{ uri: item.partnerImage }}
                                     style={styles.avatar}
                                 />
-                            </View>
+                            </TouchableOpacity>
 
                             {/* Content */}
                             <View style={styles.content}>
@@ -340,8 +350,12 @@ export function TalkPage({ onOpenChat }: TalkPageProps) {
                             onPress={() => onOpenChat?.(item)}
                             activeOpacity={0.7}
                         >
-                            {/* Avatar */}
-                            <View style={styles.avatarContainer}>
+                            {/* Avatar - Tappable for project detail */}
+                            <TouchableOpacity
+                                style={styles.avatarContainer}
+                                onPress={() => item.projectId && onViewProject?.(item.projectId)}
+                                activeOpacity={0.7}
+                            >
                                 <Image
                                     source={{ uri: item.partnerImage }}
                                     style={styles.avatar}
@@ -349,7 +363,7 @@ export function TalkPage({ onOpenChat }: TalkPageProps) {
                                 <View style={styles.groupBadgeOverlay}>
                                     <Ionicons name="people" size={12} color="white" />
                                 </View>
-                            </View>
+                            </TouchableOpacity>
 
                             {/* Content */}
                             <View style={styles.content}>

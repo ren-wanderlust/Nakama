@@ -984,6 +984,59 @@ function AppContent() {
                 partnerImage: room.partnerImage,
                 isGroup: room.type === 'group',
               })}
+              onViewProfile={(partnerId) => {
+                // Find the profile from displayProfiles or fetch it
+                const profile = displayProfiles.find((p: Profile) => p.id === partnerId);
+                if (profile) {
+                  setSelectedProfile(profile);
+                } else {
+                  // Fetch profile if not in local list
+                  supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', partnerId)
+                    .single()
+                    .then(({ data, error }) => {
+                      if (data && !error) {
+                        const mappedProfile: Profile = {
+                          id: data.id,
+                          name: data.name,
+                          age: data.age,
+                          location: data.location || '',
+                          university: data.university,
+                          company: data.company,
+                          image: data.image,
+                          challengeTheme: data.challenge_theme || '',
+                          theme: data.theme || '',
+                          bio: data.bio,
+                          skills: data.skills || [],
+                          seekingFor: data.seeking_for || [],
+                          seekingRoles: data.seeking_roles || [],
+                          statusTags: data.status_tags || [],
+                          isStudent: data.is_student ?? false,
+                          createdAt: data.created_at || '',
+                        };
+                        setSelectedProfile(mappedProfile);
+                      }
+                    });
+                }
+              }}
+              onViewProject={async (projectId) => {
+                // Fetch project and show in UserProjectPage
+                const { data: project, error } = await supabase
+                  .from('projects')
+                  .select('*')
+                  .eq('id', projectId)
+                  .single();
+
+                if (project && !error) {
+                  // Navigate to project owner's project page
+                  const ownerProfile = displayProfiles.find((p: Profile) => p.id === project.owner_id);
+                  if (ownerProfile) {
+                    setSelectedProfile(ownerProfile);
+                  }
+                }
+              }}
             />
           </FadeTabContent>
           <FadeTabContent activeTab={activeTab} tabId="profile">
@@ -1050,7 +1103,108 @@ function AppContent() {
           )}
         </SafeAreaProvider>
       </Modal>
+      <Modal visible={!!activeChatRoom} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setActiveChatRoom(null)}>
+        <SafeAreaProvider>
+          {activeChatRoom && (
+            <>
+              {/* Show ProfileDetail on top if selectedProfile is set while in chat */}
+              {selectedProfile ? (
+                <ProfileDetail
+                  profile={selectedProfile}
+                  onBack={() => setSelectedProfile(null)}
+                  onLike={() => handleLike(selectedProfile.id)}
+                  onChat={() => {
+                    // Already in chat context, just close the profile
+                    setSelectedProfile(null);
+                  }}
+                  isLiked={likedProfiles.has(selectedProfile.id)}
+                />
+              ) : (
+                <ChatRoom
+                  partnerId={activeChatRoom.partnerId}
+                  partnerName={activeChatRoom.partnerName}
+                  partnerImage={activeChatRoom.partnerImage}
+                  isGroup={activeChatRoom.isGroup}
+                  onBack={() => setActiveChatRoom(null)}
+                  onPartnerProfilePress={() => {
+                    const partner = displayProfiles.find(p => p.name === activeChatRoom.partnerName);
+                    if (partner) {
+                      setSelectedProfile(partner);
+                    } else {
+                      // Fetch if not in list
+                      supabase
+                        .from('profiles')
+                        .select('*')
+                        .eq('name', activeChatRoom.partnerName)
+                        .single()
+                        .then(({ data, error }) => {
+                          if (data && !error) {
+                            const mappedProfile: Profile = {
+                              id: data.id,
+                              name: data.name,
+                              age: data.age,
+                              location: data.location || '',
+                              university: data.university,
+                              company: data.company,
+                              image: data.image,
+                              challengeTheme: data.challenge_theme || '',
+                              theme: data.theme || '',
+                              bio: data.bio,
+                              skills: data.skills || [],
+                              seekingFor: data.seeking_for || [],
+                              seekingRoles: data.seeking_roles || [],
+                              statusTags: data.status_tags || [],
+                              isStudent: data.is_student ?? false,
+                              createdAt: data.created_at || '',
+                            };
+                            setSelectedProfile(mappedProfile);
+                          }
+                        });
+                    }
+                  }}
+                  onMemberProfilePress={(memberId) => {
+                    const member = displayProfiles.find(p => p.id === memberId);
+                    if (member) {
+                      setSelectedProfile(member);
+                    } else {
+                      supabase
+                        .from('profiles')
+                        .select('*')
+                        .eq('id', memberId)
+                        .single()
+                        .then(({ data, error }) => {
+                          if (data && !error) {
+                            const mappedProfile: Profile = {
+                              id: data.id,
+                              name: data.name,
+                              age: data.age,
+                              location: data.location || '',
+                              university: data.university,
+                              company: data.company,
+                              image: data.image,
+                              challengeTheme: data.challenge_theme || '',
+                              theme: data.theme || '',
+                              bio: data.bio,
+                              skills: data.skills || [],
+                              seekingFor: data.seeking_for || [],
+                              seekingRoles: data.seeking_roles || [],
+                              statusTags: data.status_tags || [],
+                              isStudent: data.is_student ?? false,
+                              createdAt: data.created_at || '',
+                            };
+                            setSelectedProfile(mappedProfile);
+                          }
+                        });
+                    }
+                  }}
+                />
+              )}
+            </>
+          )}
+        </SafeAreaProvider>
+      </Modal>
 
+      {/* Profile Detail Modal - Rendered after ChatRoom so it appears on top */}
       <Modal visible={!!selectedProfile} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setSelectedProfile(null)}>
         <SafeAreaProvider>
           {selectedProfile && (
@@ -1059,6 +1213,7 @@ function AppContent() {
               onBack={() => setSelectedProfile(null)}
               onLike={() => handleLike(selectedProfile.id)}
               onChat={() => {
+                setSelectedProfile(null);  // Close profile first
                 setActiveChatRoom({
                   partnerId: selectedProfile.id,
                   partnerName: selectedProfile.name,
@@ -1067,26 +1222,6 @@ function AppContent() {
                 });
               }}
               isLiked={likedProfiles.has(selectedProfile.id)}
-            />
-          )}
-        </SafeAreaProvider>
-      </Modal>
-
-      <Modal visible={!!activeChatRoom} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setActiveChatRoom(null)}>
-        <SafeAreaProvider>
-          {activeChatRoom && (
-            <ChatRoom
-              partnerId={activeChatRoom.partnerId}
-              partnerName={activeChatRoom.partnerName}
-              partnerImage={activeChatRoom.partnerImage}
-              isGroup={activeChatRoom.isGroup}
-              onBack={() => setActiveChatRoom(null)}
-              onPartnerProfilePress={() => {
-                const partner = displayProfiles.find(p => p.name === activeChatRoom.partnerName);
-                if (partner) {
-                  setSelectedProfile(partner);
-                }
-              }}
             />
           )}
         </SafeAreaProvider>

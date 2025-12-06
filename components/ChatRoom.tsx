@@ -29,7 +29,9 @@ interface Message {
     text: string;
     image_url?: string;
     sender: 'me' | 'other';
-    senderName?: string; // Add senderName
+    senderId?: string;     // Sender's user ID
+    senderName?: string;   // Sender's name
+    senderImage?: string;  // Sender's avatar image
     timestamp: string;
     date: string; // ISO date string for grouping (YYYY-MM-DD)
     created_at: string;
@@ -53,6 +55,7 @@ interface ChatRoomProps {
     partnerName: string;
     partnerImage: string;
     onPartnerProfilePress: () => void;
+    onMemberProfilePress?: (memberId: string) => void; // For group chat member profile
     isGroup?: boolean; // New prop
 }
 
@@ -83,12 +86,14 @@ const MessageBubble = ({
     message,
     onReply,
     onPartnerProfilePress,
+    onMemberProfilePress,
     isGroup,
     partnerImage
 }: {
     message: Message,
     onReply: (msg: Message) => void,
     onPartnerProfilePress: () => void,
+    onMemberProfilePress?: (memberId: string) => void,
     isGroup?: boolean,
     partnerImage?: string
 }) => {
@@ -125,6 +130,20 @@ const MessageBubble = ({
         );
     };
 
+    // Handle avatar press based on chat type
+    const handleAvatarPress = () => {
+        if (isGroup && message.senderId && onMemberProfilePress) {
+            onMemberProfilePress(message.senderId);
+        } else {
+            onPartnerProfilePress();
+        }
+    };
+
+    // Determine avatar image to show
+    const avatarImage = isGroup && message.senderImage
+        ? message.senderImage
+        : partnerImage;
+
     return (
         <>
             <Swipeable
@@ -137,10 +156,10 @@ const MessageBubble = ({
                 containerStyle={styles.swipeableContainer}
             >
                 <View style={[styles.messageRow, isMe ? styles.messageRowMe : styles.messageRowOther]}>
-                    {/* Partner Avatar (LINE style) */}
-                    {!isMe && partnerImage && (
-                        <TouchableOpacity onPress={onPartnerProfilePress} style={styles.messageAvatarContainer}>
-                            <Image source={{ uri: partnerImage }} style={styles.messageAvatar} />
+                    {/* Partner/Member Avatar (LINE style) */}
+                    {!isMe && avatarImage && (
+                        <TouchableOpacity onPress={handleAvatarPress} style={styles.messageAvatarContainer}>
+                            <Image source={{ uri: avatarImage }} style={styles.messageAvatar} />
                         </TouchableOpacity>
                     )}
 
@@ -228,7 +247,7 @@ const MessageBubble = ({
     );
 };
 
-export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartnerProfilePress, isGroup = false }: ChatRoomProps) {
+export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartnerProfilePress, onMemberProfilePress, isGroup = false }: ChatRoomProps) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [inputText, setInputText] = useState('');
     const [loading, setLoading] = useState(true);
@@ -303,16 +322,16 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
             if (data) {
                 // Manually fetch sender profiles to avoid join issues
                 const senderIds = Array.from(new Set(data.map((m: any) => m.sender_id)));
-                let profileMap = new Map<string, string>();
+                let profileMap = new Map<string, { name: string; image: string }>();
 
                 if (senderIds.length > 0) {
                     const { data: profiles } = await supabase
                         .from('profiles')
-                        .select('id, name')
+                        .select('id, name, image')
                         .in('id', senderIds);
 
                     profiles?.forEach((p: any) => {
-                        profileMap.set(p.id, p.name);
+                        profileMap.set(p.id, { name: p.name, image: p.image });
                     });
                 }
 
@@ -321,7 +340,9 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                     text: msg.content,
                     image_url: msg.image_url,
                     sender: msg.sender_id === userId ? 'me' : 'other',
-                    senderName: profileMap.get(msg.sender_id),
+                    senderId: msg.sender_id,
+                    senderName: profileMap.get(msg.sender_id)?.name,
+                    senderImage: profileMap.get(msg.sender_id)?.image,
                     timestamp: new Date(msg.created_at).toLocaleTimeString('ja-JP', {
                         hour: '2-digit',
                         minute: '2-digit',
@@ -569,6 +590,7 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                     message={item.message!}
                     onReply={handleReply}
                     onPartnerProfilePress={onPartnerProfilePress}
+                    onMemberProfilePress={onMemberProfilePress}
                     isGroup={isGroup}
                     partnerImage={partnerImage}
                 />
