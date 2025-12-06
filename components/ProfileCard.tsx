@@ -83,9 +83,6 @@ function getTagStyle(tagText: string): { color: string; icon: string } {
 }
 
 export function ProfileCard({ profile, isLiked, onLike, onSelect }: ProfileCardProps) {
-    const statusTag = profile.statusTags && profile.statusTags.length > 0 ? profile.statusTags[0] : null;
-    const tagStyle = statusTag ? getTagStyle(statusTag) : null;
-
     return (
         <TouchableOpacity
             style={styles.cardContainer}
@@ -101,42 +98,36 @@ export function ProfileCard({ profile, isLiked, onLike, onSelect }: ProfileCardP
                 />
             </View>
 
-            {/* Header: Avatar & Basic Info */}
+            {/* Header: Avatar + Name + Age */}
             <View style={styles.header}>
                 <Image
                     source={{ uri: profile.image }}
                     style={styles.avatar}
                 />
                 <View style={styles.headerInfo}>
-                    {statusTag && tagStyle && (
-                        <View style={[styles.statusBadge, { backgroundColor: tagStyle.color }]}>
-                            <Text style={styles.statusBadgeText} numberOfLines={1}>
-                                {tagStyle.icon} {statusTag}
-                            </Text>
-                        </View>
-                    )}
                     <Text style={styles.name} numberOfLines={1}>{profile.name}</Text>
-                    <Text style={styles.attributes} numberOfLines={1}>
-                        {profile.age}歳 · {profile.university || profile.company || '所属なし'}
-                    </Text>
+                    <Text style={styles.age}>{profile.age}歳</Text>
                 </View>
             </View>
 
-            {/* Main Content: Theme & Bio */}
-            <View style={styles.mainContent}>
-                <Text style={styles.themeText} numberOfLines={2}>
-                    {profile.theme || profile.challengeTheme}
+            {/* University - Below Header */}
+            <View style={styles.universityContainer}>
+                <Ionicons name="school" size={13} color="#0d9488" />
+                <Text style={styles.universityText} numberOfLines={1}>
+                    {profile.university || profile.company || '所属なし'}
                 </Text>
-                {profile.bio && (
-                    <Text style={styles.bioText} numberOfLines={2}>
-                        {profile.bio}
-                    </Text>
-                )}
             </View>
 
-            {/* Skills */}
+            {/* Bio/Theme - Main Content */}
+            <View style={styles.mainContent}>
+                <Text style={styles.bioText} numberOfLines={3}>
+                    {profile.bio || profile.theme || profile.challengeTheme || ''}
+                </Text>
+            </View>
+
+            {/* Skills - Bottom */}
             <View style={styles.skillsContainer}>
-                {profile.skills.slice(0, 3).map((skill, index) => {
+                {profile.skills.slice(0, 2).map((skill, index) => {
                     const translatedSkill = translateTag(skill);
                     const tagColor = TAG_COLORS[translatedSkill] || { bg: '#F5F5F5', text: '#666666' };
                     return (
@@ -145,9 +136,9 @@ export function ProfileCard({ profile, isLiked, onLike, onSelect }: ProfileCardP
                         </View>
                     );
                 })}
-                {profile.skills.length > 3 && (
-                    <View style={styles.skillTag}>
-                        <Text style={styles.skillText}>+{profile.skills.length - 3}</Text>
+                {profile.skills.length > 2 && (
+                    <View style={styles.moreSkillsTag}>
+                        <Text style={styles.moreSkillsText}>+{profile.skills.length - 2}</Text>
                     </View>
                 )}
             </View>
@@ -177,8 +168,9 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: SPACING.lg,
+        marginBottom: SPACING.md,
         gap: SPACING.md,
+        paddingRight: 32,  // Space for like button
     },
     avatar: {
         width: AVATAR.lg.size,
@@ -203,43 +195,41 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     name: {
-        fontSize: 15,
+        fontSize: 16,
         fontWeight: 'bold',
         color: '#1F2937',
-        marginBottom: 1,
+        marginBottom: 2,
     },
-    attributes: {
-        fontSize: 11,
+    age: {
+        fontSize: 12,
         color: '#6B7280',
+    },
+    universityContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        marginBottom: 8,
+        paddingRight: 8,
+    },
+    universityText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#0d9488',
+        flex: 1,
     },
     mainContent: {
-        flex: 1, // Take available space
+        flex: 1,
         marginBottom: 8,
     },
-    themeLabel: {
-        fontSize: 10,
-        fontWeight: '600',
-        color: '#9CA3AF',
-        marginBottom: 4,
-        letterSpacing: 0.5,
-    },
-    themeText: {
-        fontSize: 13,
-        fontWeight: 'bold',
-        color: '#111827',
-        lineHeight: 18,
-        marginBottom: 6,
-    },
     bioText: {
-        fontSize: 11,
-        color: '#6B7280',
-        lineHeight: 16,
+        fontSize: 12,
+        color: '#4B5563',
+        lineHeight: 18,
     },
     skillsContainer: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         gap: 6,
-        marginBottom: 0, // Removed bottom margin as it's the last element
     },
     skillTag: {
         backgroundColor: COLORS.background.tertiary,
@@ -253,5 +243,15 @@ const styles = StyleSheet.create({
         color: COLORS.text.secondary,
         fontWeight: '500',
     },
-
+    moreSkillsTag: {
+        backgroundColor: '#F3F4F6',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: RADIUS.sm,
+    },
+    moreSkillsText: {
+        fontSize: 10,
+        color: '#9CA3AF',
+        fontWeight: '600',
+    },
 });
