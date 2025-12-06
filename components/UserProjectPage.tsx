@@ -57,7 +57,7 @@ const ProjectCard = ({ project, onPress }: { project: Project; onPress: () => vo
                             </View>
                         ) : null}
                     </View>
-                    <Text style={styles.cardDescription} numberOfLines={2}>{project.description}</Text>
+                    <Text style={styles.cardDescription} numberOfLines={3}>{project.description}</Text>
 
                     {((project.required_roles && project.required_roles.length > 0) || (project.tags && project.tags.length > 0)) && (
                         <View style={styles.cardTags}>
@@ -265,10 +265,10 @@ const styles = StyleSheet.create({
         alignItems: 'flex-start',
     },
     authorIcon: {
-        width: AVATAR.xl.size,
-        height: AVATAR.xl.size,
-        borderRadius: AVATAR.xl.radius,
-        marginRight: SPACING.lg,
+        width: AVATAR.lg.size,
+        height: AVATAR.lg.size,
+        borderRadius: AVATAR.lg.radius,
+        marginRight: SPACING.md,
         backgroundColor: COLORS.background.tertiary,
     },
     cardContent: {
@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
         marginBottom: 6,
     },
     cardTitle: {
-        fontSize: 18,
+        fontSize: 15,
         fontWeight: 'bold',
         color: '#111827',
         flex: 1,
