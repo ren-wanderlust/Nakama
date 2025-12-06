@@ -196,19 +196,45 @@ function AppContent() {
   React.useEffect(() => {
     if (!session?.user) return;
     const fetchPendingApps = async () => {
+      // Step 1: Get my project IDs
+      const { data: myProjects } = await supabase
+        .from('projects')
+        .select('id')
+        .eq('owner_id', session.user.id);
+
+      const projectIds = myProjects?.map((p: any) => p.id) || [];
+
+      if (projectIds.length === 0) {
+        setPendingAppsCount(0);
+        return;
+      }
+
+      // Step 2: Count pending applications for these projects
       const { count } = await supabase
         .from('project_applications')
-        .select('id, projects!inner(owner_id)', { count: 'exact', head: true })
-        .eq('projects.owner_id', session.user.id)
+        .select('id', { count: 'exact', head: true })
+        .in('project_id', projectIds)
         .eq('status', 'pending');
+
       setPendingAppsCount(count || 0);
     };
     fetchPendingApps();
     // Subscribe to changes
     const channel = supabase.channel('pending_apps_count')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'project_applications' }, fetchPendingApps)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'project_applications' }, () => {
+        console.log('Realtime event received for project_applications');
+        fetchPendingApps();
+      })
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+
+    const interval = setInterval(() => {
+      fetchPendingApps();
+    }, 5000);
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(interval);
+    };
   }, [session?.user]);
 
   // Fetch current user profile
@@ -742,6 +768,7 @@ function AppContent() {
                 onOpenNotifications={() => setShowNotifications(true)}
                 onSettingsPress={() => setShowSettings(true)}
                 onHelpPress={() => setShowHelp(true)}
+                onBadgeUpdate={setPendingAppsCount}
               />
             ) : (
               <View style={styles.centerContainer}>

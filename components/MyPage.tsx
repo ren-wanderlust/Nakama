@@ -13,6 +13,7 @@ interface MyPageProps {
     onSettingsPress?: () => void;
     onHelpPress?: () => void;
     onChat?: (ownerId: string, ownerName: string, ownerImage: string) => void;
+    onBadgeUpdate?: (count: number) => void;
 }
 
 interface MenuItem {
@@ -34,6 +35,13 @@ const ProjectCard = ({ project, ownerProfile, onPress }: { project: any; ownerPr
 
     return (
         <TouchableOpacity style={projectCardStyles.card} onPress={onPress} activeOpacity={0.7}>
+            {project.pendingCount > 0 && (
+                <View style={projectCardStyles.notificationBadge}>
+                    <Text style={projectCardStyles.notificationText}>
+                        申請 {project.pendingCount}件
+                    </Text>
+                </View>
+            )}
             <View style={projectCardStyles.cardInner}>
                 <Image
                     source={{ uri: ownerProfile.image || 'https://via.placeholder.com/50' }}
@@ -106,7 +114,7 @@ const AppliedProjectCard = ({ project, onPress }: { project: any; onPress: () =>
     );
 };
 
-export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, onSettingsPress, onHelpPress, onChat }: MyPageProps) {
+export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, onSettingsPress, onHelpPress, onChat, onBadgeUpdate }: MyPageProps) {
     const [projects, setProjects] = useState<any[]>([]);
     const [appliedProjects, setAppliedProjects] = useState<any[]>([]);
     const [isMenuVisible, setIsMenuVisible] = useState(false);
@@ -130,7 +138,34 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
-            if (data) setProjects(data);
+            if (data) {
+                // Fetch pending application counts
+                const projectIds = data.map((p: any) => p.id);
+                if (projectIds.length > 0) {
+                    const { data: apps } = await supabase
+                        .from('project_applications')
+                        .select('project_id')
+                        .in('project_id', projectIds)
+                        .eq('status', 'pending');
+
+                    const counts: { [key: string]: number } = {};
+                    apps?.forEach((app: any) => {
+                        counts[app.project_id] = (counts[app.project_id] || 0) + 1;
+                    });
+
+                    const projectsWithCounts = data.map((p: any) => ({
+                        ...p,
+                        pendingCount: counts[p.id] || 0
+                    }));
+
+                    const totalPending = projectsWithCounts.reduce((sum: number, p: any) => sum + (p.pendingCount || 0), 0);
+                    if (onBadgeUpdate) onBadgeUpdate(totalPending);
+
+                    setProjects(projectsWithCounts);
+                } else {
+                    setProjects(data);
+                }
+            }
         } catch (error) {
             console.error('Error fetching my projects:', error);
         } finally {
@@ -291,13 +326,13 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
 
     const renderTabs = () => (
         <View style={styles.tabsContainer}>
-            <TouchableOpacity 
+            <TouchableOpacity
                 style={[styles.tabItem, activeTab === 'myProjects' && styles.activeTab]}
                 onPress={() => setActiveTab('myProjects')}
             >
                 <Ionicons name="grid-outline" size={24} color={activeTab === 'myProjects' ? 'black' : '#999'} />
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
                 style={[styles.tabItem, activeTab === 'appliedProjects' && styles.activeTab]}
                 onPress={() => setActiveTab('appliedProjects')}
             >
@@ -344,18 +379,18 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                     (activeTab === 'myProjects' ? !loadingProjects : !loadingAppliedProjects) ? (
                         <View style={styles.emptyContainer}>
                             <View style={styles.emptyIconContainer}>
-                                <Ionicons 
-                                    name={activeTab === 'myProjects' ? "folder-open-outline" : "document-text-outline"} 
-                                    size={48} 
-                                    color="black" 
+                                <Ionicons
+                                    name={activeTab === 'myProjects' ? "folder-open-outline" : "document-text-outline"}
+                                    size={48}
+                                    color="black"
                                 />
                             </View>
                             <Text style={styles.emptyTitle}>
                                 {activeTab === 'myProjects' ? 'プロジェクトはまだありません' : '応募したプロジェクトはありません'}
                             </Text>
                             <Text style={styles.emptySubText}>
-                                {activeTab === 'myProjects' 
-                                    ? 'プロジェクトを作成して公開しましょう' 
+                                {activeTab === 'myProjects'
+                                    ? 'プロジェクトを作成して公開しましょう'
                                     : '気になるプロジェクトに応募してみましょう'}
                             </Text>
                         </View>
@@ -710,5 +745,20 @@ const projectCardStyles = StyleSheet.create({
         fontSize: 11,
         color: '#D32F2F',
         marginLeft: 2,
+    },
+    notificationBadge: {
+        position: 'absolute',
+        top: 8,
+        right: 8,
+        backgroundColor: '#EF4444',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 12,
+        zIndex: 10,
+    },
+    notificationText: {
+        color: 'white',
+        fontSize: 10,
+        fontWeight: 'bold',
     },
 });
