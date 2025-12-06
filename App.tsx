@@ -12,20 +12,19 @@ import { MyPage } from './components/MyPage';
 import { LikesPage } from './components/LikesPage';
 import { TalkPage } from './components/TalkPage';
 import { ChatRoom } from './components/ChatRoom';
-import { ChallengeCardPage } from './components/ChallengeCardPage';
+import { CreateProjectModal } from './components/CreateProjectModal';
 import { NotificationsPage } from './components/NotificationsPage';
 import { SignupFlow } from './components/SignupFlow';
 import { FilterModal, FilterCriteria } from './components/FilterModal';
 import { ProfileEdit } from './components/ProfileEdit';
 import { SettingsPage } from './components/SettingsPage';
 import { HelpPage } from './components/HelpPage';
-import { ThemeDetailPage } from './components/ThemeDetailPage';
 import { LegalDocumentPage } from './components/LegalDocumentPage';
 import { OnboardingScreen } from './components/OnboardingScreen';
 import { MatchingModal } from './components/MatchingModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { UserProjectPage } from './components/UserProjectPage';
-import { Profile, Theme } from './types';
+import { Profile } from './types';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { supabase } from './lib/supabase';
 import { Alert } from 'react-native';
@@ -92,7 +91,7 @@ function AppContent() {
 
   const [displayProfiles, setDisplayProfiles] = useState<Profile[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedTheme, setSelectedTheme] = useState<Theme | null>(null);
+  const [showCreateProjectModal, setShowCreateProjectModal] = useState(false);
   const [matchedProfile, setMatchedProfile] = useState<Profile | null>(null);
   const [pendingAppsCount, setPendingAppsCount] = useState(0);
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
@@ -923,9 +922,6 @@ function AppContent() {
               onLike={handleLike}
             />
           )}
-          {activeTab === 'challenge' && (
-            <ChallengeCardPage onThemeSelect={setSelectedTheme} />
-          )}
           {activeTab === 'talk' && (
             <TalkPage
               onOpenChat={(room) => setActiveChatRoom({
@@ -966,24 +962,35 @@ function AppContent() {
           )}
         </View>
 
-        <BottomNav activeTab={activeTab} onTabChange={(tab: any) => {
-          // LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-          setActiveTab(tab);
-        }} currentUser={currentUser} badges={{ profile: pendingAppsCount, talk: unreadMessagesCount }} />
+        <BottomNav
+          activeTab={activeTab}
+          onTabChange={(tab: any) => {
+            setActiveTab(tab);
+          }}
+          currentUser={currentUser}
+          badges={{ profile: pendingAppsCount, talk: unreadMessagesCount }}
+          onCreateProject={() => {
+            if (!currentUser) {
+              Alert.alert('ログインが必要です', 'プロジェクトを作成するにはログインしてください');
+              return;
+            }
+            setShowCreateProjectModal(true);
+          }}
+        />
       </View>
 
       {/* Modals */}
-      <Modal visible={!!selectedTheme} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setSelectedTheme(null)}>
+      <Modal visible={showCreateProjectModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowCreateProjectModal(false)}>
         <SafeAreaProvider>
-          {selectedTheme && (
-            <ThemeDetailPage
-              theme={selectedTheme}
-              onBack={() => setSelectedTheme(null)}
-              profiles={displayProfiles}
-              onProfileSelect={setSelectedProfile}
-              onLike={handleLike}
-              likedProfileIds={likedProfiles}
+          {currentUser && (
+            <CreateProjectModal
               currentUser={currentUser}
+              onClose={() => setShowCreateProjectModal(false)}
+              onCreated={() => {
+                setShowCreateProjectModal(false);
+                // Optionally refresh projects list
+                setActiveTab('search');
+              }}
             />
           )}
         </SafeAreaProvider>

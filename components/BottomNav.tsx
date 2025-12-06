@@ -8,15 +8,16 @@ interface BottomNavProps {
     onTabChange: (tab: string) => void;
     currentUser: Profile | null;
     badges?: { [key: string]: number };
+    onCreateProject?: () => void;
 }
 
-export function BottomNav({ activeTab, onTabChange, currentUser, badges }: BottomNavProps) {
+export function BottomNav({ activeTab, onTabChange, currentUser, badges, onCreateProject }: BottomNavProps) {
     const insets = useSafeAreaInsets();
 
     const tabs = [
         { id: 'search', icon: 'search', label: 'さがす' },
         { id: 'likes', icon: 'heart', label: 'いいね' },
-        { id: 'challenge', icon: 'pricetags', label: '挑戦カード' },
+        { id: 'create', icon: 'add', label: '作成', isCreate: true },
         { id: 'talk', icon: 'chatbubble', label: 'トーク' },
         { id: 'profile', icon: 'person', label: 'マイページ' },
     ];
@@ -41,6 +42,23 @@ export function BottomNav({ activeTab, onTabChange, currentUser, badges }: Botto
                         return null;
                     };
 
+                    // Create button (center)
+                    if (tab.isCreate) {
+                        return (
+                            <TouchableOpacity
+                                key={tab.id}
+                                onPress={onCreateProject}
+                                style={styles.tabButton}
+                                activeOpacity={0.7}
+                            >
+                                <View style={styles.createButton}>
+                                    <Ionicons name="add" size={28} color="white" />
+                                </View>
+                            </TouchableOpacity>
+                        );
+                    }
+
+                    // Profile tab with custom image
                     if (tab.id === 'profile' && currentUser?.image) {
                         return (
                             <TouchableOpacity
@@ -63,7 +81,7 @@ export function BottomNav({ activeTab, onTabChange, currentUser, badges }: Botto
                         );
                     }
 
-                    // Ionicons names logic
+                    // Regular tabs
                     let iconName: any = tab.icon;
                     if (!isActive) {
                         iconName = `${tab.icon}-outline`;
@@ -80,7 +98,7 @@ export function BottomNav({ activeTab, onTabChange, currentUser, badges }: Botto
                                 <Ionicons
                                     name={iconName}
                                     size={28}
-                                    color={isActive ? '#0d9488' : '#6b7280'} // teal-600 : gray-500
+                                    color={isActive ? '#0d9488' : '#6b7280'}
                                 />
                                 {renderBadge()}
                             </View>
@@ -111,16 +129,30 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         gap: 2,
     },
+    createButton: {
+        width: 48,
+        height: 48,
+        borderRadius: 14,
+        backgroundColor: '#111827',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: -20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 8,
+    },
     tabLabel: {
         fontSize: 10,
         marginBottom: 2,
     },
     tabLabelActive: {
-        color: '#0d9488', // teal-600
+        color: '#0d9488',
         fontWeight: '500',
     },
     tabLabelInactive: {
-        color: '#6b7280', // gray-500
+        color: '#6b7280',
     },
     profileIcon: {
         width: 28,
