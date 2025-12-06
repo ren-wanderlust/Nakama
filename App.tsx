@@ -30,6 +30,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { supabase } from './lib/supabase';
 import { Alert } from 'react-native';
 import { TERMS_OF_SERVICE, PRIVACY_POLICY } from './constants/LegalTexts';
+import { registerForPushNotificationsAsync, savePushToken, setupNotificationListeners, getUserPushTokens, sendPushNotification } from './lib/notifications';
 
 if (Platform.OS === 'android') {
   if (UIManager.setLayoutAnimationEnabledExperimental) {
@@ -94,6 +95,48 @@ function AppContent() {
   const [matchedProfile, setMatchedProfile] = useState<Profile | null>(null);
   const [pendingAppsCount, setPendingAppsCount] = useState(0);
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
+  const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
+
+  // Initialize push notifications
+  React.useEffect(() => {
+    if (!session?.user) return;
+
+    const initPushNotifications = async () => {
+      const token = await registerForPushNotificationsAsync();
+      if (token) {
+        setExpoPushToken(token);
+        await savePushToken(token);
+      }
+    };
+
+    initPushNotifications();
+
+    // Setup notification listeners
+    const unsubscribe = setupNotificationListeners(
+      (notification) => {
+        // Handle notification received while app is open
+        console.log('Notification received:', notification.request.content.title);
+      },
+      (response) => {
+        // Handle notification tap
+        const data = response.notification.request.content.data;
+        if (data?.type === 'message') {
+          // Navigate to chat
+          setActiveTab('talk');
+        } else if (data?.type === 'like') {
+          // Navigate to likes
+          setActiveTab('likes');
+        } else if (data?.type === 'application') {
+          // Navigate to profile/my projects
+          setActiveTab('profile');
+        }
+      }
+    );
+
+    return () => {
+      unsubscribe();
+    };
+  }, [session?.user]);
 
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
@@ -578,6 +621,21 @@ function AppContent() {
             content: `${currentUser.name}さんからいいねが届きました。`,
             image_url: currentUser.image
           });
+
+          // Send push notification for like
+          try {
+            const tokens = await getUserPushTokens(profileId);
+            for (const token of tokens) {
+              await sendPushNotification(
+                token,
+                'いいねが届きました！',
+                `${currentUser.name}さんからいいねが届きました。`,
+                { type: 'like', senderId: session.user.id }
+              );
+            }
+          } catch (pushError) {
+            console.log('Push notification error:', pushError);
+          }
         }
 
         // Check for match
@@ -616,6 +674,21 @@ function AppContent() {
                 content: `${matchedUser.name}さんとマッチングしました！メッセージを送ってみましょう。`,
                 image_url: matchedUser.image
               });
+
+              // Send push notification for match
+              try {
+                const tokens = await getUserPushTokens(profileId);
+                for (const token of tokens) {
+                  await sendPushNotification(
+                    token,
+                    'マッチング成立！ 🎉',
+                    `${currentUser.name}さんとマッチングしました！メッセージを送ってみましょう。`,
+                    { type: 'match', senderId: session.user.id }
+                  );
+                }
+              } catch (pushError) {
+                console.log('Match push notification error:', pushError);
+              }
             }
           }
         }

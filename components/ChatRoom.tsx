@@ -22,6 +22,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
+import { getUserPushTokens, sendPushNotification } from '../lib/notifications';
 
 interface Message {
     id: string;
@@ -492,6 +493,25 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                 setTimeout(() => {
                     flatListRef.current?.scrollToEnd({ animated: true });
                 }, 100);
+
+                // Send push notification to recipient(s)
+                try {
+                    if (!isGroup) {
+                        // For direct messages, send to the partner
+                        const tokens = await getUserPushTokens(partnerId);
+                        for (const token of tokens) {
+                            await sendPushNotification(
+                                token,
+                                '新しいメッセージ',
+                                content || '画像が送信されました',
+                                { type: 'message', senderId: currentUserId }
+                            );
+                        }
+                    }
+                    // For group chats, could send to all members (more complex, skipping for now)
+                } catch (notifError) {
+                    console.log('Push notification error:', notifError);
+                }
             }
         } catch (error: any) {
             console.error('Error sending message:', error);

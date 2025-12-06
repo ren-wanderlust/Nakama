@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
 import { CreateProjectModal } from './CreateProjectModal';
+import { getUserPushTokens, sendPushNotification } from '../lib/notifications';
 
 interface Project {
     id: string;
@@ -148,13 +149,28 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                 .insert({
                     user_id: project.owner_id,
                     sender_id: currentUser.id,
-                    type: 'match',
+                    type: 'application',
                     title: 'プロジェクトへの応募',
                     content: `${currentUser.name}さんが「${project.title}」に応募しました！`,
                     image_url: currentUser.image
                 });
 
             if (notifError) console.error('Notification error:', notifError);
+
+            // Send push notification to project owner
+            try {
+                const tokens = await getUserPushTokens(project.owner_id);
+                for (const token of tokens) {
+                    await sendPushNotification(
+                        token,
+                        'プロジェクトへの応募 📋',
+                        `${currentUser.name}さんが「${project.title}」に応募しました！`,
+                        { type: 'application', senderId: currentUser.id, projectId: project.id }
+                    );
+                }
+            } catch (pushError) {
+                console.log('Push notification error:', pushError);
+            }
 
             Alert.alert('完了', '応募が完了しました！オーナーからの連絡をお待ちください。');
             setHasApplied(true);
@@ -184,7 +200,7 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                     .insert({
                         user_id: applicant.user_id,
                         sender_id: currentUser?.id,
-                        type: 'match',
+                        type: 'application_status',
                         title: newStatus === 'approved' ? 'プロジェクト参加承認' : 'プロジェクト参加見送り',
                         content: newStatus === 'approved'
                             ? `「${project.title}」への参加が承認されました！`
@@ -193,6 +209,23 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                     });
 
                 if (notifError) console.error('Notification error:', notifError);
+
+                // Send push notification to applicant
+                try {
+                    const tokens = await getUserPushTokens(applicant.user_id);
+                    for (const token of tokens) {
+                        await sendPushNotification(
+                            token,
+                            newStatus === 'approved' ? 'プロジェクト参加承認 🎉' : 'プロジェクト参加見送り',
+                            newStatus === 'approved'
+                                ? `「${project.title}」への参加が承認されました！`
+                                : `「${project.title}」への参加は見送られました。`,
+                            { type: 'application_status', status: newStatus, projectId: project.id }
+                        );
+                    }
+                } catch (pushError) {
+                    console.log('Push notification error:', pushError);
+                }
             }
 
             Alert.alert('完了', `${userName}さんを${newStatus === 'approved' ? '承認' : '棄却'}しました`);
