@@ -160,8 +160,6 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
         <View style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
-                <Text style={styles.headerTitle}>いいね</Text>
-
                 {/* Tabs */}
                 <View style={styles.tabContainer}>
                     <TouchableOpacity
@@ -227,10 +225,11 @@ const styles = StyleSheet.create({
     },
     header: {
         backgroundColor: 'white',
-        paddingTop: 0,
-        paddingBottom: 12,
+        paddingTop: 16,
+        paddingBottom: 0,
         borderBottomWidth: 1,
         borderBottomColor: '#e5e7eb',
+        alignItems: 'center',
     },
     headerTitle: {
         fontSize: 18,

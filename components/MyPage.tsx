@@ -225,11 +225,7 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
 
     const renderHeader = () => (
         <View style={styles.header}>
-            <View style={styles.headerLeft}>
-                <Ionicons name="lock-closed-outline" size={16} color="black" style={{ marginRight: 4 }} />
-                <Text style={styles.headerUsername}>{profile.name}</Text>
-                <Ionicons name="chevron-down" size={16} color="black" style={{ marginLeft: 4 }} />
-            </View>
+            <View style={styles.headerLeft} />
             <View style={styles.headerRight}>
                 <HapticTouchable onPress={() => setIsMenuVisible(true)} hapticType="light">
                     <Ionicons name="menu-outline" size={32} color="black" />
