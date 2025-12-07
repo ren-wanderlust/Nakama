@@ -73,6 +73,13 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                             createdAt: item.created_at,
                         }));
                         setReceivedLikes(mappedProfiles);
+
+                        // Mark likes as read
+                        await supabase
+                            .from('likes')
+                            .update({ is_read: true })
+                            .eq('receiver_id', session.user.id)
+                            .eq('is_read', false);
                     }
                 } else {
                     setReceivedLikes([]);

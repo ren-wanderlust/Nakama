@@ -1,10 +1,11 @@
-import React from 'react';
-import { StyleSheet, Text, View, Image, TouchableOpacity, ScrollView, SafeAreaView, Dimensions, Alert } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, Text, View, Image, TouchableOpacity, ScrollView, SafeAreaView, Dimensions, Alert, TextInput, Modal, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Profile } from '../types';
 import { AnimatedLikeButton } from './AnimatedLikeButton';
 import { HapticTouchable } from './HapticButton';
 import { TAG_COLORS, translateTag, getStatusTagStyle as getTagStyle } from '../constants/TagConstants';
+import { supabase } from '../lib/supabase';
 
 interface ProfileDetailProps {
     profile: Profile;
@@ -12,18 +13,119 @@ interface ProfileDetailProps {
     onLike: () => void;
     onChat: () => void;
     isLiked: boolean;
+    onBlock?: () => void;
 }
 
 const { width } = Dimensions.get('window');
 
-export function ProfileDetail({ profile, onBack, onLike, onChat, isLiked }: ProfileDetailProps) {
+const REPORT_REASONS = [
+    { id: 'spam', label: 'スパム・宣伝' },
+    { id: 'fake', label: '偽アカウント・なりすまし' },
+    { id: 'harassment', label: '嫌がらせ・ハラスメント' },
+    { id: 'inappropriate', label: '不適切なコンテンツ' },
+    { id: 'other', label: 'その他' },
+];
+
+export function ProfileDetail({ profile, onBack, onLike, onChat, isLiked, onBlock }: ProfileDetailProps) {
     const seekingFor = profile.seekingFor || [];
     const skills = profile.skills || [];
     const seekingRoles = profile.seekingRoles || [];
 
+    const [isBlocking, setIsBlocking] = useState(false);
+    const [showReportModal, setShowReportModal] = useState(false);
+    const [selectedReason, setSelectedReason] = useState<string | null>(null);
+    const [reportDetails, setReportDetails] = useState('');
+    const [isReporting, setIsReporting] = useState(false);
+
     // Get status tag style
     const statusTag = profile.statusTags && profile.statusTags.length > 0 ? profile.statusTags[0] : null;
     const statusStyle = statusTag ? getTagStyle(statusTag) : null;
+
+    const handleBlock = async () => {
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                Alert.alert('エラー', 'ログインが必要です');
+                return;
+            }
+
+            setIsBlocking(true);
+
+            const { error } = await supabase
+                .from('blocks')
+                .insert({
+                    blocker_id: user.id,
+                    blocked_id: profile.id,
+                });
+
+            if (error) {
+                if (error.code === '23505') {
+                    Alert.alert('お知らせ', 'すでにブロック済みです');
+                } else {
+                    throw error;
+                }
+            } else {
+                Alert.alert(
+                    '完了',
+                    `${profile.name}さんをブロックしました`,
+                    [{
+                        text: 'OK', onPress: () => {
+                            if (onBlock) onBlock();
+                            onBack();
+                        }
+                    }]
+                );
+            }
+        } catch (error) {
+            console.error('Block error:', error);
+            Alert.alert('エラー', 'ブロックに失敗しました');
+        } finally {
+            setIsBlocking(false);
+        }
+    };
+
+    const handleReport = async () => {
+        if (!selectedReason) {
+            Alert.alert('エラー', '通報理由を選択してください');
+            return;
+        }
+
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                Alert.alert('エラー', 'ログインが必要です');
+                return;
+            }
+
+            setIsReporting(true);
+
+            const { error } = await supabase
+                .from('reports')
+                .insert({
+                    reporter_id: user.id,
+                    reported_id: profile.id,
+                    reason: selectedReason,
+                    details: reportDetails || null,
+                });
+
+            if (error) throw error;
+
+            setShowReportModal(false);
+            setSelectedReason(null);
+            setReportDetails('');
+
+            Alert.alert(
+                '通報完了',
+                '通報を受け付けました。ご報告ありがとうございます。内容を確認し、適切に対応いたします。',
+                [{ text: 'OK' }]
+            );
+        } catch (error) {
+            console.error('Report error:', error);
+            Alert.alert('エラー', '通報に失敗しました');
+        } finally {
+            setIsReporting(false);
+        }
+    };
 
     const handleMenuPress = () => {
         Alert.alert(
@@ -33,18 +135,19 @@ export function ProfileDetail({ profile, onBack, onLike, onChat, isLiked }: Prof
                 {
                     text: 'ブロックする',
                     style: 'destructive',
-                    onPress: () => Alert.alert('確認', '本当にブロックしますか？', [
-                        { text: 'キャンセル', style: 'cancel' },
-                        { text: 'ブロック実行', style: 'destructive', onPress: () => Alert.alert('完了', 'ブロックしました') }
-                    ])
+                    onPress: () => Alert.alert(
+                        'ブロック確認',
+                        `${profile.name}さんをブロックしますか？\n\nブロックすると：\n・相手があなたのプロフィールを見れなくなります\n・相手があなたにメッセージを送れなくなります`,
+                        [
+                            { text: 'キャンセル', style: 'cancel' },
+                            { text: 'ブロックする', style: 'destructive', onPress: handleBlock }
+                        ]
+                    )
                 },
                 {
                     text: '通報する',
                     style: 'destructive',
-                    onPress: () => Alert.alert('通報', '不適切なユーザーとして報告しますか？', [
-                        { text: 'キャンセル', style: 'cancel' },
-                        { text: '通報する', style: 'destructive', onPress: () => Alert.alert('完了', '通報を受け付けました') }
-                    ])
+                    onPress: () => setShowReportModal(true)
                 },
                 { text: 'キャンセル', style: 'cancel' }
             ],
@@ -181,6 +284,96 @@ export function ProfileDetail({ profile, onBack, onLike, onChat, isLiked }: Prof
                     style={{ width: '100%' }}
                 />
             </View>
+
+            {/* Report Modal */}
+            <Modal
+                visible={showReportModal}
+                animationType="slide"
+                transparent={true}
+                onRequestClose={() => setShowReportModal(false)}
+            >
+                <View style={styles.reportModalOverlay}>
+                    <View style={styles.reportModalContainer}>
+                        <View style={styles.reportModalHeader}>
+                            <Text style={styles.reportModalTitle}>
+                                {profile.name}さんを通報
+                            </Text>
+                            <TouchableOpacity
+                                onPress={() => {
+                                    setShowReportModal(false);
+                                    setSelectedReason(null);
+                                    setReportDetails('');
+                                }}
+                                style={styles.reportModalClose}
+                            >
+                                <Ionicons name="close" size={24} color="#374151" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <Text style={styles.reportModalSubtitle}>
+                            通報理由を選択してください
+                        </Text>
+
+                        <ScrollView style={styles.reportReasonsList}>
+                            {REPORT_REASONS.map((reason) => (
+                                <TouchableOpacity
+                                    key={reason.id}
+                                    style={[
+                                        styles.reportReasonItem,
+                                        selectedReason === reason.id && styles.reportReasonItemSelected
+                                    ]}
+                                    onPress={() => setSelectedReason(reason.id)}
+                                >
+                                    <View style={[
+                                        styles.reportReasonRadio,
+                                        selectedReason === reason.id && styles.reportReasonRadioSelected
+                                    ]}>
+                                        {selectedReason === reason.id && (
+                                            <View style={styles.reportReasonRadioInner} />
+                                        )}
+                                    </View>
+                                    <Text style={[
+                                        styles.reportReasonText,
+                                        selectedReason === reason.id && styles.reportReasonTextSelected
+                                    ]}>
+                                        {reason.label}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+
+                        <Text style={styles.reportDetailsLabel}>
+                            詳細（任意）
+                        </Text>
+                        <TextInput
+                            style={styles.reportDetailsInput}
+                            value={reportDetails}
+                            onChangeText={setReportDetails}
+                            placeholder="具体的な内容があればご記入ください..."
+                            placeholderTextColor="#9CA3AF"
+                            multiline
+                            numberOfLines={3}
+                        />
+
+                        <TouchableOpacity
+                            style={[
+                                styles.reportSubmitButton,
+                                (!selectedReason || isReporting) && styles.reportSubmitButtonDisabled
+                            ]}
+                            onPress={handleReport}
+                            disabled={!selectedReason || isReporting}
+                        >
+                            {isReporting ? (
+                                <ActivityIndicator color="white" />
+                            ) : (
+                                <Text style={styles.reportSubmitButtonText}>
+                                    通報を送信
+                                </Text>
+                            )}
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -378,5 +571,113 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: 'bold',
         letterSpacing: 0.5,
+    },
+    // Report Modal Styles
+    reportModalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'flex-end',
+    },
+    reportModalContainer: {
+        backgroundColor: 'white',
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        padding: 24,
+        paddingBottom: 40,
+        maxHeight: '80%',
+    },
+    reportModalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    reportModalTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#111827',
+    },
+    reportModalClose: {
+        padding: 4,
+    },
+    reportModalSubtitle: {
+        fontSize: 14,
+        color: '#6B7280',
+        marginBottom: 16,
+    },
+    reportReasonsList: {
+        maxHeight: 200,
+        marginBottom: 16,
+    },
+    reportReasonItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        borderRadius: 12,
+        marginBottom: 8,
+        backgroundColor: '#F9FAFB',
+    },
+    reportReasonItemSelected: {
+        backgroundColor: '#FEF2F2',
+        borderWidth: 1,
+        borderColor: '#FECACA',
+    },
+    reportReasonRadio: {
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        borderWidth: 2,
+        borderColor: '#D1D5DB',
+        marginRight: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    reportReasonRadioSelected: {
+        borderColor: '#EF4444',
+    },
+    reportReasonRadioInner: {
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        backgroundColor: '#EF4444',
+    },
+    reportReasonText: {
+        fontSize: 15,
+        color: '#374151',
+    },
+    reportReasonTextSelected: {
+        color: '#EF4444',
+        fontWeight: '600',
+    },
+    reportDetailsLabel: {
+        fontSize: 14,
+        color: '#374151',
+        fontWeight: '600',
+        marginBottom: 8,
+    },
+    reportDetailsInput: {
+        backgroundColor: '#F9FAFB',
+        borderRadius: 12,
+        padding: 12,
+        fontSize: 15,
+        color: '#111827',
+        minHeight: 80,
+        textAlignVertical: 'top',
+        marginBottom: 20,
+    },
+    reportSubmitButton: {
+        backgroundColor: '#EF4444',
+        paddingVertical: 14,
+        borderRadius: 12,
+        alignItems: 'center',
+    },
+    reportSubmitButtonDisabled: {
+        backgroundColor: '#F9FAFB',
+    },
+    reportSubmitButtonText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: 'bold',
     },
 });

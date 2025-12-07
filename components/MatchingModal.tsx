@@ -19,7 +19,12 @@ export function MatchingModal({ visible, profile, onClose, onChat }: MatchingMod
     const titleScaleAnim = useRef(new Animated.Value(1)).current;
     const badgeScaleAnim = useRef(new Animated.Value(0)).current;
 
+    console.log('[MatchingModal] Render - visible:', visible, 'profile:', profile?.name);
+
     useEffect(() => {
+        console.log('[MatchingModal] useEffect - visible changed to:', visible);
+        let loopAnimation: Animated.CompositeAnimation | null = null;
+
         if (visible) {
             // Reset values
             scaleAnim.setValue(0);
@@ -42,8 +47,8 @@ export function MatchingModal({ visible, profile, onClose, onChat }: MatchingMod
                 }),
             ]).start();
 
-            // Pulse animation for title
-            Animated.loop(
+            // Pulse animation for title (with cleanup reference)
+            loopAnimation = Animated.loop(
                 Animated.sequence([
                     Animated.timing(titleScaleAnim, {
                         toValue: 1.1,
@@ -58,7 +63,8 @@ export function MatchingModal({ visible, profile, onClose, onChat }: MatchingMod
                         useNativeDriver: true,
                     }),
                 ])
-            ).start();
+            );
+            loopAnimation.start();
 
             // Pop in badge
             Animated.sequence([
@@ -70,6 +76,13 @@ export function MatchingModal({ visible, profile, onClose, onChat }: MatchingMod
                 })
             ]).start();
         }
+
+        // Cleanup - stop loop animation when modal closes
+        return () => {
+            if (loopAnimation) {
+                loopAnimation.stop();
+            }
+        };
     }, [visible]);
 
     if (!profile) return null;
@@ -78,58 +91,36 @@ export function MatchingModal({ visible, profile, onClose, onChat }: MatchingMod
         <Modal
             visible={visible}
             transparent={true}
-            animationType="none"
+            animationType="fade"
             onRequestClose={onClose}
         >
             <View style={styles.container}>
-                <LinearGradient
-                    colors={['rgba(0,0,0,0.85)', 'rgba(0,0,0,0.75)']}
-                    style={styles.backdrop}
-                />
+                <View style={styles.backdrop} />
 
-                <Animated.View style={[
-                    styles.content,
-                    {
-                        opacity: opacityAnim,
-                        transform: [{ scale: scaleAnim }]
-                    }
-                ]}>
-                    <Animated.Text style={[
-                        styles.title,
-                        { transform: [{ scale: titleScaleAnim }] }
-                    ]}>
+                <View style={styles.content}>
+                    <Text style={styles.title}>
                         It's a Match!
-                    </Animated.Text>
+                    </Text>
                     <Text style={styles.subtitle}>
                         {profile.name}さんとマッチングしました！
                     </Text>
 
                     <View style={styles.avatarContainer}>
                         <Image source={{ uri: profile.image }} style={styles.avatar} />
-                        <Animated.View style={[
-                            styles.iconBadge,
-                            { transform: [{ scale: badgeScaleAnim }] }
-                        ]}>
+                        <View style={styles.iconBadge}>
                             <Ionicons name="heart" size={24} color="#f43f5e" />
-                        </Animated.View>
+                        </View>
                     </View>
 
-                    <TouchableOpacity style={styles.chatButton} onPress={onChat}>
-                        <LinearGradient
-                            colors={['#0d9488', '#14b8a6']}
-                            style={styles.gradientButton}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 0 }}
-                        >
-                            <Ionicons name="chatbubble-ellipses" size={24} color="white" style={{ marginRight: 8 }} />
-                            <Text style={styles.chatButtonText}>メッセージを送る</Text>
-                        </LinearGradient>
+                    <TouchableOpacity style={styles.chatButtonSimple} onPress={onChat}>
+                        <Ionicons name="chatbubble-ellipses" size={24} color="white" style={{ marginRight: 8 }} />
+                        <Text style={styles.chatButtonText}>メッセージを送る</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity style={styles.closeButton} onPress={onClose}>
                         <Text style={styles.closeButtonText}>あとで</Text>
                     </TouchableOpacity>
-                </Animated.View>
+                </View>
             </View>
         </Modal>
     );
@@ -143,6 +134,7 @@ const styles = StyleSheet.create({
     },
     backdrop: {
         ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
     },
     content: {
         width: width * 0.85,
@@ -208,6 +200,16 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         marginBottom: 16,
         elevation: 2,
+    },
+    chatButtonSimple: {
+        width: '100%',
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: '#0d9488',
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 16,
     },
     gradientButton: {
         width: '100%',

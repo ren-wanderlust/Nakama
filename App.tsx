@@ -711,46 +711,90 @@ function AppContent() {
         if (reverseLike) {
           // It's a match!
           setMatchedProfileIds(prev => new Set(prev).add(profileId));
-          const matchedUser = displayProfiles.find(p => p.id === profileId);
+
+          // Try to find in displayProfiles first, otherwise fetch from supabase
+          let matchedUser = displayProfiles.find(p => p.id === profileId);
+
+          if (!matchedUser) {
+            // Fetch profile from supabase if not in displayProfiles
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', profileId)
+              .single();
+
+            if (profileData) {
+              matchedUser = {
+                id: profileData.id,
+                name: profileData.name,
+                age: profileData.age,
+                location: profileData.location || '',
+                university: profileData.university,
+                company: profileData.company,
+                grade: profileData.grade || '',
+                image: profileData.image,
+                challengeTheme: profileData.challenge_theme || '',
+                theme: profileData.theme || '',
+                bio: profileData.bio,
+                skills: profileData.skills || [],
+                seekingFor: profileData.seeking_for || [],
+                seekingRoles: profileData.seeking_roles || [],
+                statusTags: profileData.status_tags || [],
+                isStudent: profileData.is_student,
+                createdAt: profileData.created_at,
+              };
+            }
+          }
+
           if (matchedUser) {
-            setMatchedProfile(matchedUser);
+            // Close any open profile modal first
+            setSelectedProfile(null);
 
-            // Create notifications for match
+            // Show match modal with slight delay
+            const matchedUserCopy = { ...matchedUser };
+            setTimeout(() => {
+              setMatchedProfile(matchedUserCopy);
+            }, 300);
+
+            // Create notifications for match in background
             if (currentUser) {
-              // Notify partner
-              await supabase.from('notifications').insert({
-                user_id: profileId,
-                sender_id: session.user.id,
-                type: 'match',
-                title: 'マッチング成立！',
-                content: `${currentUser.name}さんとマッチングしました！メッセージを送ってみましょう。`,
-                image_url: currentUser.image
-              });
+              const currentUserCopy = { ...currentUser };
+              (async () => {
+                try {
+                  // Notify partner
+                  await supabase.from('notifications').insert({
+                    user_id: profileId,
+                    sender_id: session.user.id,
+                    type: 'match',
+                    title: 'マッチング成立！',
+                    content: `${currentUserCopy.name}さんとマッチングしました！メッセージを送ってみましょう。`,
+                    image_url: currentUserCopy.image
+                  });
 
-              // Notify self
-              await supabase.from('notifications').insert({
-                user_id: session.user.id,
-                sender_id: profileId,
-                type: 'match',
-                title: 'マッチング成立！',
-                content: `${matchedUser.name}さんとマッチングしました！メッセージを送ってみましょう。`,
-                image_url: matchedUser.image
-              });
+                  // Notify self
+                  await supabase.from('notifications').insert({
+                    user_id: session.user.id,
+                    sender_id: profileId,
+                    type: 'match',
+                    title: 'マッチング成立！',
+                    content: `${matchedUserCopy.name}さんとマッチングしました！メッセージを送ってみましょう。`,
+                    image_url: matchedUserCopy.image
+                  });
 
-              // Send push notification for match
-              try {
-                const tokens = await getUserPushTokens(profileId);
-                for (const token of tokens) {
-                  await sendPushNotification(
-                    token,
-                    'マッチング成立！ 🎉',
-                    `${currentUser.name}さんとマッチングしました！メッセージを送ってみましょう。`,
-                    { type: 'match', senderId: session.user.id }
-                  );
+                  // Send push notification for match
+                  const tokens = await getUserPushTokens(profileId);
+                  for (const token of tokens) {
+                    await sendPushNotification(
+                      token,
+                      'マッチング成立！ 🎉',
+                      `${currentUserCopy.name}さんとマッチングしました！メッセージを送ってみましょう。`,
+                      { type: 'match', senderId: session.user.id }
+                    );
+                  }
+                } catch (bgError) {
+                  console.log('Background notification error:', bgError);
                 }
-              } catch (pushError) {
-                console.log('Match push notification error:', pushError);
-              }
+              })();
             }
           }
         }
