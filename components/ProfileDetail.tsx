@@ -82,15 +82,11 @@ export function ProfileDetail({ profile, onBack, onLike, onChat, isLiked }: Prof
 
                         <View style={styles.attributesList}>
                             <View style={styles.attributeRow}>
-                                <Text style={styles.attributeText}>{profile.age}歳</Text>
-                            </View>
-                            <View style={styles.attributeRow}>
-                                <Ionicons name="location-sharp" size={14} color="#9CA3AF" />
-                                <Text style={styles.attributeText}>{profile.location}</Text>
-                            </View>
-                            <View style={styles.attributeRow}>
-                                <Ionicons name="school" size={14} color="#9CA3AF" />
+                                <Ionicons name="school" size={14} color="#009688" />
                                 <Text style={styles.attributeText}>{profile.university || profile.company || '所属なし'}</Text>
+                                {profile.grade && (
+                                    <Text style={styles.gradeText}> / {profile.grade}</Text>
+                                )}
                             </View>
                         </View>
                     </View>
@@ -253,6 +249,11 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#6B7280',
         fontWeight: '500',
+    },
+    gradeText: {
+        fontSize: 14,
+        color: '#009688',
+        fontWeight: '600',
     },
     section: {
         paddingHorizontal: 24,
