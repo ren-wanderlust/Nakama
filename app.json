@@ -14,13 +14,25 @@
     },
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.nakama.app",
+      "buildNumber": "1",
       "infoPlist": {
         "UIBackgroundModes": [
           "remote-notification"
-        ]
+        ],
+        "NSCameraUsageDescription": "プロフィール写真の撮影やチャットで画像を送信するためにカメラへのアクセスが必要です。",
+        "NSPhotoLibraryUsageDescription": "プロフィール写真の設定やチャットで画像を送信するために写真ライブラリへのアクセスが必要です。",
+        "NSPhotoLibraryAddUsageDescription": "撮影した写真を保存するために写真ライブラリへのアクセスが必要です。",
+        "NSMicrophoneUsageDescription": "音声メッセージを録音するためにマイクへのアクセスが必要です。",
+        "CFBundleAllowMixedLocalizations": true
+      },
+      "config": {
+        "usesNonExemptEncryption": false
       }
     },
     "android": {
+      "package": "com.nakama.app",
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -29,7 +41,11 @@
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "RECEIVE_BOOT_COMPLETED",
-        "VIBRATE"
+        "VIBRATE",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "RECORD_AUDIO"
       ]
     },
     "web": {
@@ -44,7 +60,21 @@
           "color": "#009688",
           "sounds": []
         }
-      ]
-    ]
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "プロフィール写真の設定やチャットで画像を送信するために写真ライブラリへのアクセスが必要です。",
+          "cameraPermission": "プロフィール写真の撮影やチャットで画像を送信するためにカメラへのアクセスが必要です。"
+        }
+      ],
+      "expo-secure-store"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "your-project-id-here"
+      }
+    },
+    "owner": "your-expo-username"
   }
 }
