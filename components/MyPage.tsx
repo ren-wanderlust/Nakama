@@ -243,7 +243,16 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                 />
             </View>
             <Text style={styles.profileName}>{profile.name}</Text>
-            <Text style={styles.profileUniversity}>{profile.university}</Text>
+
+            {/* 大学名と学年を分かりやすく表示 */}
+            <View style={styles.universityContainer}>
+                <Ionicons name="school-outline" size={16} color="#6B7280" style={{ marginRight: 4 }} />
+                <Text style={styles.profileUniversity}>
+                    {profile.university}
+                    {profile.grade ? ` / ${profile.grade}` : ''}
+                </Text>
+            </View>
+
             {profile.bio && <Text style={styles.profileBio}>{profile.bio}</Text>}
             <HapticTouchable style={styles.editButton} onPress={onEditProfile} hapticType="light">
                 <Ionicons name="pencil-outline" size={16} color="#009688" />
@@ -475,10 +484,14 @@ const styles = StyleSheet.create({
         color: '#1F2937',
         marginBottom: 4,
     },
+    universityContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
     profileUniversity: {
         fontSize: 14,
         color: '#6B7280',
-        marginBottom: 8,
     },
     profileBio: {
         fontSize: 14,

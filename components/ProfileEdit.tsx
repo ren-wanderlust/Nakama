@@ -32,7 +32,7 @@ interface ProfileEditProps {
 export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditProps) {
     const [name, setName] = useState(initialProfile.name || '');
     const [university, setUniversity] = useState(initialProfile.university || initialProfile.company || '');
-    const [grade, setGrade] = useState('');
+    const [grade, setGrade] = useState(initialProfile.grade || '');
     const [bio, setBio] = useState(initialProfile.bio || '');
     const [skills, setSkills] = useState<string[]>(initialProfile.skills || []);
     const [seekingRoles, setSeekingRoles] = useState<string[]>(initialProfile.seekingRoles || []);
@@ -197,6 +197,7 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
                 .update({
                     name: name,
                     university: university,
+                    grade: grade || null,
                     bio: bio,
                     skills: finalSkills,
                     seeking_roles: finalSeekingRoles,
@@ -212,6 +213,7 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
                 ...initialProfile,
                 name,
                 university,
+                grade,
                 bio,
                 skills: finalSkills,
                 seekingRoles: finalSeekingRoles,

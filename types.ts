@@ -4,6 +4,7 @@ export interface Profile {
     age: number;
     location: string;
     university?: string;
+    grade?: string;
     company?: string;
     image: string;
     challengeTheme: string;
