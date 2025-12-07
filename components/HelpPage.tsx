@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, LayoutAnimation, Platform, UIManager, Alert } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, LayoutAnimation, Platform, UIManager, Alert, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { TermsOfServicePage } from './TermsOfServicePage';
+import { TokushohoPage } from './TokushohoPage';
+import { ContactPage } from './ContactPage';
 
 if (Platform.OS === 'android') {
     if (UIManager.setLayoutAnimationEnabledExperimental) {
@@ -71,11 +74,22 @@ const AccordionItem = ({ item }: { item: FAQItem }) => {
     );
 };
 
+type SubPageType = 'terms' | 'tokushoho' | 'contact' | null;
+
 export function HelpPage({ onBack }: HelpPageProps) {
-    const handleOpenURL = async (url: string) => {
-        // In a real app, you would use Linking.openURL(url)
-        // For now, we'll just show an alert with the URL
-        Alert.alert("外部リンク", `${url} を開きます`);
+    const [activeSubPage, setActiveSubPage] = useState<SubPageType>(null);
+
+    const renderSubPage = () => {
+        switch (activeSubPage) {
+            case 'terms':
+                return <TermsOfServicePage onBack={() => setActiveSubPage(null)} />;
+            case 'tokushoho':
+                return <TokushohoPage onBack={() => setActiveSubPage(null)} />;
+            case 'contact':
+                return <ContactPage onBack={() => setActiveSubPage(null)} />;
+            default:
+                return null;
+        }
     };
 
     return (
@@ -104,17 +118,17 @@ export function HelpPage({ onBack }: HelpPageProps) {
                 {/* Other Links Section */}
                 <Text style={styles.sectionTitle}>規約・その他</Text>
                 <View style={styles.linksSection}>
-                    <TouchableOpacity style={styles.linkRow} onPress={() => handleOpenURL('https://example.com/terms')}>
+                    <TouchableOpacity style={styles.linkRow} onPress={() => setActiveSubPage('terms')}>
                         <Text style={styles.linkText}>利用規約</Text>
                         <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
                     </TouchableOpacity>
                     <View style={styles.separator} />
-                    <TouchableOpacity style={styles.linkRow} onPress={() => handleOpenURL('https://example.com/tokushoho')}>
+                    <TouchableOpacity style={styles.linkRow} onPress={() => setActiveSubPage('tokushoho')}>
                         <Text style={styles.linkText}>特定商取引法に基づく表記</Text>
                         <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
                     </TouchableOpacity>
                     <View style={styles.separator} />
-                    <TouchableOpacity style={styles.linkRow} onPress={() => handleOpenURL('mailto:support@bizyou.app')}>
+                    <TouchableOpacity style={styles.linkRow} onPress={() => setActiveSubPage('contact')}>
                         <Text style={styles.linkText}>お問い合わせ</Text>
                         <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
                     </TouchableOpacity>
@@ -122,6 +136,16 @@ export function HelpPage({ onBack }: HelpPageProps) {
 
                 <View style={{ height: 40 }} />
             </ScrollView>
+
+            {/* Sub Page Modal */}
+            <Modal
+                visible={activeSubPage !== null}
+                animationType="slide"
+                presentationStyle="fullScreen"
+                onRequestClose={() => setActiveSubPage(null)}
+            >
+                {renderSubPage()}
+            </Modal>
         </View>
     );
 }

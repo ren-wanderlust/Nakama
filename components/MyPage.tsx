@@ -218,7 +218,6 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
     const menuItems: MenuItem[] = [
         { id: 'billing', icon: 'card-outline', label: '課金・プラン管理' },
         { id: 'notifications', icon: 'notifications-outline', label: 'お知らせ' },
-        { id: 'favorites', icon: 'star-outline', label: 'お気に入り' },
         { id: 'settings', icon: 'settings-outline', label: '各種設定' },
         { id: 'help', icon: 'help-circle-outline', label: 'ヘルプ・ガイドライン' },
         { id: 'logout', icon: 'log-out-outline', label: 'ログアウト', color: '#EF4444' },
