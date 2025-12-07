@@ -457,6 +457,8 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
         setInputText('');
         setSelectedImage(null);
         setReplyingTo(null);
+        // Explicitly clear TextInput
+        inputRef.current?.clear();
 
         try {
             let uploadedImageUrl = null;

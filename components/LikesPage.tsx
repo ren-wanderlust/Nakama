@@ -60,6 +60,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                             location: item.location || '',
                             university: item.university,
                             company: item.company,
+                            grade: item.grade || '',
                             image: item.image,
                             challengeTheme: item.challenge_theme || '',
                             theme: item.theme || '',

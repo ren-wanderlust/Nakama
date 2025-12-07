@@ -34,7 +34,7 @@ export function ProfileCard({ profile, isLiked, onLike, onSelect }: ProfileCardP
                 />
             </View>
 
-            {/* Header: Avatar + Name + Age */}
+            {/* Header: Avatar + Name */}
             <View style={styles.header}>
                 <Image
                     source={{ uri: profile.image }}
@@ -42,15 +42,15 @@ export function ProfileCard({ profile, isLiked, onLike, onSelect }: ProfileCardP
                 />
                 <View style={styles.headerInfo}>
                     <Text style={styles.name} numberOfLines={1}>{profile.name}</Text>
-                    <Text style={styles.age}>{profile.age}歳</Text>
                 </View>
             </View>
 
-            {/* University - Below Header */}
+            {/* University & Grade - Below Header */}
             <View style={styles.universityContainer}>
                 <Ionicons name="school" size={13} color="#0d9488" />
                 <Text style={styles.universityText} numberOfLines={1}>
                     {profile.university || profile.company || '所属なし'}
+                    {profile.grade ? ` / ${profile.grade}` : ''}
                 </Text>
             </View>
 
@@ -134,11 +134,6 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: 'bold',
         color: '#1F2937',
-        marginBottom: 2,
-    },
-    age: {
-        fontSize: 12,
-        color: '#6B7280',
     },
     universityContainer: {
         flexDirection: 'row',

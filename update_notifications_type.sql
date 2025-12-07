@@ -1,19 +1,12 @@
--- notificationsテーブルのtype制約を更新
--- プロジェクト応募関連の通知タイプを追加
+-- =============================================
+-- notifications テーブルの type 制約を更新
+-- SupabaseのSQL Editorで実行してください
+-- =============================================
 
--- 1. 既存の制約を削除
-alter table public.notifications drop constraint if exists notifications_type_check;
+-- 現在の制約を削除
+ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check;
 
--- 2. 新しい制約を追加（application_status と project_application を含む）
-alter table public.notifications add constraint notifications_type_check 
-  check (type in (
-    'important', 
-    'update', 
-    'psychology', 
-    'other', 
-    'like', 
-    'match',
-    'application_status',    -- 応募ステータス更新通知
-    'project_application',   -- プロジェクト応募通知
-    'message'                -- メッセージ通知
-  ));
+-- 新しい制約を追加（application と application_status を許可）
+ALTER TABLE notifications 
+ADD CONSTRAINT notifications_type_check 
+CHECK (type IN ('important', 'update', 'psychology', 'other', 'like', 'match', 'message', 'application', 'application_status'));
