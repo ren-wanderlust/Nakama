@@ -60,9 +60,6 @@ export function ProfileDetail({ profile, onBack, onLike, onChat, isLiked }: Prof
                     <Ionicons name="chevron-back" size={28} color="#374151" />
                 </HapticTouchable>
                 <View style={styles.headerRightButtons}>
-                    <HapticTouchable style={styles.navButton} onPress={onChat} hapticType="medium">
-                        <Ionicons name="chatbubble-outline" size={24} color="#374151" />
-                    </HapticTouchable>
                     <HapticTouchable style={styles.navButton} onPress={handleMenuPress} hapticType="light">
                         <Ionicons name="ellipsis-horizontal" size={24} color="#374151" />
                     </HapticTouchable>
