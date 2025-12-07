@@ -172,6 +172,7 @@ function AppContent() {
           location: item.location || '',
           university: item.university,
           company: item.company,
+          grade: item.grade || '',
           image: item.image,
           challengeTheme: item.challenge_theme || '',
           theme: item.theme || '',
@@ -464,6 +465,7 @@ function AppContent() {
           location: data.location || '',
           university: data.university,
           company: data.company,
+          grade: data.grade || '',
           image: data.image,
           challengeTheme: data.challenge_theme || '',
           theme: data.theme || '',
@@ -536,6 +538,7 @@ function AppContent() {
               location: senderProfile.location || '',
               university: senderProfile.university,
               company: senderProfile.company,
+              grade: senderProfile.grade || '',
               image: senderProfile.image,
               challengeTheme: senderProfile.challenge_theme || '',
               theme: senderProfile.theme || '',
@@ -570,14 +573,12 @@ function AppContent() {
   // Determine if filter is active
   const isFilterActive = React.useMemo(() => {
     if (!filterCriteria) return false;
-    const { ageMin, ageMax, location, isStudentOnly, statuses, keyword } = filterCriteria;
+    const { keyword, university, grades, seekingRoles } = filterCriteria;
     return (
-      (ageMin && ageMin !== '18') ||
-      (ageMax && ageMax !== '25') ||
-      (location && location !== '') ||
-      isStudentOnly ||
-      (statuses && statuses.length > 0) ||
-      (keyword && keyword !== '')
+      (keyword && keyword !== '') ||
+      (university && university !== '') ||
+      (grades && grades.length > 0) ||
+      (seekingRoles && seekingRoles.length > 0)
     );
   }, [filterCriteria]);
 
@@ -597,25 +598,30 @@ function AppContent() {
       const lowerKeyword = filterCriteria.keyword.toLowerCase();
       const matchName = profile.name.toLowerCase().includes(lowerKeyword);
       const matchTheme = profile.challengeTheme.toLowerCase().includes(lowerKeyword);
+      const matchBio = profile.bio?.toLowerCase().includes(lowerKeyword) || false;
       const matchSkills = profile.skills.some(skill => skill.toLowerCase().includes(lowerKeyword));
-      if (!matchName && !matchTheme && !matchSkills) return false;
+      const matchUniversity = profile.university?.toLowerCase().includes(lowerKeyword) || false;
+      if (!matchName && !matchTheme && !matchBio && !matchSkills && !matchUniversity) return false;
     }
 
-    // Age filter
-    if (filterCriteria.ageMin && profile.age < parseInt(filterCriteria.ageMin)) return false;
-    if (filterCriteria.ageMax && profile.age > parseInt(filterCriteria.ageMax)) return false;
+    // University filter
+    if (filterCriteria.university && filterCriteria.university !== '') {
+      if (profile.university !== filterCriteria.university) return false;
+    }
 
-    // Location filter
-    if (filterCriteria.location && !profile.location.includes(filterCriteria.location)) return false;
+    // Grade filter
+    if (filterCriteria.grades && filterCriteria.grades.length > 0) {
+      if (!profile.grade || !filterCriteria.grades.includes(profile.grade)) return false;
+    }
 
-    // Student filter
-    if (filterCriteria.isStudentOnly && !profile.isStudent) return false;
-
-    // Status filter
-    if (filterCriteria.statuses && filterCriteria.statuses.length > 0) {
-      const matchStatus = profile.statusTags?.some(tag => filterCriteria.statuses!.includes(tag)) ||
-        profile.seekingFor?.some(tag => filterCriteria.statuses!.includes(tag));
-      if (!matchStatus) return false;
+    // Seeking roles filter
+    if (filterCriteria.seekingRoles && filterCriteria.seekingRoles.length > 0) {
+      const profileRoles = profile.seekingRoles || [];
+      const hasMatchingRole = filterCriteria.seekingRoles.some(role =>
+        profileRoles.includes(role) ||
+        profileRoles.some(r => r.toLowerCase().includes(role.toLowerCase()))
+      );
+      if (!hasMatchingRole) return false;
     }
 
     return true;
