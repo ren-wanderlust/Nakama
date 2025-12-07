@@ -183,11 +183,6 @@ export function UserProjectPage({ currentUser, onChat, sortOrder = 'recommended'
                 <View style={{ height: 100 }} />
             </ScrollView>
 
-            {/* FAB */}
-            <TouchableOpacity style={styles.fab} onPress={handleCreatePress}>
-                <Ionicons name="add" size={30} color="white" />
-            </TouchableOpacity>
-
             {/* Create Modal */}
             <Modal
                 visible={showCreateModal}

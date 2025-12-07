@@ -216,8 +216,8 @@ const styles = StyleSheet.create({
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        paddingHorizontal: 40,
-        paddingVertical: 60,
+        paddingHorizontal: 32,
+        paddingVertical: 80,
     },
     iconWrapper: {
         marginBottom: SPACING.xl,
