@@ -18,15 +18,14 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
+import { SHADOWS } from '../constants/DesignSystem';
 
 interface SettingsPageProps {
     onBack: () => void;
     onLogout?: () => void;
-    onOpenTerms?: () => void;
-    onOpenPrivacy?: () => void;
 }
 
-export function SettingsPage({ onBack, onLogout, onOpenTerms, onOpenPrivacy }: SettingsPageProps) {
+export function SettingsPage({ onBack, onLogout }: SettingsPageProps) {
     const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
     // Email Change State
@@ -39,6 +38,8 @@ export function SettingsPage({ onBack, onLogout, onOpenTerms, onOpenPrivacy }: S
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     const handleLogout = () => {
         Alert.alert(
@@ -98,83 +99,108 @@ export function SettingsPage({ onBack, onLogout, onOpenTerms, onOpenPrivacy }: S
         }
     };
 
-    const renderSectionHeader = (title: string) => (
-        <Text style={styles.sectionHeader}>{title}</Text>
-    );
-
-    const renderItem = (
-        icon: keyof typeof Ionicons.glyphMap,
-        label: string,
-        rightElement: React.ReactNode,
-        onPress?: () => void,
-        isLast: boolean = false,
-        iconColor: string = '#009688'
-    ) => (
-        <TouchableOpacity
-            style={styles.itemContainer}
-            onPress={onPress}
-            disabled={!onPress}
-            activeOpacity={onPress ? 0.7 : 1}
-        >
-            <View style={styles.itemContent}>
-                <View style={styles.itemLeft}>
-                    <Ionicons name={icon} size={22} color={iconColor} style={styles.itemIcon} />
-                    <Text style={styles.itemLabel}>{label}</Text>
-                </View>
-                {rightElement}
-            </View>
-            {!isLast && <View style={styles.separator} />}
-        </TouchableOpacity>
-    );
-
-    const handleOpenURL = async (url: string) => {
-        Alert.alert("外部リンク", `${url} を開きます`);
-    };
 
     return (
         <SafeAreaView style={styles.container}>
+            {/* Modern Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={onBack} style={styles.backButton}>
-                    <Ionicons name="chevron-back" size={28} color="#007AFF" />
+                <TouchableOpacity onPress={onBack} style={styles.backButton} activeOpacity={0.7}>
+                    <Ionicons name="chevron-back" size={24} color="#009688" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>各種設定</Text>
-                <View style={{ width: 28 }} />
+                <View style={{ width: 40 }} />
             </View>
 
-            <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-                {/* Notifications */}
-                {renderSectionHeader('通知')}
-                <View style={styles.sectionContainer}>
-                    {renderItem('notifications-outline', 'プッシュ通知', (
+            <ScrollView
+                style={styles.scrollView}
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+            >
+                {/* Notifications Card */}
+                <View style={styles.card}>
+                    <View style={styles.cardHeader}>
+                        <View style={[styles.cardIconContainer, { backgroundColor: '#FEF3C7' }]}>
+                            <Ionicons name="notifications" size={18} color="#F59E0B" />
+                        </View>
+                        <Text style={styles.cardTitle}>通知設定</Text>
+                    </View>
+                    <View style={styles.settingRow}>
+                        <View style={styles.settingInfo}>
+                            <Text style={styles.settingLabel}>プッシュ通知</Text>
+                            <Text style={styles.settingDescription}>
+                                メッセージやいいねの通知を受け取る
+                            </Text>
+                        </View>
                         <Switch
                             value={notificationsEnabled}
                             onValueChange={setNotificationsEnabled}
-                            trackColor={{ false: "#767577", true: "#34C759" }}
+                            trackColor={{ false: "#E5E7EB", true: "#009688" }}
                             thumbColor={"#fff"}
+                            ios_backgroundColor="#E5E7EB"
                         />
-                    ), undefined, true, '#FF9500')}
+                    </View>
                 </View>
 
-                {/* Account Settings */}
-                {renderSectionHeader('アカウント設定')}
-                <View style={styles.sectionContainer}>
-                    {renderItem('mail-outline', 'メールアドレス変更', <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />, () => setIsEmailModalVisible(true), false, '#007AFF')}
-                    {renderItem('lock-closed-outline', 'パスワード変更', <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />, () => setIsPasswordModalVisible(true), true, '#007AFF')}
-                </View>
+                {/* Account Settings Card */}
+                <View style={styles.card}>
+                    <View style={styles.cardHeader}>
+                        <View style={[styles.cardIconContainer, { backgroundColor: '#DBEAFE' }]}>
+                            <Ionicons name="person" size={18} color="#3B82F6" />
+                        </View>
+                        <Text style={styles.cardTitle}>アカウント設定</Text>
+                    </View>
 
-                {/* Legal */}
-                {renderSectionHeader('サポート・規約')}
-                <View style={styles.sectionContainer}>
-                    {renderItem('document-text-outline', '利用規約', <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />, onOpenTerms, false, '#8E8E93')}
-                    {renderItem('shield-checkmark-outline', 'プライバシーポリシー', <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />, onOpenPrivacy, false, '#8E8E93')}
-                    {renderItem('mail-outline', 'お問い合わせ', <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />, () => handleOpenURL('mailto:support@nakama-app.com'), true, '#007AFF')}
-                </View>
-
-                {/* Logout */}
-                <View style={styles.logoutContainer}>
-                    <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-                        <Text style={styles.logoutText}>ログアウト</Text>
+                    <TouchableOpacity
+                        style={styles.menuItem}
+                        onPress={() => setIsEmailModalVisible(true)}
+                        activeOpacity={0.7}
+                    >
+                        <View style={styles.menuItemLeft}>
+                            <View style={[styles.menuIconContainer, { backgroundColor: '#EEF2FF' }]}>
+                                <Ionicons name="mail" size={18} color="#6366F1" />
+                            </View>
+                            <View>
+                                <Text style={styles.menuItemLabel}>メールアドレス変更</Text>
+                                <Text style={styles.menuItemDescription}>ログイン用のメールアドレスを変更</Text>
+                            </View>
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
                     </TouchableOpacity>
+
+                    <View style={styles.menuDivider} />
+
+                    <TouchableOpacity
+                        style={styles.menuItem}
+                        onPress={() => setIsPasswordModalVisible(true)}
+                        activeOpacity={0.7}
+                    >
+                        <View style={styles.menuItemLeft}>
+                            <View style={[styles.menuIconContainer, { backgroundColor: '#FEF3C7' }]}>
+                                <Ionicons name="lock-closed" size={18} color="#F59E0B" />
+                            </View>
+                            <View>
+                                <Text style={styles.menuItemLabel}>パスワード変更</Text>
+                                <Text style={styles.menuItemDescription}>セキュリティのため定期的に変更を推奨</Text>
+                            </View>
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                    </TouchableOpacity>
+                </View>
+
+
+                {/* Logout Button */}
+                <TouchableOpacity
+                    style={styles.logoutButton}
+                    onPress={handleLogout}
+                    activeOpacity={0.7}
+                >
+                    <Ionicons name="log-out-outline" size={20} color="#EF4444" />
+                    <Text style={styles.logoutText}>ログアウト</Text>
+                </TouchableOpacity>
+
+                {/* App Version */}
+                <View style={styles.versionContainer}>
+                    <Text style={styles.versionText}>Nakama v1.0.0</Text>
                 </View>
             </ScrollView>
 
@@ -189,35 +215,62 @@ export function SettingsPage({ onBack, onLogout, onOpenTerms, onOpenPrivacy }: S
                     <View style={styles.modalOverlay}>
                         <KeyboardAvoidingView
                             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                            style={styles.modalContent}
+                            style={styles.modalContainer}
                         >
-                            <View style={styles.modalHeader}>
-                                <Text style={styles.modalTitle}>メールアドレス変更</Text>
-                                <TouchableOpacity onPress={() => setIsEmailModalVisible(false)}>
-                                    <Ionicons name="close" size={24} color="#333" />
-                                </TouchableOpacity>
-                            </View>
-                            <View style={styles.modalBody}>
-                                <Text style={styles.inputLabel}>新しいメールアドレス</Text>
-                                <TextInput
-                                    style={styles.input}
-                                    value={newEmail}
-                                    onChangeText={setNewEmail}
-                                    placeholder="example@email.com"
-                                    keyboardType="email-address"
-                                    autoCapitalize="none"
-                                />
-                                <TouchableOpacity
-                                    style={[styles.saveButton, isUpdatingEmail && styles.disabledButton]}
-                                    onPress={handleUpdateEmail}
-                                    disabled={isUpdatingEmail}
-                                >
-                                    {isUpdatingEmail ? (
-                                        <ActivityIndicator color="white" />
-                                    ) : (
-                                        <Text style={styles.saveButtonText}>変更メールを送信</Text>
-                                    )}
-                                </TouchableOpacity>
+                            <View style={styles.modalContent}>
+                                <View style={styles.modalHandle} />
+
+                                <View style={styles.modalHeader}>
+                                    <View style={styles.modalHeaderLeft}>
+                                        <View style={[styles.modalIconContainer, { backgroundColor: '#EEF2FF' }]}>
+                                            <Ionicons name="mail" size={24} color="#6366F1" />
+                                        </View>
+                                        <Text style={styles.modalTitle}>メールアドレス変更</Text>
+                                    </View>
+                                    <TouchableOpacity
+                                        onPress={() => setIsEmailModalVisible(false)}
+                                        style={styles.closeButton}
+                                    >
+                                        <Ionicons name="close" size={24} color="#6B7280" />
+                                    </TouchableOpacity>
+                                </View>
+
+                                <View style={styles.modalBody}>
+                                    <Text style={styles.modalDescription}>
+                                        新しいメールアドレスに確認メールが送信されます。
+                                        メール内のリンクをクリックして変更を完了してください。
+                                    </Text>
+
+                                    <Text style={styles.inputLabel}>新しいメールアドレス</Text>
+                                    <View style={styles.inputContainer}>
+                                        <Ionicons name="mail-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
+                                        <TextInput
+                                            style={styles.input}
+                                            value={newEmail}
+                                            onChangeText={setNewEmail}
+                                            placeholder="example@email.com"
+                                            placeholderTextColor="#9CA3AF"
+                                            keyboardType="email-address"
+                                            autoCapitalize="none"
+                                            autoCorrect={false}
+                                        />
+                                    </View>
+
+                                    <TouchableOpacity
+                                        style={[styles.saveButton, (!newEmail.includes('@') || isUpdatingEmail) && styles.saveButtonDisabled]}
+                                        onPress={handleUpdateEmail}
+                                        disabled={!newEmail.includes('@') || isUpdatingEmail}
+                                    >
+                                        {isUpdatingEmail ? (
+                                            <ActivityIndicator color="white" />
+                                        ) : (
+                                            <>
+                                                <Ionicons name="send" size={18} color="white" style={{ marginRight: 8 }} />
+                                                <Text style={styles.saveButtonText}>確認メールを送信</Text>
+                                            </>
+                                        )}
+                                    </TouchableOpacity>
+                                </View>
                             </View>
                         </KeyboardAvoidingView>
                     </View>
@@ -235,42 +288,91 @@ export function SettingsPage({ onBack, onLogout, onOpenTerms, onOpenPrivacy }: S
                     <View style={styles.modalOverlay}>
                         <KeyboardAvoidingView
                             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                            style={styles.modalContent}
+                            style={styles.modalContainer}
                         >
-                            <View style={styles.modalHeader}>
-                                <Text style={styles.modalTitle}>パスワード変更</Text>
-                                <TouchableOpacity onPress={() => setIsPasswordModalVisible(false)}>
-                                    <Ionicons name="close" size={24} color="#333" />
-                                </TouchableOpacity>
-                            </View>
-                            <View style={styles.modalBody}>
-                                <Text style={styles.inputLabel}>新しいパスワード</Text>
-                                <TextInput
-                                    style={styles.input}
-                                    value={newPassword}
-                                    onChangeText={setNewPassword}
-                                    placeholder="8文字以上"
-                                    secureTextEntry
-                                />
-                                <Text style={styles.inputLabel}>新しいパスワード（確認）</Text>
-                                <TextInput
-                                    style={styles.input}
-                                    value={confirmPassword}
-                                    onChangeText={setConfirmPassword}
-                                    placeholder="もう一度入力してください"
-                                    secureTextEntry
-                                />
-                                <TouchableOpacity
-                                    style={[styles.saveButton, isUpdatingPassword && styles.disabledButton]}
-                                    onPress={handleUpdatePassword}
-                                    disabled={isUpdatingPassword}
-                                >
-                                    {isUpdatingPassword ? (
-                                        <ActivityIndicator color="white" />
-                                    ) : (
-                                        <Text style={styles.saveButtonText}>変更する</Text>
+                            <View style={styles.modalContent}>
+                                <View style={styles.modalHandle} />
+
+                                <View style={styles.modalHeader}>
+                                    <View style={styles.modalHeaderLeft}>
+                                        <View style={[styles.modalIconContainer, { backgroundColor: '#FEF3C7' }]}>
+                                            <Ionicons name="lock-closed" size={24} color="#F59E0B" />
+                                        </View>
+                                        <Text style={styles.modalTitle}>パスワード変更</Text>
+                                    </View>
+                                    <TouchableOpacity
+                                        onPress={() => setIsPasswordModalVisible(false)}
+                                        style={styles.closeButton}
+                                    >
+                                        <Ionicons name="close" size={24} color="#6B7280" />
+                                    </TouchableOpacity>
+                                </View>
+
+                                <View style={styles.modalBody}>
+                                    <Text style={styles.inputLabel}>新しいパスワード</Text>
+                                    <View style={styles.inputContainer}>
+                                        <Ionicons name="lock-closed-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
+                                        <TextInput
+                                            style={[styles.input, { flex: 1 }]}
+                                            value={newPassword}
+                                            onChangeText={setNewPassword}
+                                            placeholder="8文字以上"
+                                            placeholderTextColor="#9CA3AF"
+                                            secureTextEntry={!showPassword}
+                                        />
+                                        <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                                            <Ionicons
+                                                name={showPassword ? "eye-off" : "eye"}
+                                                size={20}
+                                                color="#9CA3AF"
+                                            />
+                                        </TouchableOpacity>
+                                    </View>
+                                    {newPassword.length > 0 && newPassword.length < 8 && (
+                                        <Text style={styles.errorText}>8文字以上で入力してください</Text>
                                     )}
-                                </TouchableOpacity>
+
+                                    <Text style={styles.inputLabel}>新しいパスワード（確認）</Text>
+                                    <View style={styles.inputContainer}>
+                                        <Ionicons name="lock-closed-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
+                                        <TextInput
+                                            style={[styles.input, { flex: 1 }]}
+                                            value={confirmPassword}
+                                            onChangeText={setConfirmPassword}
+                                            placeholder="もう一度入力"
+                                            placeholderTextColor="#9CA3AF"
+                                            secureTextEntry={!showConfirmPassword}
+                                        />
+                                        <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                                            <Ionicons
+                                                name={showConfirmPassword ? "eye-off" : "eye"}
+                                                size={20}
+                                                color="#9CA3AF"
+                                            />
+                                        </TouchableOpacity>
+                                    </View>
+                                    {confirmPassword.length > 0 && newPassword !== confirmPassword && (
+                                        <Text style={styles.errorText}>パスワードが一致しません</Text>
+                                    )}
+
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.saveButton,
+                                            (newPassword.length < 8 || newPassword !== confirmPassword || isUpdatingPassword) && styles.saveButtonDisabled
+                                        ]}
+                                        onPress={handleUpdatePassword}
+                                        disabled={newPassword.length < 8 || newPassword !== confirmPassword || isUpdatingPassword}
+                                    >
+                                        {isUpdatingPassword ? (
+                                            <ActivityIndicator color="white" />
+                                        ) : (
+                                            <>
+                                                <Ionicons name="checkmark-circle" size={18} color="white" style={{ marginRight: 8 }} />
+                                                <Text style={styles.saveButtonText}>パスワードを変更</Text>
+                                            </>
+                                        )}
+                                    </TouchableOpacity>
+                                </View>
                             </View>
                         </KeyboardAvoidingView>
                     </View>
@@ -283,103 +385,165 @@ export function SettingsPage({ onBack, onLogout, onOpenTerms, onOpenPrivacy }: S
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F2F2F7',
+        backgroundColor: '#F8FAFC',
     },
     header: {
-        height: 44,
+        height: 56,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: 8,
+        paddingHorizontal: 16,
         backgroundColor: 'white',
-        borderBottomWidth: 0.5,
-        borderBottomColor: '#C6C6C8',
+        borderBottomWidth: 1,
+        borderBottomColor: '#E5E7EB',
     },
     backButton: {
-        padding: 8,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#F3F4F6',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     headerTitle: {
         fontSize: 17,
         fontWeight: '600',
-        color: '#000',
+        color: '#111827',
     },
     scrollView: {
         flex: 1,
     },
     scrollContent: {
+        padding: 16,
         paddingBottom: 40,
     },
-    sectionHeader: {
-        fontSize: 13,
-        color: '#6D6D72',
-        marginLeft: 16,
-        marginBottom: 6,
-        marginTop: 24,
-        textTransform: 'uppercase',
-    },
-    sectionContainer: {
+    card: {
         backgroundColor: 'white',
-        borderTopWidth: 0.5,
-        borderBottomWidth: 0.5,
-        borderColor: '#C6C6C8',
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 16,
+        ...SHADOWS.sm,
     },
-    itemContainer: {
-        backgroundColor: 'white',
+    cardHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 16,
     },
-    itemContent: {
+    cardIconContainer: {
+        width: 32,
+        height: 32,
+        borderRadius: 8,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 10,
+    },
+    cardTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#111827',
+    },
+    settingRow: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingVertical: 11,
-        paddingHorizontal: 16,
-        minHeight: 44,
+        paddingVertical: 8,
     },
-    itemLeft: {
+    settingInfo: {
+        flex: 1,
+        marginRight: 16,
+    },
+    settingLabel: {
+        fontSize: 15,
+        fontWeight: '500',
+        color: '#111827',
+    },
+    settingDescription: {
+        fontSize: 13,
+        color: '#6B7280',
+        marginTop: 2,
+    },
+    menuItem: {
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: 12,
     },
-    itemIcon: {
-        marginRight: 12,
-        width: 24,
-        textAlign: 'center',
+    menuItemLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
     },
-    itemLabel: {
-        fontSize: 17,
-        color: '#000',
-    },
-    separator: {
-        height: 0.5,
-        backgroundColor: '#C6C6C8',
-        marginLeft: 52,
-    },
-    logoutContainer: {
-        marginTop: 32,
-        borderTopWidth: 0.5,
-        borderBottomWidth: 0.5,
-        borderColor: '#C6C6C8',
-    },
-    logoutButton: {
-        backgroundColor: 'white',
-        height: 44,
+    menuIconContainer: {
+        width: 36,
+        height: 36,
+        borderRadius: 10,
         alignItems: 'center',
         justifyContent: 'center',
+        marginRight: 12,
+    },
+    menuItemLabel: {
+        fontSize: 15,
+        fontWeight: '500',
+        color: '#111827',
+    },
+    menuItemDescription: {
+        fontSize: 12,
+        color: '#6B7280',
+        marginTop: 2,
+    },
+    menuDivider: {
+        height: 1,
+        backgroundColor: '#F3F4F6',
+        marginLeft: 48,
+    },
+    logoutButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'white',
+        borderRadius: 12,
+        padding: 16,
+        marginTop: 8,
+        borderWidth: 1,
+        borderColor: '#FEE2E2',
     },
     logoutText: {
-        fontSize: 17,
-        color: '#FF3B30',
-        fontWeight: '400',
+        fontSize: 15,
+        fontWeight: '600',
+        color: '#EF4444',
+        marginLeft: 8,
     },
+    versionContainer: {
+        alignItems: 'center',
+        marginTop: 32,
+    },
+    versionText: {
+        fontSize: 13,
+        color: '#9CA3AF',
+    },
+    // Modal Styles
     modalOverlay: {
         flex: 1,
         backgroundColor: 'rgba(0, 0, 0, 0.5)',
         justifyContent: 'flex-end',
     },
+    modalContainer: {
+        justifyContent: 'flex-end',
+    },
     modalContent: {
         backgroundColor: 'white',
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        paddingBottom: 40,
-        maxHeight: '80%',
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    },
+    modalHandle: {
+        width: 40,
+        height: 4,
+        backgroundColor: '#E5E7EB',
+        borderRadius: 2,
+        alignSelf: 'center',
+        marginTop: 12,
+        marginBottom: 8,
     },
     modalHeader: {
         flexDirection: 'row',
@@ -387,43 +551,91 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         padding: 16,
         borderBottomWidth: 1,
-        borderBottomColor: '#eee',
+        borderBottomColor: '#F3F4F6',
+    },
+    modalHeaderLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    modalIconContainer: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 12,
     },
     modalTitle: {
         fontSize: 18,
-        fontWeight: 'bold',
+        fontWeight: '600',
+        color: '#111827',
+    },
+    closeButton: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: '#F3F4F6',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     modalBody: {
         padding: 20,
     },
+    modalDescription: {
+        fontSize: 14,
+        color: '#6B7280',
+        lineHeight: 20,
+        marginBottom: 20,
+        backgroundColor: '#F9FAFB',
+        padding: 12,
+        borderRadius: 8,
+    },
     inputLabel: {
         fontSize: 14,
         fontWeight: '600',
-        color: '#333',
+        color: '#374151',
         marginBottom: 8,
-        marginTop: 16,
+        marginTop: 12,
+    },
+    inputContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#F9FAFB',
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        borderRadius: 12,
+        paddingHorizontal: 14,
+    },
+    inputIcon: {
+        marginRight: 10,
     },
     input: {
-        backgroundColor: '#f9fafb',
-        borderWidth: 1,
-        borderColor: '#e5e7eb',
-        borderRadius: 8,
-        padding: 12,
+        flex: 1,
+        paddingVertical: 14,
         fontSize: 16,
+        color: '#111827',
+    },
+    errorText: {
+        fontSize: 12,
+        color: '#EF4444',
+        marginTop: 6,
+        marginLeft: 4,
     },
     saveButton: {
+        flexDirection: 'row',
         backgroundColor: '#009688',
-        paddingVertical: 14,
-        borderRadius: 8,
+        paddingVertical: 16,
+        borderRadius: 12,
         alignItems: 'center',
-        marginTop: 32,
+        justifyContent: 'center',
+        marginTop: 24,
     },
-    disabledButton: {
-        opacity: 0.7,
+    saveButtonDisabled: {
+        backgroundColor: '#9CA3AF',
     },
     saveButtonText: {
         color: 'white',
         fontSize: 16,
-        fontWeight: 'bold',
+        fontWeight: '600',
     },
 });
