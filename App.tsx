@@ -24,6 +24,7 @@ import { OnboardingScreen } from './components/OnboardingScreen';
 import { MatchingModal } from './components/MatchingModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { UserProjectPage } from './components/UserProjectPage';
+import { UsersEmptyState } from './components/EmptyState';
 import { Profile } from './types';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { supabase } from './lib/supabase';
@@ -992,24 +993,12 @@ function AppContent() {
                       onEndReached={loadMoreProfiles}
                       onEndReachedThreshold={0.5}
                       ListEmptyComponent={
-                        <View style={styles.emptyStateContainer}>
-                          <View style={styles.emptyStateIconContainer}>
-                            <Ionicons name="people-outline" size={64} color="#009688" />
-                          </View>
-                          <Text style={styles.emptyStateTitle}>ユーザーが見つかりません</Text>
-                          <Text style={styles.emptyStateSubtitle}>
-                            まだ登録しているユーザーがいないか、{'\n'}フィルター条件に一致するユーザーがいません
-                          </Text>
-                          <TouchableOpacity
-                            style={styles.emptyStateButton}
-                            onPress={() => {
-                              setFilterCriteria(null);
-                              onRefresh();
-                            }}
-                          >
-                            <Text style={styles.emptyStateButtonText}>フィルターをリセット</Text>
-                          </TouchableOpacity>
-                        </View>
+                        <UsersEmptyState
+                          onReset={() => {
+                            setFilterCriteria(null);
+                            onRefresh();
+                          }}
+                        />
                       }
                       ListFooterComponent={
                         loadingMore ? (

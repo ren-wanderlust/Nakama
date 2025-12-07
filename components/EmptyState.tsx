@@ -1,5 +1,5 @@
-import React from 'react';
-import { StyleSheet, Text, View, ViewStyle, Animated } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { StyleSheet, Text, View, ViewStyle, Animated, Easing } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { HapticButton } from './HapticButton';
@@ -56,9 +56,105 @@ const VARIANT_CONFIG: Record<EmptyStateVariant, {
 };
 
 /**
+ * アニメーション付きアイコンコンポーネント
+ */
+function AnimatedIcon({ icon, color, gradient }: {
+    icon: keyof typeof Ionicons.glyphMap;
+    color: string;
+    gradient: [string, string];
+}) {
+    const floatAnim = useRef(new Animated.Value(0)).current;
+    const scaleAnim = useRef(new Animated.Value(0.9)).current;
+    const rotateAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        // Entry animation
+        Animated.spring(scaleAnim, {
+            toValue: 1,
+            friction: 8,
+            tension: 40,
+            useNativeDriver: true,
+        }).start();
+
+        // Floating animation
+        const floatAnimation = Animated.loop(
+            Animated.sequence([
+                Animated.timing(floatAnim, {
+                    toValue: -8,
+                    duration: 1500,
+                    easing: Easing.inOut(Easing.ease),
+                    useNativeDriver: true,
+                }),
+                Animated.timing(floatAnim, {
+                    toValue: 0,
+                    duration: 1500,
+                    easing: Easing.inOut(Easing.ease),
+                    useNativeDriver: true,
+                }),
+            ])
+        );
+        floatAnimation.start();
+
+        // Subtle rotate animation
+        const rotateAnimation = Animated.loop(
+            Animated.sequence([
+                Animated.timing(rotateAnim, {
+                    toValue: 1,
+                    duration: 3000,
+                    easing: Easing.inOut(Easing.ease),
+                    useNativeDriver: true,
+                }),
+                Animated.timing(rotateAnim, {
+                    toValue: 0,
+                    duration: 3000,
+                    easing: Easing.inOut(Easing.ease),
+                    useNativeDriver: true,
+                }),
+            ])
+        );
+        rotateAnimation.start();
+
+        return () => {
+            floatAnimation.stop();
+            rotateAnimation.stop();
+        };
+    }, []);
+
+    const rotate = rotateAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: ['-3deg', '3deg'],
+    });
+
+    return (
+        <Animated.View style={[
+            styles.iconWrapper,
+            {
+                transform: [
+                    { translateY: floatAnim },
+                    { scale: scaleAnim },
+                    { rotate },
+                ],
+            }
+        ]}>
+            <LinearGradient
+                colors={gradient}
+                style={styles.iconBackground}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+            >
+                <Ionicons name={icon} size={48} color={color} />
+            </LinearGradient>
+            {/* Subtle shadow/glow */}
+            <View style={[styles.iconShadow, { backgroundColor: gradient[0] }]} />
+        </Animated.View>
+    );
+}
+
+/**
  * モダンなエンプティステートコンポーネント
  * 
  * 特徴:
+ * - アニメーション付きアイコン
  * - グラデーション背景のアイコン
  * - 明確なタイトルと説明
  * - オプションのアクションボタン
@@ -75,39 +171,73 @@ export function EmptyState({
 }: EmptyStateProps) {
     const config = VARIANT_CONFIG[variant];
     const displayIcon = icon || config.icon;
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+    const slideAnim = useRef(new Animated.Value(20)).current;
+
+    useEffect(() => {
+        Animated.parallel([
+            Animated.timing(fadeAnim, {
+                toValue: 1,
+                duration: 500,
+                useNativeDriver: true,
+            }),
+            Animated.timing(slideAnim, {
+                toValue: 0,
+                duration: 500,
+                easing: Easing.out(Easing.ease),
+                useNativeDriver: true,
+            }),
+        ]).start();
+    }, []);
 
     return (
         <View style={[styles.container, style]}>
-            {/* Icon with gradient background */}
-            <View style={styles.iconWrapper}>
-                <LinearGradient
-                    colors={config.gradient}
-                    style={styles.iconBackground}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                >
-                    <Ionicons name={displayIcon} size={48} color={config.iconColor} />
-                </LinearGradient>
-            </View>
+            {/* Animated Icon */}
+            <AnimatedIcon
+                icon={displayIcon}
+                color={config.iconColor}
+                gradient={config.gradient}
+            />
 
-            {/* Title */}
-            <Text style={styles.title}>{title}</Text>
+            {/* Title with fade in */}
+            <Animated.Text style={[
+                styles.title,
+                {
+                    opacity: fadeAnim,
+                    transform: [{ translateY: slideAnim }],
+                }
+            ]}>
+                {title}
+            </Animated.Text>
 
             {/* Description */}
             {description && (
-                <Text style={styles.description}>{description}</Text>
+                <Animated.Text style={[
+                    styles.description,
+                    {
+                        opacity: fadeAnim,
+                        transform: [{ translateY: slideAnim }],
+                    }
+                ]}>
+                    {description}
+                </Animated.Text>
             )}
 
             {/* Action Button */}
             {actionLabel && onAction && (
-                <HapticButton
-                    title={actionLabel}
-                    onPress={onAction}
-                    variant="primary"
-                    size="md"
-                    hapticType="light"
-                    style={styles.actionButton}
-                />
+                <Animated.View style={{
+                    opacity: fadeAnim,
+                    transform: [{ translateY: slideAnim }],
+                }}>
+                    <HapticButton
+                        title={actionLabel}
+                        onPress={onAction}
+                        variant="primary"
+                        size="md"
+                        hapticType="light"
+                        style={styles.actionButton}
+                    />
+                </Animated.View>
             )}
         </View>
     );
@@ -200,13 +330,15 @@ export function NotificationsEmptyState() {
 /**
  * ユーザーが見つからない場合のエンプティステート
  */
-export function UsersEmptyState() {
+export function UsersEmptyState({ onReset }: { onReset?: () => void }) {
     return (
         <EmptyState
             variant="search"
             icon="people-outline"
             title="ユーザーが見つかりません"
-            description="条件を変更して再度検索してみてください"
+            description="まだ登録しているユーザーがいないか、フィルター条件に一致するユーザーがいません"
+            actionLabel={onReset ? "フィルターをリセット" : undefined}
+            onAction={onReset}
         />
     );
 }
@@ -221,6 +353,7 @@ const styles = StyleSheet.create({
     },
     iconWrapper: {
         marginBottom: SPACING.xl,
+        position: 'relative',
     },
     iconBackground: {
         width: 100,
@@ -229,6 +362,16 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         ...SHADOWS.md,
+    },
+    iconShadow: {
+        position: 'absolute',
+        bottom: -10,
+        left: 10,
+        right: 10,
+        height: 20,
+        borderRadius: 50,
+        opacity: 0.3,
+        transform: [{ scaleX: 0.8 }],
     },
     title: {
         fontSize: 18,
