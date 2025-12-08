@@ -591,6 +591,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                             id: userId,
                             name: nickname,
                             university: university,
+                            grade: grade,
                             bio: bio,
                             image: uploadedImageUrl,
                             skills: skills.includes('other') && otherRoleText.trim()
@@ -860,12 +861,16 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                             </View>
                         ) : (
                             <ScrollView style={styles.universityList}>
-                                {filteredUniversities.length === 0 ? (
+                                {!searchInput.trim() ? (
                                     <View style={styles.emptyContainer}>
                                         <Text style={styles.emptyText}>
-                                            {searchInput.trim()
-                                                ? `「${searchInput}」に一致する大学が見つかりませんでした`
-                                                : '大学名を入力して検索してください'}
+                                            大学名を入力して検索してください
+                                        </Text>
+                                    </View>
+                                ) : filteredUniversities.length === 0 ? (
+                                    <View style={styles.emptyContainer}>
+                                        <Text style={styles.emptyText}>
+                                            {`「${searchInput}」に一致する大学が見つかりませんでした`}
                                         </Text>
                                     </View>
                                 ) : (
