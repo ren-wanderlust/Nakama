@@ -17,8 +17,10 @@ interface LikesPageProps {
 
 export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLike }: LikesPageProps) {
     const { session } = useAuth();
-    const [activeTab, setActiveTab] = useState<'received' | 'sent'>('received');
+    const [activeTab, setActiveTab] = useState<'received' | 'sent' | 'matched'>('received');
     const [receivedLikes, setReceivedLikes] = useState<Profile[]>([]);
+    const [unreadInterestIds, setUnreadInterestIds] = useState<Set<string>>(new Set()); // Track unread "興味あり" by sender_id
+    const [unreadMatchIds, setUnreadMatchIds] = useState<Set<string>>(new Set()); // Track unread "マッチング" by sender_id
     const [loading, setLoading] = useState(true);
     const listRef = useRef<FlatList>(null);
 
@@ -30,9 +32,10 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
             }
 
             try {
+                // Fetch likes with both is_read and is_read_as_match status
                 const { data: likes, error } = await supabase
                     .from('likes')
-                    .select('sender_id')
+                    .select('sender_id, is_read, is_read_as_match')
                     .eq('receiver_id', session.user.id);
 
                 if (error) {
@@ -41,6 +44,18 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                 }
 
                 if (likes && likes.length > 0) {
+                    // Track unread "興味あり" (is_read = false)
+                    const unreadInterest = new Set<string>(
+                        likes.filter(l => !l.is_read).map(l => l.sender_id)
+                    );
+                    setUnreadInterestIds(unreadInterest);
+
+                    // Track unread "マッチング" (is_read_as_match = false)
+                    const unreadMatch = new Set<string>(
+                        likes.filter(l => !l.is_read_as_match).map(l => l.sender_id)
+                    );
+                    setUnreadMatchIds(unreadMatch);
+
                     const senderIds = likes.map(l => l.sender_id);
                     const { data: profiles, error: profilesError } = await supabase
                         .from('profiles')
@@ -73,16 +88,11 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                             createdAt: item.created_at,
                         }));
                         setReceivedLikes(mappedProfiles);
-
-                        // Mark likes as read
-                        await supabase
-                            .from('likes')
-                            .update({ is_read: true })
-                            .eq('receiver_id', session.user.id)
-                            .eq('is_read', false);
                     }
                 } else {
                     setReceivedLikes([]);
+                    setUnreadInterestIds(new Set());
+                    setUnreadMatchIds(new Set());
                 }
             } catch (error) {
                 console.error('Error in fetchReceivedLikes:', error);
@@ -93,6 +103,62 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
 
         fetchReceivedLikes();
     }, [session]);
+
+    // Mark "興味あり" as read when profile is opened from received tab
+    const markInterestAsRead = async (senderId: string) => {
+        if (!session?.user || !unreadInterestIds.has(senderId)) return;
+
+        try {
+            await supabase
+                .from('likes')
+                .update({ is_read: true })
+                .eq('receiver_id', session.user.id)
+                .eq('sender_id', senderId);
+
+            // Update local state
+            setUnreadInterestIds(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(senderId);
+                return newSet;
+            });
+        } catch (error) {
+            console.error('Error marking interest as read:', error);
+        }
+    };
+
+    // Mark "マッチング" as read when profile is opened from matched tab
+    const markMatchAsRead = async (senderId: string) => {
+        if (!session?.user || !unreadMatchIds.has(senderId)) return;
+
+        try {
+            await supabase
+                .from('likes')
+                .update({ is_read_as_match: true })
+                .eq('receiver_id', session.user.id)
+                .eq('sender_id', senderId);
+
+            // Update local state
+            setUnreadMatchIds(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(senderId);
+                return newSet;
+            });
+        } catch (error) {
+            console.error('Error marking match as read:', error);
+        }
+    };
+
+    // Handle profile select from "興味あり" tab
+    const handleInterestProfileSelect = (profile: Profile) => {
+        markInterestAsRead(profile.id);
+        onProfileSelect(profile);
+    };
+
+    // Handle profile select from "マッチング" tab
+    const handleMatchProfileSelect = (profile: Profile) => {
+        markMatchAsRead(profile.id);
+        onProfileSelect(profile);
+    };
 
     // Filter profiles based on likedProfileIds
     // Exclude those who are also in receivedLikes (Matched)
@@ -105,6 +171,21 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
     const displayReceivedLikes = receivedLikes.filter(profile =>
         !likedProfileIds.has(profile.id)
     );
+
+    // Matched profiles: both liked each other
+    const matchedProfiles = receivedLikes.filter(profile =>
+        likedProfileIds.has(profile.id)
+    );
+
+    // Unread "興味あり" count (excluding matched profiles)
+    const unreadInterestCount = displayReceivedLikes.filter(profile =>
+        unreadInterestIds.has(profile.id)
+    ).length;
+
+    // Unread "マッチング" count
+    const unreadMatchCount = matchedProfiles.filter(profile =>
+        unreadMatchIds.has(profile.id)
+    ).length;
 
     const renderReceivedList = () => {
         if (loading) {
@@ -124,7 +205,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                             profile={item}
                             isLiked={false}
                             onLike={() => onLike(item.id)}
-                            onSelect={() => onProfileSelect(item)}
+                            onSelect={() => handleInterestProfileSelect(item)}
                         />
                     </View>
                 )}
@@ -164,6 +245,38 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
         );
     };
 
+    const renderMatchedList = () => {
+        if (matchedProfiles.length === 0) {
+            return <LikesEmptyState type="matched" />;
+        }
+
+        return (
+            <FlatList
+                data={matchedProfiles}
+                renderItem={({ item }) => (
+                    <View style={styles.gridItem}>
+                        <ProfileCard
+                            profile={item}
+                            isLiked={true}
+                            onLike={() => {}}
+                            onSelect={() => handleMatchProfileSelect(item)}
+                            hideHeartButton={true}
+                            isNewMatch={unreadMatchIds.has(item.id)}
+                        />
+                    </View>
+                )}
+                keyExtractor={(item) => item.id}
+                numColumns={2}
+                contentContainerStyle={styles.listContent}
+                columnWrapperStyle={styles.columnWrapper}
+                showsVerticalScrollIndicator={false}
+            />
+        );
+    };
+
+    const tabs = ['received', 'sent', 'matched'] as const;
+    const getTabIndex = (tab: typeof activeTab) => tabs.indexOf(tab);
+
     return (
         <View style={styles.container}>
             {/* Header */}
@@ -178,11 +291,11 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                         }}
                     >
                         <Text style={[styles.tabText, activeTab === 'received' && styles.tabTextActive]}>
-                            あなたに興味あり
+                            興味あり
                         </Text>
-                        {displayReceivedLikes.length > 0 && (
+                        {unreadInterestCount > 0 && (
                             <View style={styles.badge}>
-                                <Text style={styles.badgeText}>{displayReceivedLikes.length}</Text>
+                                <Text style={styles.badgeText}>{unreadInterestCount}</Text>
                             </View>
                         )}
                     </TouchableOpacity>
@@ -194,8 +307,24 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                         }}
                     >
                         <Text style={[styles.tabText, activeTab === 'sent' && styles.tabTextActive]}>
-                            送ったいいね
+                            送った
                         </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[styles.tabButton, activeTab === 'matched' && styles.tabButtonActive]}
+                        onPress={() => {
+                            setActiveTab('matched');
+                            listRef.current?.scrollToIndex({ index: 2, animated: true });
+                        }}
+                    >
+                        <Text style={[styles.tabText, activeTab === 'matched' && styles.tabTextActive]}>
+                            マッチング
+                        </Text>
+                        {unreadMatchCount > 0 && (
+                            <View style={styles.badge}>
+                                <Text style={styles.badgeText}>{unreadMatchCount}</Text>
+                            </View>
+                        )}
                     </TouchableOpacity>
                 </View>
             </View>
@@ -203,14 +332,14 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
             {/* Swipeable Content */}
             <FlatList
                 ref={listRef}
-                data={['received', 'sent']}
+                data={tabs}
                 horizontal
                 pagingEnabled
                 showsHorizontalScrollIndicator={false}
                 keyExtractor={(item) => item}
                 onMomentumScrollEnd={(e) => {
                     const index = Math.round(e.nativeEvent.contentOffset.x / Dimensions.get('window').width);
-                    setActiveTab(index === 0 ? 'received' : 'sent');
+                    setActiveTab(tabs[index]);
                 }}
                 getItemLayout={(data, index) => (
                     { length: Dimensions.get('window').width, offset: Dimensions.get('window').width * index, index }
@@ -218,7 +347,9 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                 initialScrollIndex={0}
                 renderItem={({ item }) => (
                     <View style={{ width: Dimensions.get('window').width, flex: 1 }}>
-                        {item === 'received' ? renderReceivedList() : renderSentList()}
+                        {item === 'received' && renderReceivedList()}
+                        {item === 'sent' && renderSentList()}
+                        {item === 'matched' && renderMatchedList()}
                     </View>
                 )}
             />

@@ -379,13 +379,13 @@ function AppContent() {
     };
   }, [session?.user]);
 
-  // Fetch unread likes count ("あなたに興味あり" badge)
+  // Fetch unread likes count ("興味あり" + "未確認マッチング" badge)
   React.useEffect(() => {
     if (!session?.user) return;
 
     const fetchUnreadLikes = async () => {
       try {
-        // Get my likes (to exclude mutual matches)
+        // Get my likes (to determine matches)
         const { data: myLikes } = await supabase
           .from('likes')
           .select('receiver_id')
@@ -401,17 +401,27 @@ function AppContent() {
         
         const blockedIds = new Set(blocks?.map(b => b.blocked_id) || []);
 
-        // Get unread likes received (excluding mutual matches and blocked users)
+        // Get all received likes with both read statuses
         const { data: receivedLikes } = await supabase
           .from('likes')
-          .select('sender_id')
-          .eq('receiver_id', session.user.id)
-          .eq('is_read', false);
+          .select('sender_id, is_read, is_read_as_match')
+          .eq('receiver_id', session.user.id);
 
-        // Filter out mutual matches and blocked users
-        const unreadCount = receivedLikes?.filter(
-          l => !myLikedIds.has(l.sender_id) && !blockedIds.has(l.sender_id)
-        ).length || 0;
+        // Count unread:
+        // - 興味あり: is_read = false AND not matched (I haven't liked them back)
+        // - マッチング: is_read_as_match = false AND matched (I have liked them back)
+        const unreadCount = receivedLikes?.filter(l => {
+          if (blockedIds.has(l.sender_id)) return false;
+          
+          const isMatched = myLikedIds.has(l.sender_id);
+          if (isMatched) {
+            // Matched: count if is_read_as_match is false
+            return !l.is_read_as_match;
+          } else {
+            // Interest only: count if is_read is false
+            return !l.is_read;
+          }
+        }).length || 0;
 
         setUnreadLikesCount(unreadCount);
       } catch (e) {

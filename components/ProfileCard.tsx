@@ -11,6 +11,8 @@ interface ProfileCardProps {
     isLiked: boolean;
     onLike: () => void;
     onSelect?: () => void;
+    hideHeartButton?: boolean;
+    isNewMatch?: boolean;
 }
 
 const { width } = Dimensions.get('window');
@@ -18,7 +20,7 @@ const GAP = 12;
 const PADDING = 16;
 const CARD_WIDTH = (width - (PADDING * 2) - GAP) / 2;
 
-export function ProfileCard({ profile, isLiked, onLike, onSelect }: ProfileCardProps) {
+export function ProfileCard({ profile, isLiked, onLike, onSelect, hideHeartButton, isNewMatch }: ProfileCardProps) {
     return (
         <TouchableOpacity
             style={styles.cardContainer}
@@ -26,13 +28,22 @@ export function ProfileCard({ profile, isLiked, onLike, onSelect }: ProfileCardP
             activeOpacity={0.9}
         >
             {/* Like Button - Top Right */}
-            <View style={styles.likeButtonContainer}>
-                <AnimatedHeartButton
-                    isLiked={isLiked}
-                    onPress={onLike}
-                    size="small"
-                />
-            </View>
+            {!hideHeartButton && (
+                <View style={styles.likeButtonContainer}>
+                    <AnimatedHeartButton
+                        isLiked={isLiked}
+                        onPress={onLike}
+                        size="small"
+                    />
+                </View>
+            )}
+
+            {/* New Match Badge - Top Right */}
+            {isNewMatch && (
+                <View style={styles.newMatchBadge}>
+                    <View style={styles.newMatchDot} />
+                </View>
+            )}
 
             {/* Header: Avatar + Name */}
             <View style={styles.header}>
@@ -100,6 +111,20 @@ const styles = StyleSheet.create({
         top: SPACING.sm,
         right: SPACING.sm,
         zIndex: 10,
+    },
+    newMatchBadge: {
+        position: 'absolute',
+        top: SPACING.sm,
+        right: SPACING.sm,
+        zIndex: 10,
+    },
+    newMatchDot: {
+        width: 14,
+        height: 14,
+        borderRadius: 7,
+        backgroundColor: '#10B981', // Green color
+        borderWidth: 2,
+        borderColor: 'white',
     },
     header: {
         flexDirection: 'row',
