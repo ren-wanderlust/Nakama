@@ -1261,6 +1261,7 @@ function AppContent() {
                     setSelectedProfile(null);
                   }}
                   isLiked={likedProfiles.has(selectedProfile.id)}
+                  isMatched={matchedProfileIds.has(selectedProfile.id)}
                 />
               ) : (
                 <ChatRoom
@@ -1367,6 +1368,7 @@ function AppContent() {
                 });
               }}
               isLiked={likedProfiles.has(selectedProfile.id)}
+              isMatched={matchedProfileIds.has(selectedProfile.id)}
             />
           )}
         </SafeAreaProvider>

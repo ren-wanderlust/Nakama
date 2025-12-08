@@ -14,6 +14,7 @@ interface ProfileDetailProps {
     onChat: () => void;
     isLiked: boolean;
     onBlock?: () => void;
+    isMatched?: boolean;
 }
 
 const { width } = Dimensions.get('window');
@@ -26,7 +27,7 @@ const REPORT_REASONS = [
     { id: 'other', label: 'その他' },
 ];
 
-export function ProfileDetail({ profile, onBack, onLike, onChat, isLiked, onBlock }: ProfileDetailProps) {
+export function ProfileDetail({ profile, onBack, onLike, onChat, isLiked, onBlock, isMatched }: ProfileDetailProps) {
     const seekingFor = profile.seekingFor || [];
     const skills = profile.skills || [];
     const seekingRoles = profile.seekingRoles || [];
@@ -275,15 +276,17 @@ export function ProfileDetail({ profile, onBack, onLike, onChat, isLiked, onBloc
 
             </ScrollView >
 
-            {/* Footer Action Button */}
-            <View style={styles.footer}>
-                <AnimatedLikeButton
-                    isLiked={isLiked}
-                    onPress={onLike}
-                    showLabel={true}
-                    style={{ width: '100%' }}
-                />
-            </View>
+            {/* Footer Action Button - Hidden for matched profiles */}
+            {!isMatched && (
+                <View style={styles.footer}>
+                    <AnimatedLikeButton
+                        isLiked={isLiked}
+                        onPress={onLike}
+                        showLabel={true}
+                        style={{ width: '100%' }}
+                    />
+                </View>
+            )}
 
             {/* Report Modal */}
             <Modal
