@@ -720,19 +720,55 @@ function AppContent() {
   const handleLike = async (profileId: string) => {
     if (!session?.user) return;
 
-    // Optimistic update
+    // Check if already liked (for unlike confirmation)
+    const isCurrentlyLiked = likedProfiles.has(profileId);
+
+    if (isCurrentlyLiked) {
+      // Show confirmation dialog before unliking
+      Alert.alert(
+        'いいねを取り消しますか？',
+        'この操作を行うと、いいねが取り消されます。',
+        [
+          { text: 'キャンセル', style: 'cancel' },
+          {
+            text: '取り消す',
+            style: 'destructive',
+            onPress: async () => {
+              // Update UI
+              setLikedProfiles((prev) => {
+                const newSet = new Set(prev);
+                newSet.delete(profileId);
+                return newSet;
+              });
+
+              // Delete from database
+              try {
+                await supabase
+                  .from('likes')
+                  .delete()
+                  .eq('sender_id', session.user.id)
+                  .eq('receiver_id', profileId);
+              } catch (error) {
+                console.error('Error unliking:', error);
+                // Revert on error
+                setLikedProfiles((prev) => new Set(prev).add(profileId));
+              }
+            }
+          }
+        ]
+      );
+      return;
+    }
+
+    // Optimistic update for new like
     setLikedProfiles((prev) => {
       const newSet = new Set(prev);
-      if (newSet.has(profileId)) {
-        newSet.delete(profileId);
-      } else {
-        newSet.add(profileId);
-      }
+      newSet.add(profileId);
       return newSet;
     });
 
     try {
-      // Check if already liked
+      // Check if already liked (shouldn't happen but just in case)
       const { data: existingLike } = await supabase
         .from('likes')
         .select('*')
@@ -741,11 +777,8 @@ function AppContent() {
         .maybeSingle();
 
       if (existingLike) {
-        // Unlike
-        await supabase
-          .from('likes')
-          .delete()
-          .eq('id', existingLike.id);
+        // Already liked, do nothing (UI already shows liked state)
+        return;
       } else {
         // Like
         await supabase
