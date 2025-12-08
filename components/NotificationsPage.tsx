@@ -15,15 +15,44 @@ export interface Notification {
 
 interface NotificationsPageProps {
     onBack: () => void;
+    onNotificationsRead?: () => void;
 }
 
-export function NotificationsPage({ onBack }: NotificationsPageProps) {
+export function NotificationsPage({ onBack, onNotificationsRead }: NotificationsPageProps) {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         fetchNotifications();
     }, []);
+
+    // Mark user-specific notifications as read when page is opened
+    useEffect(() => {
+        const markAllAsRead = async () => {
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
+
+                // Mark user-specific notifications as read (いいね, マッチング etc.)
+                // Public notifications (user_id is null) are shared across all users,
+                // so we only mark user-specific ones as read
+                await supabase
+                    .from('notifications')
+                    .update({ is_read: true })
+                    .eq('user_id', user.id)
+                    .eq('is_read', false);
+
+                // Notify parent to refresh count
+                if (onNotificationsRead) {
+                    onNotificationsRead();
+                }
+            } catch (error) {
+                console.error('Error marking notifications as read:', error);
+            }
+        };
+
+        markAllAsRead();
+    }, [onNotificationsRead]);
 
     const fetchNotifications = async () => {
         try {
@@ -91,14 +120,26 @@ export function NotificationsPage({ onBack }: NotificationsPageProps) {
 
     const renderItem = ({ item }: { item: Notification }) => {
         const badge = getBadgeStyle(item.type);
+        // いいね・マッチング通知の場合は丸いアイコン
+        const isUserNotification = item.type === 'like' || item.type === 'match';
+        
         return (
             <TouchableOpacity style={styles.itemContainer} onPress={() => handleNotificationPress(item)}>
                 {/* Icon/Image */}
                 <View style={styles.iconContainer}>
                     {item.imageUrl ? (
-                        <Image source={{ uri: item.imageUrl }} style={styles.iconImage} />
+                        <Image 
+                            source={{ uri: item.imageUrl }} 
+                            style={[
+                                styles.iconImage, 
+                                isUserNotification && styles.iconImageRound
+                            ]} 
+                        />
                     ) : (
-                        <View style={styles.placeholderIcon} />
+                        <View style={[
+                            styles.placeholderIcon,
+                            isUserNotification && styles.iconImageRound
+                        ]} />
                     )}
                 </View>
 
@@ -216,6 +257,9 @@ const styles = StyleSheet.create({
         height: 48,
         borderRadius: 8,
         backgroundColor: '#eee',
+    },
+    iconImageRound: {
+        borderRadius: 24, // 48 / 2 = 24 for perfect circle
     },
     placeholderIcon: {
         width: 48,

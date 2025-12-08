@@ -99,6 +99,7 @@ function AppContent() {
   const [pendingAppsCount, setPendingAppsCount] = useState(0);
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
   const [unreadLikesCount, setUnreadLikesCount] = useState(0);
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
   const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
 
   // Initialize push notifications
@@ -451,6 +452,49 @@ function AppContent() {
       clearInterval(interval);
     };
   }, [session?.user]);
+
+  // Fetch unread notifications count (user-specific notifications only)
+  const fetchUnreadNotifications = useCallback(async () => {
+    if (!session?.user) return;
+    try {
+      // Only count user-specific notifications (いいね, マッチング etc.)
+      // Public notifications (user_id is null) are shared, so not tracked for read status
+      const { count, error } = await supabase
+        .from('notifications')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', session.user.id)
+        .eq('is_read', false);
+
+      if (!error) {
+        setUnreadNotificationsCount(count || 0);
+      }
+    } catch (e) {
+      console.log('Error fetching unread notifications:', e);
+    }
+  }, [session?.user]);
+
+  React.useEffect(() => {
+    if (!session?.user) return;
+
+    fetchUnreadNotifications();
+
+    // Subscribe to notifications changes
+    const channel = supabase.channel('unread_notifications_count')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, () => {
+        fetchUnreadNotifications();
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications' }, () => {
+        fetchUnreadNotifications();
+      })
+      .subscribe();
+
+    const interval = setInterval(fetchUnreadNotifications, 5000); // Poll every 5s
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(interval);
+    };
+  }, [session?.user, fetchUnreadNotifications]);
 
   // Refresh unread count when closing a chat
   const prevActiveChatRoom = React.useRef(activeChatRoom);
@@ -1003,6 +1047,9 @@ function AppContent() {
                 onPress={() => setShowNotifications(true)}
               >
                 <Ionicons name="notifications-outline" size={24} color="#374151" />
+                {unreadNotificationsCount > 0 && (
+                  <View style={styles.notificationBadgeDot} />
+                )}
               </TouchableOpacity>
             </View>
           )}
@@ -1037,6 +1084,9 @@ function AppContent() {
                     onPress={() => setShowNotifications(true)}
                   >
                     <Ionicons name="notifications-outline" size={24} color="#374151" />
+                    {unreadNotificationsCount > 0 && (
+                      <View style={styles.notificationBadgeDot} />
+                    )}
                   </TouchableOpacity>
                 </View>
               </View>
@@ -1420,7 +1470,10 @@ function AppContent() {
 
       <Modal visible={showNotifications} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowNotifications(false)}>
         <SafeAreaProvider>
-          <NotificationsPage onBack={() => setShowNotifications(false)} />
+          <NotificationsPage 
+            onBack={() => setShowNotifications(false)} 
+            onNotificationsRead={fetchUnreadNotifications}
+          />
         </SafeAreaProvider>
       </Modal>
 
@@ -1603,6 +1656,15 @@ const styles = StyleSheet.create({
   },
   notificationButton: {
     padding: 4,
+  },
+  notificationBadgeDot: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#EF4444',
   },
   searchControlBar: {
     flexDirection: 'row',
