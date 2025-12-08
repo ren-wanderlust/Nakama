@@ -309,14 +309,7 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
                                             {item.partnerAge}歳 · {item.partnerLocation}
                                         </Text>
                                     </View>
-                                    <View style={styles.rightInfo}>
-                                        <Text style={styles.timestamp}>{item.timestamp}</Text>
-                                        {item.unreadCount > 0 && (
-                                            <View style={styles.unreadBadge}>
-                                                <Text style={styles.unreadText}>{item.unreadCount}</Text>
-                                            </View>
-                                        )}
-                                    </View>
+                                    <Text style={styles.timestamp}>{item.timestamp}</Text>
                                 </View>
 
                                 <View style={styles.messageRow}>
@@ -326,8 +319,12 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
                                 </View>
                             </View>
 
-                            {item.unreadCount === 0 && (
-                                <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+                            {item.unreadCount > 0 ? (
+                                <View style={styles.unreadBadge}>
+                                    <Text style={styles.unreadText}>{item.unreadCount}</Text>
+                                </View>
+                            ) : (
+                                <Ionicons name="chevron-forward" size={20} color="#9ca3af" style={styles.chevronIcon} />
                             )}
                         </TouchableOpacity>
                     )}
@@ -377,14 +374,7 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
                                     <View style={styles.nameContainer}>
                                         <Text style={styles.name}>{item.partnerName}</Text>
                                     </View>
-                                    <View style={styles.rightInfo}>
-                                        <Text style={styles.timestamp}>{item.timestamp}</Text>
-                                        {item.unreadCount > 0 && (
-                                            <View style={styles.unreadBadge}>
-                                                <Text style={styles.unreadText}>{item.unreadCount}</Text>
-                                            </View>
-                                        )}
-                                    </View>
+                                    <Text style={styles.timestamp}>{item.timestamp}</Text>
                                 </View>
 
                                 <View style={styles.messageRow}>
@@ -394,8 +384,12 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
                                 </View>
                             </View>
 
-                            {item.unreadCount === 0 && (
-                                <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+                            {item.unreadCount > 0 ? (
+                                <View style={styles.unreadBadge}>
+                                    <Text style={styles.unreadText}>{item.unreadCount}</Text>
+                                </View>
+                            ) : (
+                                <Ionicons name="chevron-forward" size={20} color="#9ca3af" style={styles.chevronIcon} />
                             )}
                         </TouchableOpacity>
                     )}
@@ -624,7 +618,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         paddingHorizontal: 6,
-        marginTop: 4,
+        alignSelf: 'flex-end',
+        marginBottom: 4,
+    },
+    chevronIcon: {
+        alignSelf: 'flex-end',
+        marginBottom: 4,
     },
     unreadText: {
         color: 'white',

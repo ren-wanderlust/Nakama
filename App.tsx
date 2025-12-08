@@ -22,7 +22,6 @@ import { HelpPage } from './components/HelpPage';
 import { LegalDocumentPage } from './components/LegalDocumentPage';
 import { OnboardingScreen } from './components/OnboardingScreen';
 import { MatchingModal } from './components/MatchingModal';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { UserProjectPage } from './components/UserProjectPage';
 import { UsersEmptyState } from './components/EmptyState';
 import { Profile } from './types';
@@ -328,10 +327,15 @@ function AppContent() {
 
           if (groups && groups.length > 0) {
             const groupPromises = groups.map(async (group: any) => {
-              const lastReadTime = await AsyncStorage.getItem(`readTime_${group.id}`);
+              // Get last read time from database
+              const { data: readStatus } = await supabase
+                .from('chat_room_read_status')
+                .select('last_read_at')
+                .eq('user_id', session.user.id)
+                .eq('chat_room_id', group.id)
+                .single();
 
-              // If never read, don't count as unread (new group)
-              if (!lastReadTime) return 0;
+              const lastReadTime = readStatus?.last_read_at || '1970-01-01';
 
               const { count } = await supabase
                 .from('messages')
@@ -415,10 +419,15 @@ function AppContent() {
 
             if (groups && groups.length > 0) {
               const groupPromises = groups.map(async (group: any) => {
-                const lastReadTime = await AsyncStorage.getItem(`readTime_${group.id}`);
+                // Get last read time from database
+                const { data: readStatus } = await supabase
+                  .from('chat_room_read_status')
+                  .select('last_read_at')
+                  .eq('user_id', session.user.id)
+                  .eq('chat_room_id', group.id)
+                  .single();
 
-                // If never read, don't count as unread (new group)
-                if (!lastReadTime) return 0;
+                const lastReadTime = readStatus?.last_read_at || '1970-01-01';
 
                 const { count } = await supabase
                   .from('messages')
