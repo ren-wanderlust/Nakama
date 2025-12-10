@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, FlatList, Image, Dimensions } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, FlatList, Image, Dimensions, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Profile } from '../types';
 import { ProfileCard } from './ProfileCard';
@@ -355,6 +355,30 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
         }
     };
 
+    // Update applicant status (approve/reject)
+    const updateApplicantStatus = async (applicationId: string, newStatus: 'approved' | 'rejected', userName: string) => {
+        try {
+            const { error } = await supabase
+                .from('project_applications')
+                .update({ status: newStatus })
+                .eq('id', applicationId);
+
+            if (error) throw error;
+
+            // Update local state
+            setRecruitingApplications(prev => 
+                prev.map(app => 
+                    app.id === applicationId ? { ...app, status: newStatus } : app
+                )
+            );
+
+            Alert.alert('完了', `${userName}さんを${newStatus === 'approved' ? '承認' : '見送り'}しました`);
+        } catch (error) {
+            console.error('Error updating applicant status:', error);
+            Alert.alert('エラー', 'ステータスの更新に失敗しました');
+        }
+    };
+
     // Filter user profiles
     const receivedLikeIds = new Set(receivedLikes.map(p => p.id));
     const sentLikes = allProfiles.filter(profile =>
@@ -439,47 +463,85 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
         const user = item.user;
         if (!user) return null;
 
-        const getStatusInfo = () => {
-            switch (item.status) {
-                case 'pending':
-                    return { color: '#F59E0B', text: '承認待ち' };
-                case 'approved':
-                    return { color: '#10B981', text: '参加決定' };
-                case 'rejected':
-                    return { color: '#EF4444', text: '見送り' };
-                default:
-                    return { color: '#6B7280', text: '不明' };
-            }
-        };
-
-        const statusInfo = getStatusInfo();
         const isUnread = unreadRecruitingIds.has(item.id);
+        const isPending = item.status === 'pending';
+        const isApproved = item.status === 'approved';
+        const isRejected = item.status === 'rejected';
 
         return (
-            <View style={styles.gridItem}>
-                <View style={styles.applicantCardWrapper}>
-                    {/* Unread indicator */}
-                    {isUnread && (
-                        <View style={styles.unreadDot} />
-                    )}
-                    {/* Status indicator */}
-                    <View style={[styles.applicantStatusBadge, { backgroundColor: statusInfo.color }]}>
-                        <Text style={styles.applicantStatusText}>{statusInfo.text}</Text>
-                    </View>
-                    <ProfileCard
-                        profile={user}
-                        isLiked={likedProfileIds.has(user.id)}
-                        onLike={() => onLike(user.id)}
-                        onSelect={() => handleApplicantProfileSelect(item)}
-                        hideHeartButton={true}
-                    />
-                    {/* Project name */}
-                    <View style={styles.projectNameBadge}>
-                        <Text style={styles.projectNameText} numberOfLines={1}>
-                            {item.project?.title || 'プロジェクト'}
+            <View style={styles.recruitingCard}>
+                {/* Unread indicator */}
+                {isUnread && (
+                    <View style={styles.recruitingUnreadDot} />
+                )}
+                
+                {/* Profile confirm button - top right */}
+                <TouchableOpacity 
+                    style={styles.profileConfirmButton}
+                    onPress={() => handleApplicantProfileSelect(item)}
+                >
+                    <Text style={styles.profileConfirmButtonText}>プロフィールを確認</Text>
+                </TouchableOpacity>
+
+                {/* Header: Avatar + Name + University */}
+                <View style={styles.recruitingCardHeader}>
+                    <TouchableOpacity onPress={() => handleApplicantProfileSelect(item)}>
+                        <Image
+                            source={{ uri: user.image || 'https://via.placeholder.com/50' }}
+                            style={styles.recruitingAvatar}
+                        />
+                    </TouchableOpacity>
+                    <View style={styles.recruitingUserInfo}>
+                        <Text style={styles.recruitingUserName} numberOfLines={1}>
+                            {user.name}
+                        </Text>
+                        <Text style={styles.recruitingUserUniversity} numberOfLines={1}>
+                            {user.university || '所属なし'}
                         </Text>
                     </View>
                 </View>
+
+                {/* Project name */}
+                <Text style={styles.recruitingProjectName} numberOfLines={1}>
+                    {item.project?.title || 'プロジェクト'}への応募
+                </Text>
+
+                {/* Action buttons or Status */}
+                {isPending ? (
+                    <View style={styles.recruitingActions}>
+                        <TouchableOpacity
+                            style={styles.rejectButton}
+                            onPress={() => updateApplicantStatus(item.id, 'rejected', user.name)}
+                        >
+                            <Ionicons name="close" size={18} color="#EF4444" />
+                            <Text style={styles.rejectButtonText}>棄却</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.approveButton}
+                            onPress={() => updateApplicantStatus(item.id, 'approved', user.name)}
+                        >
+                            <Ionicons name="checkmark" size={18} color="white" />
+                            <Text style={styles.approveButtonText}>承認</Text>
+                        </TouchableOpacity>
+                    </View>
+                ) : (
+                    <View style={[
+                        styles.statusResultBadge, 
+                        { backgroundColor: isApproved ? '#D1FAE5' : '#FEE2E2' }
+                    ]}>
+                        <Ionicons 
+                            name={isApproved ? 'checkmark-circle' : 'close-circle'} 
+                            size={16} 
+                            color={isApproved ? '#10B981' : '#EF4444'} 
+                        />
+                        <Text style={[
+                            styles.statusResultText,
+                            { color: isApproved ? '#10B981' : '#EF4444' }
+                        ]}>
+                            {isApproved ? '参加決定' : '見送り'}
+                        </Text>
+                    </View>
+                )}
             </View>
         );
     };
@@ -583,9 +645,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                 data={recruitingApplications}
                 renderItem={renderApplicantCard}
                 keyExtractor={(item) => item.id}
-                numColumns={2}
                 contentContainerStyle={styles.listContent}
-                columnWrapperStyle={styles.columnWrapper}
                 showsVerticalScrollIndicator={false}
             />
         );
@@ -944,7 +1004,112 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: '600',
     },
-    // Applicant card styles
+    // Recruiting card styles (応募者カード)
+    recruitingCard: {
+        backgroundColor: '#FFF9E6',
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 12,
+        position: 'relative',
+    },
+    recruitingUnreadDot: {
+        position: 'absolute',
+        top: 12,
+        left: 12,
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        backgroundColor: '#10B981',
+        zIndex: 20,
+    },
+    profileConfirmButton: {
+        position: 'absolute',
+        top: 12,
+        right: 12,
+        zIndex: 10,
+    },
+    profileConfirmButtonText: {
+        fontSize: 12,
+        color: '#6B7280',
+        textDecorationLine: 'underline',
+    },
+    recruitingCardHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 8,
+        marginTop: 8,
+    },
+    recruitingAvatar: {
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        marginRight: 12,
+    },
+    recruitingUserInfo: {
+        flex: 1,
+    },
+    recruitingUserName: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#111827',
+        marginBottom: 2,
+    },
+    recruitingUserUniversity: {
+        fontSize: 14,
+        color: '#6B7280',
+    },
+    recruitingProjectName: {
+        fontSize: 12,
+        color: '#9CA3AF',
+        marginBottom: 12,
+    },
+    recruitingActions: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    rejectButton: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 14,
+        backgroundColor: '#FEE2E2',
+        borderRadius: 12,
+        gap: 6,
+    },
+    rejectButtonText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#EF4444',
+    },
+    approveButton: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 14,
+        backgroundColor: '#009688',
+        borderRadius: 12,
+        gap: 6,
+    },
+    approveButtonText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: 'white',
+    },
+    statusResultBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 12,
+        borderRadius: 12,
+        gap: 6,
+    },
+    statusResultText: {
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    // Legacy applicant card styles (keep for compatibility)
     applicantCardWrapper: {
         position: 'relative',
     },

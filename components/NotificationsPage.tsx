@@ -5,7 +5,8 @@ import { supabase } from '../lib/supabase';
 
 export interface Notification {
     id: string;
-    type: 'important' | 'update' | 'psychology' | 'other' | 'like' | 'match';
+    // application_status を追加（プロジェクト応募関連）
+    type: 'important' | 'update' | 'psychology' | 'other' | 'like' | 'match' | 'application_status';
     title: string;
     content?: string;
     date: string;
@@ -120,8 +121,11 @@ export function NotificationsPage({ onBack, onNotificationsRead }: Notifications
 
     const renderItem = ({ item }: { item: Notification }) => {
         const badge = getBadgeStyle(item.type);
-        // いいね・マッチング通知の場合は丸いアイコン
-        const isUserNotification = item.type === 'like' || item.type === 'match';
+        // ユーザー由来の通知は丸アイコン（いいね / マッチング / 応募ステータス）
+        const isUserNotification =
+            item.type === 'like' ||
+            item.type === 'match' ||
+            item.type === 'application_status';
         
         return (
             <TouchableOpacity style={styles.itemContainer} onPress={() => handleNotificationPress(item)}>
@@ -132,13 +136,13 @@ export function NotificationsPage({ onBack, onNotificationsRead }: Notifications
                             source={{ uri: item.imageUrl }} 
                             style={[
                                 styles.iconImage, 
-                                isUserNotification && styles.iconImageRound
+                                (isUserNotification || true) && styles.iconImageRound
                             ]} 
                         />
                     ) : (
                         <View style={[
                             styles.placeholderIcon,
-                            isUserNotification && styles.iconImageRound
+                            (isUserNotification || true) && styles.iconImageRound
                         ]} />
                     )}
                 </View>
@@ -255,7 +259,7 @@ const styles = StyleSheet.create({
     iconImage: {
         width: 48,
         height: 48,
-        borderRadius: 8,
+        borderRadius: 24, // 丸型
         backgroundColor: '#eee',
     },
     iconImageRound: {
@@ -264,7 +268,7 @@ const styles = StyleSheet.create({
     placeholderIcon: {
         width: 48,
         height: 48,
-        borderRadius: 8,
+        borderRadius: 24, // 丸型
         backgroundColor: '#eee',
     },
     contentContainer: {

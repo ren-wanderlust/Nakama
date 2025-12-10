@@ -422,8 +422,9 @@ const styles = StyleSheet.create({
     avatar: {
         width: 100,
         height: 100,
-        borderRadius: 24,
+        borderRadius: 50, // fully round
         backgroundColor: '#F3F4F6',
+        overflow: 'hidden',
     },
     profileInfo: {
         flex: 1,

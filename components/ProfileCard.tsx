@@ -174,7 +174,8 @@ const styles = StyleSheet.create({
     avatar: {
         width: AVATAR.lg.size,
         height: AVATAR.lg.size,
-        borderRadius: AVATAR.lg.radius,
+        borderRadius: AVATAR.lg.size / 2, // make fully round
+        overflow: 'hidden',
         backgroundColor: COLORS.background.tertiary,
     },
     headerInfo: {
