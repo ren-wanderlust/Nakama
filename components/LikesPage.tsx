@@ -184,9 +184,11 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                     if (recruitingError) {
                         console.error('Error fetching recruiting applications:', recruitingError);
                     } else if (recruiting) {
-                        // Track unread applications
+                        // Track unread applications (pending only)
                         const unreadIds = new Set<string>(
-                            recruiting.filter((app: any) => !app.is_read).map((app: any) => app.id)
+                            recruiting
+                                .filter((app: any) => app.status === 'pending' && !app.is_read)
+                                .map((app: any) => app.id)
                         );
                         setUnreadRecruitingIds(unreadIds);
 
@@ -470,12 +472,12 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
 
         return (
             <View style={styles.recruitingCard}>
-                {/* Unread indicator */}
+                {/* Unread indicator (top-right) */}
                 {isUnread && (
                     <View style={styles.recruitingUnreadDot} />
                 )}
                 
-                {/* Profile confirm button - top right */}
+                {/* Profile confirm button - top right (slightly inset) */}
                 <TouchableOpacity 
                     style={styles.profileConfirmButton}
                     onPress={() => handleApplicantProfileSelect(item)}
@@ -640,9 +642,21 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
             );
         }
 
+        const pendingApps = recruitingApplications.filter(a => a.status === 'pending');
+
+        if (pendingApps.length === 0) {
+            return (
+                <View style={styles.emptyContainer}>
+                    <Ionicons name="people-outline" size={64} color="#d1d5db" />
+                    <Text style={styles.emptyText}>応募者はまだいません</Text>
+                    <Text style={styles.emptySubText}>プロジェクトを作成すると、応募者がここに表示されます</Text>
+                </View>
+            );
+        }
+
         return (
             <FlatList
-                data={recruitingApplications}
+                data={pendingApps}
                 renderItem={renderApplicantCard}
                 keyExtractor={(item) => item.id}
                 contentContainerStyle={styles.listContent}
@@ -1014,18 +1028,20 @@ const styles = StyleSheet.create({
     },
     recruitingUnreadDot: {
         position: 'absolute',
-        top: 12,
-        left: 12,
-        width: 10,
-        height: 10,
-        borderRadius: 5,
+        top: 10,
+        right: 10,
+        width: 12,
+        height: 12,
+        borderRadius: 6,
         backgroundColor: '#10B981',
         zIndex: 20,
+        borderWidth: 2,
+        borderColor: '#FFF9E6',
     },
     profileConfirmButton: {
         position: 'absolute',
         top: 12,
-        right: 12,
+        right: 22, // move further left to avoid overlap with unread dot
         zIndex: 10,
     },
     profileConfirmButtonText: {
