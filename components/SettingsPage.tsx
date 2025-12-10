@@ -246,8 +246,8 @@ export function SettingsPage({ onBack, onLogout }: SettingsPageProps) {
                     onPress={handleLogout}
                     activeOpacity={0.7}
                 >
-                    <Ionicons name="log-out-outline" size={20} color="#0d9488" />
-                    <Text style={[styles.logoutText, { color: '#0d9488' }]}>ログアウト</Text>
+                    <Ionicons name="log-out-outline" size={20} color="#EF4444" />
+                    <Text style={[styles.logoutText, { color: '#EF4444' }]}>ログアウト</Text>
                 </TouchableOpacity>
 
                 {/* Delete Account Button */}
