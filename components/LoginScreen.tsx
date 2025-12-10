@@ -59,12 +59,12 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
       {/* Background Image with Overlay */}
       <View style={styles.backgroundContainer}>
         <Image
-          source={{ uri: 'https://images.unsplash.com/photo-1563457025576-c949c4e3da06?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx5b3VuZyUyMGVudHJlcHJlbmV1cnMlMjBjb2xsYWJvcmF0aW9uJTIwbWVldGluZ3xlbnwxfHx8fDE3NjM1MzExMTN8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral' }}
+          source={{ uri: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=1080&q=80&fm=jpg&crop=entropy&cs=tinysrgb' }}
           style={styles.backgroundImage}
           resizeMode="cover"
         />
         <LinearGradient
-          colors={['rgba(0,0,0,0.5)', 'rgba(0,0,0,0.3)', 'rgba(0,0,0,0.7)']}
+          colors={['rgba(0, 0, 0, 0.3)', 'rgba(0, 0, 0, 0.5)', 'rgba(0, 0, 0, 0.7)']}
           style={styles.overlay}
         />
       </View>
@@ -73,43 +73,29 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
       <SafeAreaView style={styles.contentContainer}>
         <View style={styles.innerContainer}>
 
-          {/* Logo */}
+          {/* Logo - Centered at Top */}
           <View style={styles.logoContainer}>
             <View style={styles.logoWrapper}>
-              <LinearGradient
-                colors={['#14b8a6', '#2563eb']}
-                style={styles.logoIcon}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
-                <Text style={styles.logoText}>N</Text>
-              </LinearGradient>
-              <Text style={styles.appName}>Nakama</Text>
+              <View style={styles.logoIcon}>
+                <Text style={styles.logoText}>P</Text>
+              </View>
+              <Text style={styles.appName}>Pogg</Text>
             </View>
+            <Text style={styles.logoSubtitle}>共創のストーリーを見つける</Text>
           </View>
 
-          {/* Main Message */}
+          {/* Main Message - Centered */}
           <View style={styles.messageContainer}>
             <Text style={styles.title}>
-              あなたの挑戦の{'\n'}相棒を見つけよう
-            </Text>
-            <Text style={styles.subtitle}>
-              学生・若手のための共創マッチング
+              挑戦のために、{'\n'}仲間を
             </Text>
           </View>
 
           {/* Action Buttons */}
           <View style={styles.actionContainer}>
             {/* Create Account Button - Primary */}
-            <TouchableOpacity onPress={onCreateAccount} activeOpacity={0.8}>
-              <LinearGradient
-                colors={['#f97316', '#eab308']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.primaryButton}
-              >
-                <Text style={styles.primaryButtonText}>アカウントを作成</Text>
-              </LinearGradient>
+            <TouchableOpacity onPress={onCreateAccount} activeOpacity={0.8} style={styles.primaryButton}>
+              <Text style={styles.primaryButtonText}>アカウントを作成</Text>
             </TouchableOpacity>
 
             {/* Login Button - Secondary */}
@@ -120,11 +106,9 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
             {/* Terms */}
             <View style={styles.termsContainer}>
               <Text style={styles.termsText}>
-                続行することで、
-                <Text style={styles.linkText}>利用規約</Text>
-                および
-                <Text style={styles.linkText}>プライバシーポリシー</Text>
-                に同意したものとみなされます
+                登録を完了することで本利用規約に同意したものとみな{'\n'}されます。情報の取り扱いについては
+                <Text style={styles.linkText}>プライバシーポリ{'\n'}シー</Text>
+                をご覧ください。
               </Text>
             </View>
           </View>
@@ -208,7 +192,7 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#111827', // gray-900
+    backgroundColor: '#000000',
   },
   backgroundContainer: {
     ...StyleSheet.absoluteFillObject,
@@ -226,97 +210,111 @@ const styles = StyleSheet.create({
   innerContainer: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingVertical: 32,
+    paddingVertical: 40,
     justifyContent: 'space-between',
   },
   logoContainer: {
-    paddingTop: 16,
+    alignItems: 'center',
+    paddingTop: 20,
   },
   logoWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 12,
+    marginBottom: 8,
   },
   logoIcon: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     borderRadius: 12,
+    backgroundColor: '#FDB022',
     alignItems: 'center',
     justifyContent: 'center',
   },
   logoText: {
-    color: 'white',
-    fontSize: 20,
+    color: '#000000',
+    fontSize: 28,
     fontWeight: 'bold',
   },
   appName: {
-    color: 'white',
-    fontSize: 24,
+    color: '#FDB022',
+    fontSize: 32,
     fontWeight: 'bold',
+    letterSpacing: -0.5,
+  },
+  logoSubtitle: {
+    color: '#FDB022',
+    fontSize: 14,
+    fontWeight: '500',
+    letterSpacing: 0.5,
   },
   messageContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 20,
   },
   title: {
-    color: 'white',
-    fontSize: 36,
+    color: '#FDB022',
+    fontSize: 48,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: 16,
-    lineHeight: 44,
+    lineHeight: 56,
+    letterSpacing: -1,
   },
   subtitle: {
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontSize: 18,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 16,
     textAlign: 'center',
-    lineHeight: 28,
+    lineHeight: 24,
+    marginTop: 12,
   },
   actionContainer: {
-    gap: 12,
-    paddingBottom: 24,
+    gap: 16,
+    paddingBottom: 20,
   },
   primaryButton: {
     width: '100%',
-    paddingVertical: 16,
+    paddingVertical: 18,
     borderRadius: 9999,
     alignItems: 'center',
+    backgroundColor: '#FFFFFF',
     ...SHADOWS.lg,
   },
   primaryButtonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: '600',
+    color: '#000000',
+    fontSize: 17,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   secondaryButton: {
     width: '100%',
-    paddingVertical: 16,
+    paddingVertical: 18,
     borderRadius: 9999,
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'transparent',
     borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: 'rgba(255, 255, 255, 0.4)',
   },
   secondaryButtonText: {
-    color: 'white',
-    fontSize: 18,
+    color: '#FFFFFF',
+    fontSize: 17,
     fontWeight: '600',
+    letterSpacing: 0.5,
   },
   termsContainer: {
-    paddingTop: 8,
+    paddingTop: 12,
     alignItems: 'center',
   },
   termsText: {
-    color: 'rgba(255, 255, 255, 0.6)',
-    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.5)',
+    fontSize: 11,
     textAlign: 'center',
-    lineHeight: 18,
+    lineHeight: 16,
   },
   linkText: {
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: 'rgba(255, 255, 255, 0.8)',
     textDecorationLine: 'underline',
-    marginHorizontal: 4,
   },
   modalOverlay: {
     flex: 1,
@@ -371,12 +369,12 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   forgotPasswordText: {
-    color: '#009688',
+    color: '#FDB022',
     fontSize: 14,
     fontWeight: '500',
   },
   loginButton: {
-    backgroundColor: '#009688',
+    backgroundColor: '#FDB022',
     paddingVertical: 16,
     borderRadius: 8,
     alignItems: 'center',
@@ -386,7 +384,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#9CA3AF',
   },
   loginButtonText: {
-    color: 'white',
+    color: '#000000',
     fontSize: 16,
     fontWeight: 'bold',
   },
