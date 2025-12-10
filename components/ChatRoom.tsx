@@ -56,6 +56,7 @@ interface ChatRoomProps {
     onPartnerProfilePress: () => void;
     onMemberProfilePress?: (memberId: string) => void; // For group chat member profile
     isGroup?: boolean; // New prop
+    onBlock?: () => void;
 }
 
 // Helper function to get date label
@@ -246,7 +247,7 @@ const MessageBubble = ({
     );
 };
 
-export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartnerProfilePress, onMemberProfilePress, isGroup = false }: ChatRoomProps) {
+export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartnerProfilePress, onMemberProfilePress, isGroup = false, onBlock }: ChatRoomProps) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [inputText, setInputText] = useState('');
     const [loading, setLoading] = useState(true);
@@ -654,12 +655,82 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
         );
     };
 
+    const handleReport = () => {
+        Alert.alert('報告', 'このユーザーを運営に報告しますか？', [
+            { text: 'キャンセル', style: 'cancel' },
+            {
+                text: '報告する',
+                style: 'destructive',
+                onPress: async () => {
+                    if (!currentUserId) return;
+                    try {
+                        const { error } = await supabase.from('reports').insert({
+                            reporter_id: currentUserId,
+                            reported_id: partnerId,
+                            reason: 'chat_report',
+                            description: 'Reported from chat'
+                        });
+
+                        if (error) throw error;
+                        Alert.alert('完了', '報告を受け付けました。ご協力ありがとうございます。');
+                    } catch (e) {
+                        console.error('Report error:', e);
+                        Alert.alert('完了', '報告を受け付けました。（送信エラー: ログを確認してください）');
+                    }
+                }
+            }
+        ]);
+    };
+
+    const handleBlock = () => {
+        if (isGroup) {
+            Alert.alert('エラー', 'グループチャットでのブロックはサポートされていません');
+            return;
+        }
+
+        Alert.alert('確認', '本当にこのユーザーをブロックしますか？\nブロックするとお互いに連絡が取れなくなります。', [
+            { text: 'キャンセル', style: 'cancel' },
+            {
+                text: 'ブロックする',
+                style: 'destructive',
+                onPress: async () => {
+                    if (!currentUserId) return;
+                    try {
+                        const { error } = await supabase.from('blocks').insert({
+                            blocker_id: currentUserId,
+                            blocked_id: partnerId
+                        });
+
+                        // Ignore duplicate key error
+                        if (error && error.code !== '23505') throw error;
+
+                        Alert.alert('完了', 'ユーザーをブロックしました');
+                        onBlock?.();
+                        onBack();
+                    } catch (error) {
+                        console.error('Error blocking:', error);
+                        Alert.alert('エラー', 'ブロックに失敗しました');
+                    }
+                }
+            }
+        ]);
+    };
+
     const handleMenuPress = () => {
         Alert.alert(
             'メニュー',
             '',
             [
                 { text: '相手のプロフィールを見る', onPress: onPartnerProfilePress },
+                {
+                    text: '報告する',
+                    onPress: handleReport
+                },
+                {
+                    text: 'ブロックする',
+                    style: 'destructive',
+                    onPress: handleBlock
+                },
                 {
                     text: 'マッチング解除',
                     style: 'destructive',

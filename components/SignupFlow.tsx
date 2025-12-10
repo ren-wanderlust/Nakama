@@ -35,6 +35,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [passwordConfirm, setPasswordConfirm] = useState('');
+    const [isAgreed, setIsAgreed] = useState(false);
 
     // Step 2: Nickname
     const [nickname, setNickname] = useState('');
@@ -66,7 +67,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showEmailExistsModal, setShowEmailExistsModal] = useState(false);
     const [isCheckingEmail, setIsCheckingEmail] = useState(false);
-    
+
     // Step1で作成されたユーザーのIDを保持（step6でプロフィール作成に使用）
     const [createdUserId, setCreatedUserId] = useState<string | null>(null);
 
@@ -90,7 +91,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                 setIsLoadingUniversities(false);
             }
         };
-        
+
         loadUniversities();
     }, []);
 
@@ -105,7 +106,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
         const filtered = allUniversities.filter(uni => {
             return uni.toLowerCase().includes(searchTerm);
         });
-        
+
         setFilteredUniversities(filtered);
     }, [searchInput, allUniversities]);
 
@@ -114,6 +115,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
         email: false,
         password: false,
         passwordConfirm: false,
+        isAgreed: false,
         nickname: false,
         image: false,
         university: false,
@@ -191,7 +193,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
         // Supabaseと同様のメールアドレスフォーマット検証
         // RFC 5322に準拠した簡易的な正規表現
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        
+
         // より厳密な検証（Supabaseの検証に近い）
         // - ローカル部分（@の前）: 1文字以上、スペースなし
         // - ドメイン部分（@の後）: ドットを含む、TLD（トップレベルドメイン）が存在
@@ -199,47 +201,47 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
         if (!emailRegex.test(emailToValidate)) {
             return false;
         }
-        
+
         // 追加の検証
         const parts = emailToValidate.split('@');
         if (parts.length !== 2) {
             return false;
         }
-        
+
         const [localPart, domain] = parts;
-        
+
         // ローカル部分の検証
         if (localPart.length === 0 || localPart.length > 64) {
             return false;
         }
-        
+
         // ドメイン部分の検証
         if (domain.length === 0 || domain.length > 255) {
             return false;
         }
-        
+
         // ドメインにドットが含まれているか
         if (!domain.includes('.')) {
             return false;
         }
-        
+
         // ドメインの最後がドットでないか
         if (domain.endsWith('.')) {
             return false;
         }
-        
+
         // 連続するドットがないか
         if (domain.includes('..')) {
             return false;
         }
-        
+
         // TLD（最後の部分）が2文字以上か
         const domainParts = domain.split('.');
         const tld = domainParts[domainParts.length - 1];
         if (tld.length < 2) {
             return false;
         }
-        
+
         return true;
     };
 
@@ -274,6 +276,14 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
             if (!errorMessage) errorMessage = 'パスワードが一致しません。';
         } else {
             newErrors.passwordConfirm = false;
+        }
+
+        if (!isAgreed) {
+            newErrors.isAgreed = true;
+            isValid = false;
+            if (!errorMessage) errorMessage = '利用規約とプライバシーポリシーへの同意が必要です。';
+        } else {
+            newErrors.isAgreed = false;
         }
 
         setErrors(newErrors);
@@ -398,7 +408,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
         // Step6は任意入力なので、常にtrueを返す
         // ただし、20字以内のチェックは行う
         const newErrors = { ...errors };
-        
+
         if (bio.trim().length > 20) {
             newErrors.bio = true;
             Alert.alert('エラー', '一言アピールは20字以内で入力してください。');
@@ -416,11 +426,11 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
             if (validateStep1()) {
                 // Step1でサインアップを実行し、メールアドレスの重複チェックも行う
                 setIsCheckingEmail(true);
-                
+
                 try {
                     // 既存のセッションをクリア
                     await supabase.auth.signOut();
-                    
+
                     // SecureStoreから直接セッションを削除
                     if (Platform.OS !== 'web') {
                         try {
@@ -432,18 +442,18 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                             console.log('SecureStore削除エラー（無視可能）:', secureStoreError);
                         }
                     }
-                    
+
                     // サインアップを実行
                     const { data, error } = await supabase.auth.signUp({
                         email: email.trim(),
                         password: password,
                     });
-                    
+
                     setIsCheckingEmail(false);
-                    
+
                     if (error) {
                         const errorMessage = error.message?.toLowerCase() || '';
-                        
+
                         // 既に登録されている場合
                         if (
                             errorMessage.includes('already registered') ||
@@ -453,22 +463,22 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                             setShowEmailExistsModal(true);
                             return;
                         }
-                        
+
                         // その他のエラー
                         Alert.alert('エラー', error.message || '登録中にエラーが発生しました。');
                         return;
                     }
-                    
+
                     // signUpが成功した場合、identities配列をチェック
                     if (data?.user) {
                         const identities = data.user.identities || [];
-                        
+
                         if (identities.length === 0) {
                             // identitiesが空 = 既存ユーザー
                             setShowEmailExistsModal(true);
                             return;
                         }
-                        
+
                         // 新規ユーザーが作成された
                         setCreatedUserId(data.user.id);
                         setStep(2);
@@ -703,6 +713,21 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                     ]}
                 />
             </View>
+
+            <TouchableOpacity
+                style={styles.agreementContainer}
+                onPress={() => setIsAgreed(!isAgreed)}
+            >
+                <View style={[styles.checkbox, isAgreed && styles.checkboxChecked, errors.isAgreed && styles.checkboxError]}>
+                    {isAgreed && <Ionicons name="checkmark" size={16} color="white" />}
+                </View>
+                <Text style={styles.agreementText}>
+                    <Text style={styles.linkText} onPress={() => Alert.alert('利用規約', '不適切なコンテンツの投稿や迷惑行為は禁止されています。違反した場合、アカウント停止等の措置が取られます。')}>利用規約</Text>
+                    と
+                    <Text style={styles.linkText} onPress={() => Alert.alert('プライバシーポリシー', '収集された個人情報は本サービスの提供のみに使用されます。')}>プライバシーポリシー</Text>
+                    に同意します
+                </Text>
+            </TouchableOpacity>
         </View>
     );
 
@@ -715,8 +740,8 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
 
             {/* アイコン画像を上に配置 */}
             <View style={styles.imagePickerContainer}>
-                <TouchableOpacity 
-                    onPress={pickImage} 
+                <TouchableOpacity
+                    onPress={pickImage}
                     style={[
                         styles.imagePicker,
                         errors.image && styles.imagePickerError
@@ -831,7 +856,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                                 <Ionicons name="close" size={24} color="#374151" />
                             </TouchableOpacity>
                         </View>
-                        
+
                         <View style={styles.searchInputContainer}>
                             <TextInput
                                 value={searchInput}
@@ -878,14 +903,14 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                                         <TouchableOpacity
                                             key={`${uni}-${index}`}
                                             style={styles.modalOption}
-                                onPress={() => {
-                                    setUniversity(uni);
-                                    if (errors.university) {
-                                        setErrors({ ...errors, university: false });
-                                    }
-                                    setSearchInput('');
-                                    setShowUniversityModal(false);
-                                }}
+                                            onPress={() => {
+                                                setUniversity(uni);
+                                                if (errors.university) {
+                                                    setErrors({ ...errors, university: false });
+                                                }
+                                                setSearchInput('');
+                                                setShowUniversityModal(false);
+                                            }}
                                         >
                                             <Text style={styles.modalOptionText}>{uni}</Text>
                                             {university === uni && (
@@ -921,7 +946,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                                 <Ionicons name="close" size={24} color="#374151" />
                             </TouchableOpacity>
                         </View>
-                        
+
                         <ScrollView style={styles.universityList}>
                             {gradeOptions.map((option) => (
                                 <TouchableOpacity
@@ -1166,11 +1191,11 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                 >
                     <Ionicons name="arrow-back" size={24} color="#111827" />
                 </TouchableOpacity>
-                
+
                 <View style={styles.headerCenter}>
                     {renderProgressBar()}
                 </View>
-                
+
                 <TouchableOpacity
                     onPress={step === 6 ? handleComplete : handleNext}
                     activeOpacity={0.7}
@@ -1187,7 +1212,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                 </TouchableOpacity>
             </View>
 
-            <ScrollView 
+            <ScrollView
                 contentContainerStyle={styles.scrollContent}
                 keyboardShouldPersistTaps="handled"
                 keyboardDismissMode="none"
@@ -1204,41 +1229,41 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                 </TouchableWithoutFeedback>
             </ScrollView>
 
-                {/* Email Exists Modal */}
-                <Modal
-                    visible={showEmailExistsModal}
-                    transparent={true}
-                    animationType="fade"
-                    onRequestClose={() => setShowEmailExistsModal(false)}
-                >
-                    <View style={styles.modalOverlay}>
-                        <View style={styles.emailExistsModalContent}>
-                            <Text style={styles.emailExistsModalTitle}>
-                                すでに登録されています
-                            </Text>
-                            <Text style={styles.emailExistsModalMessage}>
-                                このメールアドレスは既に登録されています。
-                            </Text>
-                            <View style={styles.emailExistsModalButtons}>
-                                <TouchableOpacity
-                                    onPress={() => setShowEmailExistsModal(false)}
-                                    style={[styles.emailExistsModalButton, styles.emailExistsModalButtonClose]}
-                                >
-                                    <Text style={styles.emailExistsModalButtonCloseText}>閉じる</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    onPress={() => {
-                                        setShowEmailExistsModal(false);
-                                        onCancel();
-                                    }}
-                                    style={[styles.emailExistsModalButton, styles.emailExistsModalButtonLogin]}
-                                >
-                                    <Text style={styles.emailExistsModalButtonLoginText}>ログインへ</Text>
-                                </TouchableOpacity>
-                            </View>
+            {/* Email Exists Modal */}
+            <Modal
+                visible={showEmailExistsModal}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setShowEmailExistsModal(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.emailExistsModalContent}>
+                        <Text style={styles.emailExistsModalTitle}>
+                            すでに登録されています
+                        </Text>
+                        <Text style={styles.emailExistsModalMessage}>
+                            このメールアドレスは既に登録されています。
+                        </Text>
+                        <View style={styles.emailExistsModalButtons}>
+                            <TouchableOpacity
+                                onPress={() => setShowEmailExistsModal(false)}
+                                style={[styles.emailExistsModalButton, styles.emailExistsModalButtonClose]}
+                            >
+                                <Text style={styles.emailExistsModalButtonCloseText}>閉じる</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                onPress={() => {
+                                    setShowEmailExistsModal(false);
+                                    onCancel();
+                                }}
+                                style={[styles.emailExistsModalButton, styles.emailExistsModalButtonLogin]}
+                            >
+                                <Text style={styles.emailExistsModalButtonLoginText}>ログインへ</Text>
+                            </TouchableOpacity>
                         </View>
                     </View>
-                </Modal>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -1322,22 +1347,6 @@ const styles = StyleSheet.create({
     },
     nextButtonHeader: {
         paddingVertical: 8,
-        paddingHorizontal: 12,
-        minWidth: 60,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    nextButtonText: {
-        color: '#FF8C00',
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    imagePickerContainer: {
-        alignItems: 'center',
-        marginTop: 20,
-        marginBottom: 20,
-    },
-    imagePicker: {
         width: 160,
         height: 160,
         borderRadius: 80,
@@ -1609,5 +1618,77 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
         color: '#ffffff',
+    },
+    agreementContainer: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        marginTop: 16,
+        paddingHorizontal: 4,
+    },
+    checkbox: {
+        width: 22,
+        height: 22,
+        borderRadius: 6,
+        borderWidth: 2,
+        borderColor: '#D1D5DB',
+        marginRight: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 1,
+    },
+    checkboxChecked: {
+        backgroundColor: '#009688',
+        borderColor: '#009688',
+    },
+    checkboxError: {
+        borderColor: '#EF4444',
+    },
+    agreementText: {
+        flex: 1,
+        fontSize: 13,
+        color: '#4B5563',
+        lineHeight: 20,
+    },
+    linkText: {
+        color: '#009688',
+        fontWeight: '600',
+    },
+    imagePickerContainer: {
+        alignItems: 'center',
+        marginTop: 20,
+        marginBottom: 20,
+    },
+    imagePicker: {
+        width: 160,
+        height: 160,
+        borderRadius: 80,
+        backgroundColor: '#f9fafb',
+        overflow: 'hidden',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: '#e5e7eb',
+    },
+    imagePickerError: {
+        borderColor: '#ef4444',
+        borderWidth: 2,
+    },
+    profileImage: {
+        width: '100%',
+        height: '100%',
+    },
+    imagePlaceholder: {
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    imagePlaceholderText: {
+        fontSize: 14,
+        color: '#6b7280',
+        marginTop: 8,
+    },
+    nextButtonText: {
+        color: '#FF8C00',
+        fontSize: 16,
+        fontWeight: '600',
     },
 });
