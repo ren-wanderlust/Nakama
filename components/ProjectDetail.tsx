@@ -132,6 +132,24 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
 
         setApplying(true);
         try {
+            // Check current application count (pending + approved applications)
+            const { count, error: countError } = await supabase
+                .from('project_applications')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', currentUser.id)
+                .in('status', ['pending', 'approved']);
+
+            if (countError) throw countError;
+
+            if (count !== null && count >= 5) {
+                Alert.alert(
+                    '応募制限',
+                    '同時に応募できるプロジェクトは最大5つまでです。\n\n既存の応募がステータス更新されるか、プロジェクトから退出してから新たに応募してください。'
+                );
+                setApplying(false);
+                return;
+            }
+
             // Create application record
             const { error: appError } = await supabase
                 .from('project_applications')
