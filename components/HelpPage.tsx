@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { TermsOfServicePage } from './TermsOfServicePage';
 import { TokushohoPage } from './TokushohoPage';
 import { ContactPage } from './ContactPage';
+import { PrivacyPolicyPage } from './PrivacyPolicyPage';
 
 if (Platform.OS === 'android') {
     if (UIManager.setLayoutAnimationEnabledExperimental) {
@@ -74,7 +75,7 @@ const AccordionItem = ({ item }: { item: FAQItem }) => {
     );
 };
 
-type SubPageType = 'terms' | 'tokushoho' | 'contact' | null;
+type SubPageType = 'terms' | 'privacy' | 'tokushoho' | 'contact' | null;
 
 export function HelpPage({ onBack }: HelpPageProps) {
     const [activeSubPage, setActiveSubPage] = useState<SubPageType>(null);
@@ -83,6 +84,8 @@ export function HelpPage({ onBack }: HelpPageProps) {
         switch (activeSubPage) {
             case 'terms':
                 return <TermsOfServicePage onBack={() => setActiveSubPage(null)} />;
+            case 'privacy':
+                return <PrivacyPolicyPage onBack={() => setActiveSubPage(null)} />;
             case 'tokushoho':
                 return <TokushohoPage onBack={() => setActiveSubPage(null)} />;
             case 'contact':
@@ -120,6 +123,11 @@ export function HelpPage({ onBack }: HelpPageProps) {
                 <View style={styles.linksSection}>
                     <TouchableOpacity style={styles.linkRow} onPress={() => setActiveSubPage('terms')}>
                         <Text style={styles.linkText}>利用規約</Text>
+                        <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                    </TouchableOpacity>
+                    <View style={styles.separator} />
+                    <TouchableOpacity style={styles.linkRow} onPress={() => setActiveSubPage('privacy')}>
+                        <Text style={styles.linkText}>プライバシーポリシー</Text>
                         <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
                     </TouchableOpacity>
                     <View style={styles.separator} />
