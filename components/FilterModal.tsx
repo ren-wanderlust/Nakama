@@ -756,15 +756,16 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     chip: {
+        position: 'relative',
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#F3F4F6',
-        paddingHorizontal: 14,
+        paddingLeft: 14,
+        paddingRight: 28,  // Space for checkmark icon
         paddingVertical: 10,
         borderRadius: 24,
         borderWidth: 1.5,
         borderColor: '#E5E7EB',
-        gap: 6,
     },
     chipSelected: {
         backgroundColor: '#E0F2F1',
@@ -783,13 +784,14 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     chipCheckmark: {
+        position: 'absolute',
+        right: 6,
         width: 18,
         height: 18,
         borderRadius: 9,
         backgroundColor: '#009688',
         alignItems: 'center',
         justifyContent: 'center',
-        marginLeft: 2,
     },
     footer: {
         position: 'absolute',
