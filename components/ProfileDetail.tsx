@@ -276,17 +276,22 @@ export function ProfileDetail({ profile, onBack, onLike, onChat, isLiked, onBloc
 
             </ScrollView >
 
-            {/* Footer Action Button - Hidden for matched profiles */}
-            {!isMatched && (
-                <View style={styles.footer}>
+            {/* Footer Action Button */}
+            <View style={styles.footer}>
+                {isMatched ? (
+                    <HapticTouchable style={styles.chatButton} onPress={onChat} hapticType="medium">
+                        <Ionicons name="chatbubble" size={20} color="white" />
+                        <Text style={styles.chatButtonText}>メッセージを送る</Text>
+                    </HapticTouchable>
+                ) : (
                     <AnimatedLikeButton
                         isLiked={isLiked}
                         onPress={onLike}
                         showLabel={true}
                         style={{ width: '100%' }}
                     />
-                </View>
-            )}
+                )}
+            </View>
 
             {/* Report Modal */}
             <Modal
@@ -570,6 +575,30 @@ const styles = StyleSheet.create({
         shadowColor: "#DB2777",
     },
     likeButtonText: {
+        color: 'white',
+        fontSize: 18,
+        fontWeight: 'bold',
+        letterSpacing: 0.5,
+    },
+    chatButton: {
+        backgroundColor: '#009688',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 16,
+        borderRadius: 100,
+        width: '100%',
+        gap: 8,
+        shadowColor: "#009688",
+        shadowOffset: {
+            width: 0,
+            height: 4,
+        },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 6,
+    },
+    chatButtonText: {
         color: 'white',
         fontSize: 18,
         fontWeight: 'bold',
