@@ -2,6 +2,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { StyleSheet, Text, View, FlatList, TouchableOpacity, Platform, ActivityIndicator, Modal, UIManager, LayoutAnimation, Dimensions } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import * as SecureStore from 'expo-secure-store';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LoginScreen } from './components/LoginScreen';
@@ -96,6 +97,7 @@ function AppContent() {
   const [refreshing, setRefreshing] = useState(false);
   const [showCreateProjectModal, setShowCreateProjectModal] = useState(false);
   const [matchedProfile, setMatchedProfile] = useState<Profile | null>(null);
+  const [pendingMatches, setPendingMatches] = useState<Profile[]>([]); // Queue of unviewed matches
   const [pendingAppsCount, setPendingAppsCount] = useState(0);
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
   const [unreadLikesCount, setUnreadLikesCount] = useState(0);
@@ -240,6 +242,85 @@ function AppContent() {
       setMatchedProfileIds(matches);
     } catch (error) {
       console.error('Error fetching matches:', error);
+    }
+  };
+
+  // Check for unviewed matches on app launch/resume
+  const checkUnviewedMatches = async () => {
+    if (!session?.user) return;
+
+    try {
+      // Get stored viewed matches
+      const viewedMatchesStr = await SecureStore.getItemAsync(`viewed_matches_${session.user.id}`);
+      const viewedMatches = viewedMatchesStr ? JSON.parse(viewedMatchesStr) : [];
+
+      // Get current matches
+      const { data: myLikes } = await supabase
+        .from('likes')
+        .select('receiver_id, created_at')
+        .eq('sender_id', session.user.id);
+
+      const { data: receivedLikes } = await supabase
+        .from('likes')
+        .select('sender_id, created_at')
+        .eq('receiver_id', session.user.id);
+
+      const myLikedIdsMap = new Map(myLikes?.map(l => [l.receiver_id, l.created_at]) || []);
+
+      // Find new matches that haven't been viewed
+      const newMatches: string[] = [];
+      receivedLikes?.forEach(l => {
+        if (myLikedIdsMap.has(l.sender_id) && !viewedMatches.includes(l.sender_id)) {
+          newMatches.push(l.sender_id);
+        }
+      });
+
+      // Fetch ALL unviewed matches
+      if (newMatches.length > 0) {
+        const matchProfiles: Profile[] = [];
+
+        for (const matchId of newMatches) {
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', matchId)
+            .single();
+
+          if (profileData) {
+            matchProfiles.push({
+              id: profileData.id,
+              name: profileData.name,
+              age: profileData.age,
+              location: profileData.location || '',
+              university: profileData.university,
+              company: profileData.company,
+              grade: profileData.grade || '',
+              image: profileData.image,
+              challengeTheme: profileData.challenge_theme || '',
+              theme: profileData.theme || '',
+              bio: profileData.bio,
+              skills: profileData.skills || [],
+              seekingFor: profileData.seeking_for || [],
+              seekingRoles: profileData.seeking_roles || [],
+              statusTags: profileData.status_tags || [],
+              isStudent: profileData.is_student,
+              createdAt: profileData.created_at,
+            });
+          }
+        }
+
+        // Add all matches to the pending queue
+        if (matchProfiles.length > 0) {
+          setPendingMatches(matchProfiles);
+
+          // Show the first match immediately
+          setTimeout(() => {
+            setMatchedProfile(matchProfiles[0]);
+          }, 500);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking unviewed matches:', error);
     }
   };
 
@@ -654,6 +735,12 @@ function AppContent() {
       fetchProfiles();
       fetchMatches();
 
+      // Check for unviewed matches after fetching matches
+      // Use slight delay to ensure matchedProfileIds is updated first
+      setTimeout(() => {
+        checkUnviewedMatches();
+      }, 1000);
+
       // Reset to default tab when user logs in (session changes from null to user)
       if (!prevSession.current?.user && session?.user) {
         setActiveTab('search');
@@ -717,6 +804,22 @@ function AppContent() {
               isStudent: senderProfile.is_student,
               createdAt: senderProfile.created_at,
             };
+
+            // Mark this match as viewed
+            try {
+              const viewedMatchesStr = await SecureStore.getItemAsync(`viewed_matches_${session.user.id}`);
+              const viewedMatches = viewedMatchesStr ? JSON.parse(viewedMatchesStr) : [];
+              if (!viewedMatches.includes(senderId)) {
+                viewedMatches.push(senderId);
+                await SecureStore.setItemAsync(
+                  `viewed_matches_${session.user.id}`,
+                  JSON.stringify(viewedMatches)
+                );
+              }
+            } catch (error) {
+              console.error('Error saving viewed match:', error);
+            }
+
             setMatchedProfile(profile);
           }
         }
@@ -949,6 +1052,21 @@ function AppContent() {
           if (matchedUser) {
             // Close any open profile modal first
             setSelectedProfile(null);
+
+            // Mark this match as viewed
+            try {
+              const viewedMatchesStr = await SecureStore.getItemAsync(`viewed_matches_${session.user.id}`);
+              const viewedMatches = viewedMatchesStr ? JSON.parse(viewedMatchesStr) : [];
+              if (!viewedMatches.includes(profileId)) {
+                viewedMatches.push(profileId);
+                await SecureStore.setItemAsync(
+                  `viewed_matches_${session.user.id}`,
+                  JSON.stringify(viewedMatches)
+                );
+              }
+            } catch (error) {
+              console.error('Error saving viewed match:', error);
+            }
 
             // Show match modal with slight delay
             const matchedUserCopy = { ...matchedUser };
@@ -1666,7 +1784,39 @@ function AppContent() {
       <MatchingModal
         visible={!!matchedProfile}
         profile={matchedProfile}
-        onClose={() => setMatchedProfile(null)}
+        onClose={async () => {
+          if (matchedProfile && session?.user) {
+            // Mark this match as viewed
+            try {
+              const viewedMatchesStr = await SecureStore.getItemAsync(`viewed_matches_${session.user.id}`);
+              const viewedMatches = viewedMatchesStr ? JSON.parse(viewedMatchesStr) : [];
+              if (!viewedMatches.includes(matchedProfile.id)) {
+                viewedMatches.push(matchedProfile.id);
+                await SecureStore.setItemAsync(
+                  `viewed_matches_${session.user.id}`,
+                  JSON.stringify(viewedMatches)
+                );
+              }
+            } catch (error) {
+              console.error('Error saving viewed match:', error);
+            }
+
+            // Check if there are more pending matches to show
+            const remainingMatches = pendingMatches.filter(p => p.id !== matchedProfile.id);
+            setPendingMatches(remainingMatches);
+
+            if (remainingMatches.length > 0) {
+              // Show next match after a brief delay
+              setTimeout(() => {
+                setMatchedProfile(remainingMatches[0]);
+              }, 300);
+            } else {
+              setMatchedProfile(null);
+            }
+          } else {
+            setMatchedProfile(null);
+          }
+        }}
         onChat={() => {
           if (matchedProfile) {
             setActiveChatRoom({
@@ -1675,6 +1825,7 @@ function AppContent() {
               partnerImage: matchedProfile.image,
             });
             setMatchedProfile(null);
+            setPendingMatches([]); // Clear queue when going to chat
           }
         }}
       />
