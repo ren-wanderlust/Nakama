@@ -40,7 +40,7 @@ const ProjectCard = ({ project, ownerProfile, onPress }: { project: any; ownerPr
             {project.pendingCount > 0 && (
                 <View style={projectCardStyles.notificationBadge}>
                     <Text style={projectCardStyles.notificationText}>
-                        申請 {project.pendingCount}件
+                        {project.pendingCount}
                     </Text>
                 </View>
             )}
@@ -225,38 +225,37 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
     const renderHeader = () => (
         <View style={styles.header}>
             <View style={styles.headerLeft} />
-            <View style={styles.headerRight}>
-                <HapticTouchable onPress={() => setIsMenuVisible(true)} hapticType="light">
-                    <Ionicons name="menu-outline" size={32} color="black" />
-                </HapticTouchable>
-            </View>
+            <View style={styles.headerRight} />
         </View>
     );
 
     const renderProfileCard = () => (
         <View style={styles.profileCard}>
-            <View style={styles.profileImageWrapper}>
+            <View style={styles.profileRow}>
                 <Image
                     source={{ uri: profile.image }}
                     style={styles.profileImage}
                 />
+                <View style={styles.profileTextColumn}>
+                    <Text style={styles.profileName}>{profile.name}</Text>
+                    <View style={styles.universityContainer}>
+                        <Ionicons name="school-outline" size={16} color="#6B7280" style={{ marginRight: 4 }} />
+                        <Text style={styles.profileUniversity}>
+                            {profile.university}
+                            {profile.grade ? ` / ${profile.grade}` : ''}
+                        </Text>
+                    </View>
+                    <View style={styles.editRow}>
+                        <HapticTouchable style={styles.editButton} onPress={onEditProfile} hapticType="light">
+                            <Ionicons name="pencil-outline" size={16} color="#009688" />
+                            <Text style={styles.editButtonText}>プロフィールを編集</Text>
+                        </HapticTouchable>
+                        <HapticTouchable style={styles.settingsButton} onPress={() => setIsMenuVisible(true)} hapticType="light">
+                            <Ionicons name="settings-outline" size={18} color="#374151" />
+                        </HapticTouchable>
+                    </View>
+                </View>
             </View>
-            <Text style={styles.profileName}>{profile.name}</Text>
-
-            {/* 大学名と学年を分かりやすく表示 */}
-            <View style={styles.universityContainer}>
-                <Ionicons name="school-outline" size={16} color="#6B7280" style={{ marginRight: 4 }} />
-                <Text style={styles.profileUniversity}>
-                    {profile.university}
-                    {profile.grade ? ` / ${profile.grade}` : ''}
-                </Text>
-            </View>
-
-            {profile.bio && <Text style={styles.profileBio}>{profile.bio}</Text>}
-            <HapticTouchable style={styles.editButton} onPress={onEditProfile} hapticType="light">
-                <Ionicons name="pencil-outline" size={16} color="#009688" />
-                <Text style={styles.editButtonText}>プロフィールを編集</Text>
-            </HapticTouchable>
         </View>
     );
 
@@ -459,62 +458,73 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     profileCard: {
-        alignItems: 'center',
-        paddingVertical: 24,
+        paddingVertical: 20,
         paddingHorizontal: 16,
         marginHorizontal: 16,
-        marginBottom: 16,
+        marginBottom: 12,
+        marginTop: 4, // move slightly upward on screen
         backgroundColor: '#FAFAFA',
         borderRadius: 16,
     },
-    profileImageWrapper: {
-        marginBottom: 12,
+    profileRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
     },
     profileImage: {
         width: 90,
         height: 90,
         borderRadius: 45,
-        borderWidth: 3,
-        borderColor: '#009688',
+        // 枠線なし
+    },
+    profileTextColumn: {
+        flex: 1,
+        gap: 6,
     },
     profileName: {
         fontSize: 20,
         fontWeight: 'bold',
         color: '#1F2937',
-        marginBottom: 4,
     },
     universityContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 8,
     },
     profileUniversity: {
         fontSize: 14,
         color: '#6B7280',
     },
-    profileBio: {
-        fontSize: 14,
-        color: '#4B5563',
-        lineHeight: 20,
-        textAlign: 'center',
-        marginBottom: 16,
-        paddingHorizontal: 12,
+    editRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginTop: 4,
     },
     editButton: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: 'white',
-        paddingVertical: 10,
-        paddingHorizontal: 20,
-        borderRadius: 24,
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+        borderRadius: 14,
         borderWidth: 1,
         borderColor: '#009688',
-        gap: 6,
+        gap: 4,
     },
     editButtonText: {
-        fontSize: 14,
+        fontSize: 12,
         fontWeight: '600',
         color: '#009688',
+    },
+    settingsButton: {
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        borderRadius: 18, // やや楕円形（横長）
+        borderWidth: 1,
+        borderColor: '#111827', // 少し濃い目の枠線
+        backgroundColor: '#FFFFFF',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     tabsContainer: {
         flexDirection: 'row',
@@ -646,7 +656,7 @@ const projectCardStyles = StyleSheet.create({
         marginBottom: 6,
     },
     cardTitle: {
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: 'bold',
         color: '#111827',
         flex: 1,
@@ -702,18 +712,23 @@ const projectCardStyles = StyleSheet.create({
     },
     notificationBadge: {
         position: 'absolute',
-        top: 8,
+        top: '50%',
         right: 8,
+        transform: [{ translateY: -10 }],
         backgroundColor: '#EF4444',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 12,
+        minWidth: 20,
+        height: 20,
+        borderRadius: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 6,
         zIndex: 10,
     },
     notificationText: {
         color: 'white',
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: 'bold',
+        textAlign: 'center',
     },
     participatingBadge: {
         position: 'absolute',
