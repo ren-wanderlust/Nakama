@@ -805,6 +805,42 @@ function AppContent() {
     }
   };
 
+  const handleBlockUser = (userId: string) => {
+    console.log('Blocking user:', userId);
+
+    // UI反映: リストから削除
+    setDisplayProfiles(prev => prev.filter(p => p.id !== userId));
+
+    // いいねリストからも削除
+    if (likedProfiles.has(userId)) {
+      setLikedProfiles((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(userId);
+        return newSet;
+      });
+    }
+
+    // マッチングからも削除
+    if (matchedProfileIds.has(userId)) {
+      setMatchedProfileIds((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(userId);
+        return newSet;
+      });
+    }
+
+    // 現在開いているプロフィールやチャットを閉じる
+    if (selectedProfile?.id === userId) {
+      setSelectedProfile(null);
+    }
+    if (activeChatRoom?.partnerId === userId) {
+      setActiveChatRoom(null);
+    }
+    if (matchedProfile?.id === userId) {
+      setMatchedProfile(null);
+    }
+  };
+
   const handleSaveProfile = async (updatedProfile: Profile) => {
     if (!session?.user) return;
 
@@ -1175,6 +1211,7 @@ function AppContent() {
                   profile={selectedProfile}
                   onBack={() => setSelectedProfile(null)}
                   onLike={() => handleLike(selectedProfile.id)}
+                  onBlock={() => handleBlockUser(selectedProfile.id)}
                   onChat={() => {
                     // Already in chat context, just close the profile
                     setSelectedProfile(null);
@@ -1188,6 +1225,7 @@ function AppContent() {
                   partnerImage={activeChatRoom.partnerImage}
                   isGroup={activeChatRoom.isGroup}
                   onBack={() => setActiveChatRoom(null)}
+                  onBlock={() => handleBlockUser(activeChatRoom.partnerId)}
                   onPartnerProfilePress={() => {
                     const partner = displayProfiles.find(p => p.name === activeChatRoom.partnerName);
                     if (partner) {
@@ -1276,6 +1314,7 @@ function AppContent() {
               profile={selectedProfile}
               onBack={() => setSelectedProfile(null)}
               onLike={() => handleLike(selectedProfile.id)}
+              onBlock={() => handleBlockUser(selectedProfile.id)}
               onChat={() => {
                 setSelectedProfile(null);  // Close profile first
                 setActiveChatRoom({

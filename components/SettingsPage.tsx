@@ -99,6 +99,58 @@ export function SettingsPage({ onBack, onLogout }: SettingsPageProps) {
         }
     };
 
+    const handleDeleteAccount = () => {
+        Alert.alert(
+            "アカウント削除",
+            "アカウントを削除すると、メッセージやプロフィールなど全てのデータが完全に削除され、復元することはできません。\n\n本当に削除しますか？",
+            [
+                { text: "キャンセル", style: "cancel" },
+                {
+                    text: "削除する",
+                    style: "destructive",
+                    onPress: () => {
+                        // Double confirmation
+                        Alert.alert(
+                            "最終確認",
+                            "本当に削除してよろしいですか？この操作は取り消せません。",
+                            [
+                                { text: "キャンセル", style: "cancel" },
+                                {
+                                    text: "完全に削除する",
+                                    style: "destructive",
+                                    onPress: performAccountDeletion
+                                }
+                            ]
+                        );
+                    }
+                }
+            ]
+        );
+    };
+
+    const performAccountDeletion = async () => {
+        try {
+            // Call the RPC function we defined
+            const { error } = await supabase.rpc('delete_own_account');
+
+            if (error) throw error;
+
+            Alert.alert(
+                "削除完了",
+                "アカウントが削除されました。",
+                [{
+                    text: "OK",
+                    onPress: () => {
+                        if (onLogout) onLogout();
+                    }
+                }]
+            );
+        } catch (error: any) {
+            console.error('Account deletion error:', error);
+            Alert.alert('エラー', 'アカウントの削除に失敗しました。お問い合わせください。');
+        }
+    };
+
 
     return (
         <SafeAreaView style={styles.container}>
@@ -194,8 +246,18 @@ export function SettingsPage({ onBack, onLogout }: SettingsPageProps) {
                     onPress={handleLogout}
                     activeOpacity={0.7}
                 >
-                    <Ionicons name="log-out-outline" size={20} color="#EF4444" />
-                    <Text style={styles.logoutText}>ログアウト</Text>
+                    <Ionicons name="log-out-outline" size={20} color="#0d9488" />
+                    <Text style={[styles.logoutText, { color: '#0d9488' }]}>ログアウト</Text>
+                </TouchableOpacity>
+
+                {/* Delete Account Button */}
+                <TouchableOpacity
+                    style={[styles.logoutButton, { borderColor: '#FEE2E2', marginTop: 16 }]}
+                    onPress={handleDeleteAccount}
+                    activeOpacity={0.7}
+                >
+                    <Ionicons name="trash-outline" size={20} color="#EF4444" />
+                    <Text style={[styles.logoutText, { color: '#EF4444' }]}>アカウントを削除（退会）</Text>
                 </TouchableOpacity>
 
                 {/* App Version */}

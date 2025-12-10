@@ -40,12 +40,13 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "permissions": [
-        "RECEIVE_BOOT_COMPLETED",
-        "VIBRATE",
-        "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
-        "RECORD_AUDIO"
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.VIBRATE",
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
@@ -71,10 +72,10 @@
       "expo-secure-store"
     ],
     "extra": {
+      "router": {},
       "eas": {
-        "projectId": "your-project-id-here"
+        "projectId": "4f21de29-29b9-469d-9822-8071a0584367"
       }
-    },
-    "owner": "your-expo-username"
+    }
   }
 }
