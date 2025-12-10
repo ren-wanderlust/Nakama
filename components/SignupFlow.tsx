@@ -409,9 +409,9 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
         // ただし、20字以内のチェックは行う
         const newErrors = { ...errors };
 
-        if (bio.trim().length > 20) {
+        if (bio.trim().length > 100) {
             newErrors.bio = true;
-            Alert.alert('エラー', '一言アピールは20字以内で入力してください。');
+            Alert.alert('エラー', '自己紹介は100字以内で入力してください。');
             return false;
         } else {
             newErrors.bio = false;
@@ -1133,11 +1133,11 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
 
     const renderStep6 = () => {
         const characterCount = bio.length;
-        const maxLength = 20;
+        const maxLength = 100;
 
         return (
             <View style={styles.stepContainer}>
-                <Text style={styles.stepTitle}>一言アピール</Text>
+                <Text style={styles.stepTitle}>自己紹介</Text>
                 <Text style={styles.stepSubtitle}>
                     あなたの魅力を最大限に伝えるメッセージを入力してください
                 </Text>

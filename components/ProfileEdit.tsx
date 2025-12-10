@@ -228,7 +228,7 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
 
     const isFormValid = name.trim().length > 0 && university.trim().length > 0;
     const bioLength = bio.length;
-    const maxBioLength = 20;
+    const maxBioLength = 100;
 
     return (
         <SafeAreaView style={styles.container}>
@@ -348,7 +348,7 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
                                     <View style={[styles.cardIconContainer, { backgroundColor: '#FEF3C7' }]}>
                                         <Ionicons name="chatbubble" size={18} color="#F59E0B" />
                                     </View>
-                                    <Text style={styles.cardTitle}>一言アピール</Text>
+                                    <Text style={styles.cardTitle}>自己紹介</Text>
                                     <View style={styles.optionalBadge}>
                                         <Text style={styles.optionalText}>任意</Text>
                                     </View>
