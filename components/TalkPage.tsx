@@ -80,6 +80,14 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
         };
     }, []);
 
+    // Unread totals
+    const teamUnreadTotal = chatRooms
+        .filter(room => room.type === 'group')
+        .reduce((sum, room) => sum + (room.unreadCount || 0), 0);
+    const individualUnreadTotal = chatRooms
+        .filter(room => room.type === 'individual')
+        .reduce((sum, room) => sum + (room.unreadCount || 0), 0);
+
     const fetchChatRooms = async () => {
         try {
             const { data: { user } } = await supabase.auth.getUser();
@@ -418,10 +426,24 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
                 <View style={styles.header}>
                     <View style={styles.tabContainer}>
                         <TouchableOpacity style={[styles.tabButton, styles.tabButtonActive]}>
-                            <Text style={[styles.tabText, styles.tabTextActive]}>チーム</Text>
+                            <View style={styles.tabLabelRow}>
+                                <Text style={[styles.tabText, styles.tabTextActive]}>チーム</Text>
+                                {teamUnreadTotal > 0 && (
+                                    <View style={styles.tabBadge}>
+                                        <Text style={styles.tabBadgeText}>{teamUnreadTotal}</Text>
+                                    </View>
+                                )}
+                            </View>
                         </TouchableOpacity>
                         <TouchableOpacity style={styles.tabButton}>
-                            <Text style={styles.tabText}>個人</Text>
+                            <View style={styles.tabLabelRow}>
+                                <Text style={styles.tabText}>個人</Text>
+                                {individualUnreadTotal > 0 && (
+                                    <View style={styles.tabBadge}>
+                                        <Text style={styles.tabBadgeText}>{individualUnreadTotal}</Text>
+                                    </View>
+                                )}
+                            </View>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -442,7 +464,14 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
                             talkListRef.current?.scrollToIndex({ index: 0, animated: true });
                         }}
                     >
-                        <Text style={[styles.tabText, talkTab === 'team' && styles.tabTextActive]}>チーム</Text>
+                        <View style={styles.tabLabelRow}>
+                            <Text style={[styles.tabText, talkTab === 'team' && styles.tabTextActive]}>チーム</Text>
+                            {teamUnreadTotal > 0 && (
+                                <View style={styles.tabBadge}>
+                                    <Text style={styles.tabBadgeText}>{teamUnreadTotal}</Text>
+                                </View>
+                            )}
+                        </View>
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={[styles.tabButton, talkTab === 'individual' && styles.tabButtonActive]}
@@ -451,7 +480,14 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
                             talkListRef.current?.scrollToIndex({ index: 1, animated: true });
                         }}
                     >
-                        <Text style={[styles.tabText, talkTab === 'individual' && styles.tabTextActive]}>個人</Text>
+                        <View style={styles.tabLabelRow}>
+                            <Text style={[styles.tabText, talkTab === 'individual' && styles.tabTextActive]}>個人</Text>
+                            {individualUnreadTotal > 0 && (
+                                <View style={styles.tabBadge}>
+                                    <Text style={styles.tabBadgeText}>{individualUnreadTotal}</Text>
+                                </View>
+                            )}
+                        </View>
                     </TouchableOpacity>
                 </View>
             </View>
@@ -526,6 +562,25 @@ const styles = StyleSheet.create({
     },
     tabTextActive: {
         color: '#FF5252',
+    },
+    tabLabelRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    tabBadge: {
+        backgroundColor: '#FF7F11',
+        height: 18,
+        minWidth: 18,
+        borderRadius: 9,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 4,
+    },
+    tabBadgeText: {
+        color: 'white',
+        fontSize: 10,
+        fontWeight: 'bold',
     },
     listContent: {
         paddingBottom: 20,
