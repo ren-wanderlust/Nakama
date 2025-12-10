@@ -1155,7 +1155,7 @@ function AppContent() {
                       searchListRef.current?.scrollToIndex({ index: 1, animated: true });
                     }}
                   >
-                    <Text style={[styles.tabText, searchTab === 'users' && styles.tabTextActive]}>さがす</Text>
+                    <Text style={[styles.tabText, searchTab === 'users' && styles.tabTextActive]}>ユーザー</Text>
                   </TouchableOpacity>
                 </View>
                 <View style={{ flex: 1, alignItems: 'flex-end' }}>

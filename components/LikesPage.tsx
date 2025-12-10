@@ -49,7 +49,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
     const { session } = useAuth();
     
     // Top level tab: Project or User
-    const [mainTab, setMainTab] = useState<'project' | 'user'>('user');
+    const [mainTab, setMainTab] = useState<'project' | 'user'>('project');
     
     // User sub-tabs
     const [userTab, setUserTab] = useState<'received' | 'sent' | 'matched'>('received');
@@ -622,14 +622,14 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
         <View style={styles.container}>
             {/* Main Tab Header */}
             <View style={styles.header}>
-                {/* Top Level Tabs: Project / User */}
+                {/* Top Level Tabs: プロジェクト / ユーザー */}
                 <View style={styles.mainTabContainer}>
                     <TouchableOpacity
                         style={[styles.mainTabButton, mainTab === 'project' && styles.mainTabButtonActive]}
                         onPress={() => setMainTab('project')}
                     >
                         <Text style={[styles.mainTabText, mainTab === 'project' && styles.mainTabTextActive]}>
-                            Project
+                            プロジェクト
                         </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -637,7 +637,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                         onPress={() => setMainTab('user')}
                     >
                         <Text style={[styles.mainTabText, mainTab === 'user' && styles.mainTabTextActive]}>
-                            User
+                            ユーザー
                         </Text>
                     </TouchableOpacity>
                 </View>
