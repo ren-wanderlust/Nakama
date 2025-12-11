@@ -218,7 +218,7 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
 
     const menuItems: MenuItem[] = [
         { id: 'notifications', icon: 'notifications-outline', label: 'お知らせ' },
-        { id: 'tutorial', icon: 'book-outline', label: 'チュートリアル', color: '#009688' },
+        { id: 'tutorial', icon: 'book-outline', label: 'チュートリアル' },
         { id: 'settings', icon: 'settings-outline', label: '各種設定' },
         { id: 'help', icon: 'help-circle-outline', label: 'ヘルプ・ガイドライン' },
         { id: 'logout', icon: 'log-out-outline', label: 'ログアウト', color: '#EF4444' },
