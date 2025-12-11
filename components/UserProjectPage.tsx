@@ -60,7 +60,7 @@ const ProjectCard = ({ project, onPress }: { project: Project; onPress: () => vo
                             </View>
                         ) : null}
                     </View>
-                    <Text style={styles.cardDescription} numberOfLines={3}>{project.description}</Text>
+                    <Text style={styles.cardDescription} numberOfLines={4}>{project.description}</Text>
 
                     {((project.required_roles && project.required_roles.length > 0) || (project.tags && project.tags.length > 0)) && (
                         <View style={styles.cardTags}>

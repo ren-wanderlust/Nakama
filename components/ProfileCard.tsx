@@ -30,7 +30,7 @@ export function ProfileCard({ profile, isLiked, onLike, onSelect, hideHeartButto
         if (animateOnLike && !isLiked && !tempLiked) {
             // Step 1: Show red heart immediately
             setTempLiked(true);
-            
+
             // Step 2: Wait to show the red heart, then fade out
             setTimeout(() => {
                 Animated.parallel([
@@ -75,57 +75,57 @@ export function ProfileCard({ profile, isLiked, onLike, onSelect, hideHeartButto
                     </View>
                 )}
 
-            {/* New Match Badge - Top Right */}
-            {isNewMatch && (
-                <View style={styles.newMatchBadge}>
-                    <View style={styles.newMatchDot} />
-                </View>
-            )}
-
-            {/* Header: Avatar + Name */}
-            <View style={styles.header}>
-                <Image
-                    source={{ uri: profile.image }}
-                    style={styles.avatar}
-                />
-                <View style={styles.headerInfo}>
-                    <Text style={styles.name} numberOfLines={1}>{profile.name}</Text>
-                </View>
-            </View>
-
-            {/* University & Grade - Below Header */}
-            <View style={styles.universityContainer}>
-                <Ionicons name="school" size={13} color="#0d9488" />
-                <Text style={styles.universityText} numberOfLines={1}>
-                    {profile.university || profile.company || '所属なし'}
-                    {profile.grade ? ` / ${profile.grade}` : ''}
-                </Text>
-            </View>
-
-            {/* Bio/Theme - Main Content */}
-            <View style={styles.mainContent}>
-                <Text style={styles.bioText} numberOfLines={3}>
-                    {profile.bio || profile.theme || profile.challengeTheme || ''}
-                </Text>
-            </View>
-
-            {/* Skills - Bottom */}
-            <View style={styles.skillsContainer}>
-                {profile.skills.slice(0, 2).map((skill, index) => {
-                    const translatedSkill = translateTag(skill);
-                    const tagColor = TAG_COLORS[translatedSkill] || { bg: '#F5F5F5', text: '#666666' };
-                    return (
-                        <View key={index} style={[styles.skillTag, { backgroundColor: tagColor.bg }]}>
-                            <Text style={[styles.skillText, { color: tagColor.text }]} numberOfLines={1}># {translatedSkill}</Text>
-                        </View>
-                    );
-                })}
-                {profile.skills.length > 2 && (
-                    <View style={styles.moreSkillsTag}>
-                        <Text style={styles.moreSkillsText}>+{profile.skills.length - 2}</Text>
+                {/* New Match Badge - Top Right */}
+                {isNewMatch && (
+                    <View style={styles.newMatchBadge}>
+                        <View style={styles.newMatchDot} />
                     </View>
                 )}
-            </View>
+
+                {/* Header: Avatar + Name */}
+                <View style={styles.header}>
+                    <Image
+                        source={{ uri: profile.image }}
+                        style={styles.avatar}
+                    />
+                    <View style={styles.headerInfo}>
+                        <Text style={styles.name} numberOfLines={1}>{profile.name}</Text>
+                    </View>
+                </View>
+
+                {/* University & Grade - Below Header */}
+                <View style={styles.universityContainer}>
+                    <Ionicons name="school" size={13} color="#0d9488" />
+                    <Text style={styles.universityText} numberOfLines={1}>
+                        {profile.university || profile.company || '所属なし'}
+                        {profile.grade ? ` / ${profile.grade}` : ''}
+                    </Text>
+                </View>
+
+                {/* Bio/Theme - Main Content */}
+                <View style={styles.mainContent}>
+                    <Text style={styles.bioText} numberOfLines={3}>
+                        {profile.bio || profile.theme || profile.challengeTheme || ''}
+                    </Text>
+                </View>
+
+                {/* Skills - Bottom */}
+                <View style={styles.skillsContainer}>
+                    {profile.skills.slice(0, 2).map((skill, index) => {
+                        const translatedSkill = translateTag(skill);
+                        const tagColor = TAG_COLORS[translatedSkill] || { bg: '#F5F5F5', text: '#666666' };
+                        return (
+                            <View key={index} style={[styles.skillTag, { backgroundColor: tagColor.bg }]}>
+                                <Text style={[styles.skillText, { color: tagColor.text }]} numberOfLines={1}># {translatedSkill}</Text>
+                            </View>
+                        );
+                    })}
+                    {profile.skills.length > 2 && (
+                        <View style={styles.moreSkillsTag}>
+                            <Text style={styles.moreSkillsText}>+{profile.skills.length - 2}</Text>
+                        </View>
+                    )}
+                </View>
             </TouchableOpacity>
         </Animated.View>
     );
