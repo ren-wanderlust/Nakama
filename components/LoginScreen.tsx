@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Image, Dimensions, SafeAreaView, Alert, Modal, TextInput, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, ActivityIndicator, Linking, ScrollView } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, Image, Dimensions, SafeAreaView, Alert, Modal, TextInput, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, ActivityIndicator, Linking, ScrollView, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +19,125 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // アニメーション用の値
+  const gradientAnimation = useRef(new Animated.Value(0)).current;
+  const scaleAnimation = useRef(new Animated.Value(1)).current;
+  const rotateAnimation = useRef(new Animated.Value(0)).current;
+  const particleAnimations = useRef(
+    Array.from({ length: 20 }, () => ({
+      translateY: new Animated.Value(0),
+      translateX: new Animated.Value(0),
+      opacity: new Animated.Value(Math.random() * 0.6 + 0.4),
+      scale: new Animated.Value(Math.random() * 1 + 0.8),
+    }))
+  ).current;
+
+  useEffect(() => {
+    // グラデーションの移動アニメーション（より速く、より顕著に）
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(gradientAnimation, {
+          toValue: 1,
+          duration: 4000, // 8000から4000に短縮
+          useNativeDriver: true,
+        }),
+        Animated.timing(gradientAnimation, {
+          toValue: 0,
+          duration: 4000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+
+    // 背景の回転アニメーション
+    Animated.loop(
+      Animated.timing(rotateAnimation, {
+        toValue: 1,
+        duration: 30000,
+        useNativeDriver: true,
+      })
+    ).start();
+
+    // 背景画像のズームアニメーション（より速く、より大きく）
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(scaleAnimation, {
+          toValue: 1.15, // 1.1から1.15に拡大
+          duration: 12000, // 20000から12000に短縮
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnimation, {
+          toValue: 1,
+          duration: 12000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+
+    // パーティクルのアニメーション（より速く、より大きな動き）
+    particleAnimations.forEach((particle, index) => {
+      const startDelay = index * 400; // 800から400に短縮
+      const duration = 5000 + Math.random() * 3000; // より速く
+      const yDistance = -height - 150;
+      const xSway = (Math.random() - 0.5) * 200; // 100から200に拡大
+
+      // 初期遅延の後、無限ループ
+      setTimeout(() => {
+        Animated.loop(
+          Animated.sequence([
+            // 上昇するアニメーション
+            Animated.parallel([
+              Animated.timing(particle.translateY, {
+                toValue: yDistance,
+                duration: duration,
+                useNativeDriver: true,
+              }),
+              Animated.sequence([
+                Animated.timing(particle.translateX, {
+                  toValue: xSway,
+                  duration: duration / 2,
+                  useNativeDriver: true,
+                }),
+                Animated.timing(particle.translateX, {
+                  toValue: -xSway,
+                  duration: duration / 2,
+                  useNativeDriver: true,
+                }),
+              ]),
+            ]),
+            // 瞬時にリセット（開始位置に戻す）
+            Animated.timing(particle.translateY, {
+              toValue: 0,
+              duration: 0,
+              useNativeDriver: true,
+            }),
+            Animated.timing(particle.translateX, {
+              toValue: 0,
+              duration: 0,
+              useNativeDriver: true,
+            }),
+          ])
+        ).start();
+      }, startDelay);
+
+      // 透明度のアニメーション（独立してループ）
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(particle.opacity, {
+            toValue: 1,
+            duration: 1500,
+            useNativeDriver: true,
+          }),
+          Animated.timing(particle.opacity, {
+            toValue: 0.3,
+            duration: 1500,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    });
+  }, []);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -60,21 +179,94 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
 
       {/* Background with Gradient and Network Pattern */}
       <View style={styles.backgroundContainer}>
-        <Image
+        {/* アニメーションする背景画像 */}
+        <Animated.Image
           source={{ uri: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=1080&q=80&fm=jpg&crop=entropy&cs=tinysrgb' }}
-          style={styles.backgroundImage}
+          style={[
+            styles.backgroundImage,
+            {
+              transform: [
+                { scale: scaleAnimation },
+                {
+                  rotate: rotateAnimation.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['0deg', '2deg'],
+                  }),
+                },
+              ],
+            },
+          ]}
           resizeMode="cover"
         />
-        {/* Modern Gradient Overlay */}
-        <LinearGradient
-          colors={[
-            'rgba(15, 23, 42, 0.75)',
-            'rgba(30, 58, 138, 0.85)',
-            'rgba(15, 23, 42, 0.95)'
+
+        {/* 動的グラデーションオーバーレイ1 */}
+        <Animated.View
+          style={[
+            styles.overlay,
+            {
+              opacity: gradientAnimation.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0.7, 0.95],
+              }),
+            },
           ]}
-          locations={[0, 0.5, 1]}
-          style={styles.overlay}
-        />
+        >
+          <LinearGradient
+            colors={[
+              'rgba(15, 23, 42, 0.6)',
+              'rgba(30, 58, 138, 0.8)',
+              'rgba(15, 23, 42, 0.9)'
+            ]}
+            locations={[0, 0.5, 1]}
+            style={StyleSheet.absoluteFillObject}
+          />
+        </Animated.View>
+
+        {/* 動的グラデーションオーバーレイ2（反対方向） */}
+        <Animated.View
+          style={[
+            styles.overlay,
+            {
+              opacity: gradientAnimation.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0.3, 0.1],
+              }),
+            },
+          ]}
+        >
+          <LinearGradient
+            colors={[
+              'rgba(59, 130, 246, 0.4)',
+              'rgba(147, 51, 234, 0.3)',
+              'rgba(236, 72, 153, 0.2)'
+            ]}
+            locations={[0, 0.5, 1]}
+            style={StyleSheet.absoluteFillObject}
+          />
+        </Animated.View>
+
+        {/* 浮遊するパーティクルエフェクト */}
+        <View style={styles.particlesContainer}>
+          {particleAnimations.map((particle, index) => (
+            <Animated.View
+              key={index}
+              style={[
+                styles.particle,
+                {
+                  left: `${(index * 5) % 100}%`,
+                  top: height,
+                  transform: [
+                    { translateY: particle.translateY },
+                    { translateX: particle.translateX },
+                    { scale: particle.scale },
+                  ],
+                  opacity: particle.opacity,
+                },
+              ]}
+            />
+          ))}
+        </View>
+
         {/* Network Pattern Overlay */}
         <View style={styles.networkPatternContainer}>
           <Image
@@ -307,6 +499,22 @@ const styles = StyleSheet.create({
   networkPattern: {
     width: '100%',
     height: '100%',
+  },
+  particlesContainer: {
+    ...StyleSheet.absoluteFillObject,
+    overflow: 'hidden',
+  },
+  particle: {
+    position: 'absolute',
+    width: 8, // 4から8に拡大
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#FFD700', // より鮮やかなゴールド
+    shadowColor: '#FFD700',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 10, // 4から10に拡大
+    elevation: 8,
   },
   contentContainer: {
     flex: 1,
