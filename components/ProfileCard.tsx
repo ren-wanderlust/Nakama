@@ -6,6 +6,35 @@ import { AnimatedHeartButton } from './AnimatedLikeButton';
 import { RADIUS, COLORS, SHADOWS, SPACING, AVATAR } from '../constants/DesignSystem';
 import { TAG_COLORS, translateTag, getStatusTagStyle as getTagStyle } from '../constants/TagConstants';
 
+// Role ID to Japanese label mapping
+const ROLE_ID_TO_LABEL: { [key: string]: string } = {
+    'engineer': 'エンジニア',
+    'designer': 'デザイナー',
+    'marketer': 'マーケター',
+    'ideaman': 'アイディアマン',
+    'creator': 'クリエイター',
+};
+
+// Role to icon mapping (matching UserProjectPage)
+const ROLE_ICONS: { [key: string]: string } = {
+    'エンジニア': 'code-slash',
+    'デザイナー': 'color-palette',
+    'マーケター': 'megaphone',
+    'アイディアマン': 'bulb',
+    'クリエイター': 'videocam',
+    '誰でも': 'people',
+};
+
+// Role to color mapping
+const ROLE_COLORS: { [key: string]: { bg: string; icon: string } } = {
+    'エンジニア': { bg: '#E3F2FD', icon: '#1976D2' },      // Blue
+    'デザイナー': { bg: '#F3E5F5', icon: '#7B1FA2' },    // Purple
+    'マーケター': { bg: '#FFF3E0', icon: '#E65100' },    // Orange
+    'アイディアマン': { bg: '#FFF9C4', icon: '#F57F17' }, // Yellow
+    'クリエイター': { bg: '#FCE4EC', icon: '#C2185B' },  // Pink
+    '誰でも': { bg: '#E8F5E9', icon: '#388E3C' },        // Green
+};
+
 interface ProfileCardProps {
     profile: Profile;
     isLiked: boolean;
@@ -57,6 +86,118 @@ export function ProfileCard({ profile, isLiked, onLike, onSelect, hideHeartButto
     // Use tempLiked or actual isLiked for display
     const displayLiked = isLiked || tempLiked;
 
+    // Get roles with icons and colors, limit to 4
+    // Map role IDs (engineer, designer, etc.) to Japanese labels
+    const rolesWithIcons = profile.skills
+        ?.slice(0, 4)
+        .map(roleId => {
+            const roleLabel = ROLE_ID_TO_LABEL[roleId] || roleId; // Use label if mapping exists, otherwise use as-is
+            return {
+                role: roleLabel,
+                icon: ROLE_ICONS[roleLabel] || 'help-circle-outline',
+                colors: ROLE_COLORS[roleLabel] || { bg: '#F3F4F6', icon: '#6B7280' }
+            };
+        })
+        .filter(item => item.icon !== 'help-circle-outline') || []; // Filter out unmapped roles
+
+    const iconCount = rolesWithIcons.length;
+
+    // Determine layout based on icon count (same as ProjectCard)
+    const getIconLayout = () => {
+        if (iconCount === 0) {
+            return null;
+        } else if (iconCount === 1) {
+            // Single icon in center (larger size)
+            return (
+                <View style={styles.iconsContainer}>
+                    <View style={styles.iconSlotCenter}>
+                        <View style={[styles.iconCircleLarge, { backgroundColor: rolesWithIcons[0].colors.bg }]}>
+                            <Ionicons
+                                name={rolesWithIcons[0].icon as any}
+                                size={20}
+                                color={rolesWithIcons[0].colors.icon}
+                            />
+                        </View>
+                    </View>
+                </View>
+            );
+        } else if (iconCount === 2) {
+            // Two icons side by side, centered vertically
+            return (
+                <View style={styles.iconsContainer}>
+                    <View style={styles.iconSlotTwo}>
+                        <View style={[styles.iconCircle, { backgroundColor: rolesWithIcons[0].colors.bg }]}>
+                            <Ionicons
+                                name={rolesWithIcons[0].icon as any}
+                                size={16}
+                                color={rolesWithIcons[0].colors.icon}
+                            />
+                        </View>
+                    </View>
+                    <View style={styles.iconSlotTwo}>
+                        <View style={[styles.iconCircle, { backgroundColor: rolesWithIcons[1].colors.bg }]}>
+                            <Ionicons
+                                name={rolesWithIcons[1].icon as any}
+                                size={16}
+                                color={rolesWithIcons[1].colors.icon}
+                            />
+                        </View>
+                    </View>
+                </View>
+            );
+        } else if (iconCount === 3) {
+            // Top two, bottom one centered
+            return (
+                <View style={styles.iconsContainer}>
+                    <View style={styles.iconSlotTop}>
+                        <View style={[styles.iconCircle, { backgroundColor: rolesWithIcons[0].colors.bg }]}>
+                            <Ionicons
+                                name={rolesWithIcons[0].icon as any}
+                                size={16}
+                                color={rolesWithIcons[0].colors.icon}
+                            />
+                        </View>
+                    </View>
+                    <View style={styles.iconSlotTop}>
+                        <View style={[styles.iconCircle, { backgroundColor: rolesWithIcons[1].colors.bg }]}>
+                            <Ionicons
+                                name={rolesWithIcons[1].icon as any}
+                                size={16}
+                                color={rolesWithIcons[1].colors.icon}
+                            />
+                        </View>
+                    </View>
+                    <View style={styles.iconSlotBottomCenter}>
+                        <View style={[styles.iconCircle, { backgroundColor: rolesWithIcons[2].colors.bg }]}>
+                            <Ionicons
+                                name={rolesWithIcons[2].icon as any}
+                                size={16}
+                                color={rolesWithIcons[2].colors.icon}
+                            />
+                        </View>
+                    </View>
+                </View>
+            );
+        } else {
+            // Four icons in 2x2 grid
+            return (
+                <View style={styles.iconsContainer}>
+                    {rolesWithIcons.map((item, i) => (
+                        <View key={`icon-${i}`} style={styles.iconSlotGrid}>
+                            <View style={[styles.iconCircle, { backgroundColor: item.colors.bg }]}>
+                                <Ionicons
+                                    name={item.icon as any}
+                                    size={16}
+                                    color={item.colors.icon}
+                                />
+                            </View>
+                        </View>
+                    ))}
+                </View>
+            );
+        }
+    };
+
     return (
         <Animated.View style={{ transform: [{ scale: scaleAnim }], opacity: opacityAnim }}>
             <TouchableOpacity
@@ -82,20 +223,23 @@ export function ProfileCard({ profile, isLiked, onLike, onSelect, hideHeartButto
                     </View>
                 )}
 
-                {/* Header: Avatar + Name */}
+                {/* Header: Avatar + Role Icons */}
                 <View style={styles.header}>
                     <Image
                         source={{ uri: profile.image }}
                         style={styles.avatar}
                     />
-                    <View style={styles.headerInfo}>
-                        <Text style={styles.name} numberOfLines={1}>{profile.name}</Text>
-                    </View>
+                    {getIconLayout()}
                 </View>
 
-                {/* University & Grade - Below Header */}
+                {/* User Name - Below Avatar */}
+                <View style={styles.nameContainer}>
+                    <Text style={styles.name} numberOfLines={1}>{profile.name}</Text>
+                </View>
+
+                {/* University & Grade */}
                 <View style={styles.universityContainer}>
-                    <Ionicons name="school" size={13} color="#0d9488" />
+                    <Ionicons name="school" size={11} color="#0d9488" />
                     <Text style={styles.universityText} numberOfLines={1}>
                         {profile.university || profile.company || '所属なし'}
                         {profile.grade ? ` / ${profile.grade}` : ''}
@@ -108,24 +252,6 @@ export function ProfileCard({ profile, isLiked, onLike, onSelect, hideHeartButto
                         {profile.bio || profile.theme || profile.challengeTheme || ''}
                     </Text>
                 </View>
-
-                {/* Skills - Bottom */}
-                <View style={styles.skillsContainer}>
-                    {profile.skills.slice(0, 2).map((skill, index) => {
-                        const translatedSkill = translateTag(skill);
-                        const tagColor = TAG_COLORS[translatedSkill] || { bg: '#F5F5F5', text: '#666666' };
-                        return (
-                            <View key={index} style={[styles.skillTag, { backgroundColor: tagColor.bg }]}>
-                                <Text style={[styles.skillText, { color: tagColor.text }]} numberOfLines={1}># {translatedSkill}</Text>
-                            </View>
-                        );
-                    })}
-                    {profile.skills.length > 2 && (
-                        <View style={styles.moreSkillsTag}>
-                            <Text style={styles.moreSkillsText}>+{profile.skills.length - 2}</Text>
-                        </View>
-                    )}
-                </View>
             </TouchableOpacity>
         </Animated.View>
     );
@@ -134,7 +260,7 @@ export function ProfileCard({ profile, isLiked, onLike, onSelect, hideHeartButto
 const styles = StyleSheet.create({
     cardContainer: {
         width: CARD_WIDTH,
-        height: 240,
+        height: 200, // Further reduced for 3 lines of bio without extra padding
         backgroundColor: COLORS.background.primary,
         borderRadius: RADIUS.lg,
         padding: SPACING.lg,
@@ -166,21 +292,71 @@ const styles = StyleSheet.create({
     },
     header: {
         flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: SPACING.md,
-        gap: SPACING.md,
+        alignItems: 'flex-start',
+        marginBottom: SPACING.sm,
+        gap: SPACING.sm,
         paddingRight: 32,  // Space for like button
     },
     avatar: {
-        width: AVATAR.lg.size,
-        height: AVATAR.lg.size,
-        borderRadius: AVATAR.lg.size / 2, // make fully round
+        width: 56, // Increased from AVATAR.lg.size (48)
+        height: 56, // Increased from AVATAR.lg.size (48)
+        borderRadius: 28, // Half of 56
         overflow: 'hidden',
         backgroundColor: COLORS.background.tertiary,
     },
-    headerInfo: {
-        flex: 1,
+    iconsContainer: {
+        width: 48,
+        height: 48,
+        borderRadius: 10,
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+    },
+    iconSlotCenter: {
+        width: '100%',
+        height: '100%',
+        alignItems: 'center',
         justifyContent: 'center',
+    },
+    iconSlotTwo: {
+        width: '50%',
+        height: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    iconSlotTop: {
+        width: '50%',
+        height: '50%',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    iconSlotBottomCenter: {
+        width: '100%',
+        height: '50%',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    iconSlotGrid: {
+        width: '50%',
+        height: '50%',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    iconCircle: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    iconCircleLarge: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    nameContainer: {
+        marginBottom: SPACING.xs,
     },
     statusBadge: {
         alignSelf: 'flex-start',
@@ -203,18 +379,17 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
-        marginBottom: 8,
+        marginBottom: SPACING.sm,
         paddingRight: 8,
     },
     universityText: {
-        fontSize: 12,
+        fontSize: 10,
         fontWeight: '600',
         color: '#0d9488',
         flex: 1,
     },
     mainContent: {
         flex: 1,
-        marginBottom: 8,
     },
     bioText: {
         fontSize: 12,
