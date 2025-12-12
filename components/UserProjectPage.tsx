@@ -71,7 +71,7 @@ const ProjectCard = ({ project, onPress }: { project: Project; onPress: () => vo
 
     return (
         <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.85}>
-            <View style={[styles.cardInner, { backgroundColor: gradientColors[0] }]}>
+            <View style={styles.cardInner}>
                 {/* Emoji Icon */}
                 <View style={styles.emojiContainer}>
                     <Text style={styles.emojiText}>{emoji}</Text>
@@ -83,16 +83,11 @@ const ProjectCard = ({ project, onPress }: { project: Project; onPress: () => vo
                     <Text style={styles.cardTitle} numberOfLines={2}>{project.title}</Text>
 
                     {/* Tags */}
-                    {((project.required_roles && project.required_roles.length > 0) || (project.tags && project.tags.length > 0)) && (
+                    {project.required_roles && project.required_roles.length > 0 && (
                         <View style={styles.cardTags}>
-                            {project.required_roles?.slice(0, 2).map((role, i) => (
+                            {project.required_roles.slice(0, 2).map((role, i) => (
                                 <View key={`role-${i}`} style={styles.miniRoleTag}>
                                     <Text style={styles.miniRoleTagText}>{translateTag(role)}</Text>
-                                </View>
-                            ))}
-                            {project.tags?.slice(0, 1).map((tag, i) => (
-                                <View key={`tag-${i}`} style={styles.miniThemeTag}>
-                                    <Text style={styles.miniThemeTagText}>#{translateTag(tag)}</Text>
                                 </View>
                             ))}
                         </View>
@@ -355,12 +350,13 @@ const styles = StyleSheet.create({
         padding: 16,
         alignItems: 'flex-start',
         borderRadius: 16,
+        backgroundColor: 'white',
     },
     emojiContainer: {
         width: 52,
         height: 52,
         borderRadius: 12,
-        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+        backgroundColor: '#F3F4F6',
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: 14,
@@ -381,7 +377,7 @@ const styles = StyleSheet.create({
     cardTitle: {
         fontSize: 16,
         fontWeight: 'bold',
-        color: '#FFFFFF',
+        color: '#111827',
         lineHeight: 22,
         marginBottom: 8,
     },
@@ -423,14 +419,14 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     miniThemeTag: {
-        backgroundColor: 'rgba(255, 255, 255, 0.12)',
+        backgroundColor: '#F3F4F6',
         paddingHorizontal: 10,
         paddingVertical: 4,
         borderRadius: 10,
     },
     miniThemeTagText: {
         fontSize: 11,
-        color: 'rgba(255, 255, 255, 0.7)',
+        color: '#6B7280',
     },
     authorRow: {
         flexDirection: 'row',
@@ -442,18 +438,18 @@ const styles = StyleSheet.create({
         height: 22,
         borderRadius: 11,
         marginRight: 8,
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        backgroundColor: '#F3F4F6',
     },
     authorName: {
         fontSize: 12,
-        color: 'rgba(255, 255, 255, 0.8)',
+        color: '#111827',
         fontWeight: '500',
         marginRight: 8,
         maxWidth: 100,
     },
     timeAgo: {
         fontSize: 11,
-        color: 'rgba(255, 255, 255, 0.5)',
+        color: '#6B7280',
         marginRight: 'auto',
     },
     emptyContainer: {
