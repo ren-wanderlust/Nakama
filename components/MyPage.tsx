@@ -29,12 +29,137 @@ interface MenuItem {
 
 const { width } = Dimensions.get('window');
 
+// Role to icon mapping (matching UserProjectPage)
+const ROLE_ICONS: { [key: string]: string } = {
+    'エンジニア': 'code-slash',
+    'デザイナー': 'color-palette',
+    'マーケター': 'megaphone',
+    'アイディアマン': 'bulb',
+    '誰でも': 'people',
+};
+
+// Role to color mapping
+const ROLE_COLORS: { [key: string]: { bg: string; icon: string } } = {
+    'エンジニア': { bg: '#E3F2FD', icon: '#1976D2' },      // Blue
+    'デザイナー': { bg: '#F3E5F5', icon: '#7B1FA2' },    // Purple
+    'マーケター': { bg: '#FFF3E0', icon: '#E65100' },    // Orange
+    'アイディアマン': { bg: '#FFF9C4', icon: '#F57F17' }, // Yellow
+    '誰でも': { bg: '#E8F5E9', icon: '#388E3C' },        // Green
+};
+
 // UserProjectPageと同じProjectCardコンポーネント（自分のプロジェクト用）
 const ProjectCard = ({ project, ownerProfile, onPress }: { project: any; ownerProfile: Profile; onPress: () => void }) => {
     const deadlineDate = project.deadline ? new Date(project.deadline) : null;
     const deadlineString = deadlineDate
         ? `${deadlineDate.getMonth() + 1}/${deadlineDate.getDate()}まで`
         : '';
+
+    // Get roles with icons and colors, limit to 4
+    const rolesWithIcons = project.required_roles
+        ?.slice(0, 4)
+        .map(role => ({
+            role,
+            icon: ROLE_ICONS[role] || 'help-circle-outline',
+            colors: ROLE_COLORS[role] || { bg: '#F3F4F6', icon: '#6B7280' }
+        })) || [];
+
+    const iconCount = rolesWithIcons.length;
+
+    // Determine layout based on icon count (same as UserProjectPage)
+    const getIconLayout = () => {
+        if (iconCount === 0) {
+            return null;
+        } else if (iconCount === 1) {
+            // Single icon in center (larger size)
+            return (
+                <View style={projectCardStyles.iconsContainer}>
+                    <View style={projectCardStyles.iconSlotCenter}>
+                        <View style={[projectCardStyles.iconCircleLarge, { backgroundColor: rolesWithIcons[0].colors.bg }]}>
+                            <Ionicons
+                                name={rolesWithIcons[0].icon as any}
+                                size={30}
+                                color={rolesWithIcons[0].colors.icon}
+                            />
+                        </View>
+                    </View>
+                </View>
+            );
+        } else if (iconCount === 2) {
+            // Two icons side by side, centered vertically
+            return (
+                <View style={projectCardStyles.iconsContainer}>
+                    <View style={projectCardStyles.iconSlotTwo}>
+                        <View style={[projectCardStyles.iconCircle, { backgroundColor: rolesWithIcons[0].colors.bg }]}>
+                            <Ionicons
+                                name={rolesWithIcons[0].icon as any}
+                                size={20}
+                                color={rolesWithIcons[0].colors.icon}
+                            />
+                        </View>
+                    </View>
+                    <View style={projectCardStyles.iconSlotTwo}>
+                        <View style={[projectCardStyles.iconCircle, { backgroundColor: rolesWithIcons[1].colors.bg }]}>
+                            <Ionicons
+                                name={rolesWithIcons[1].icon as any}
+                                size={20}
+                                color={rolesWithIcons[1].colors.icon}
+                            />
+                        </View>
+                    </View>
+                </View>
+            );
+        } else if (iconCount === 3) {
+            // Top two, bottom one centered
+            return (
+                <View style={projectCardStyles.iconsContainer}>
+                    <View style={projectCardStyles.iconSlotTop}>
+                        <View style={[projectCardStyles.iconCircle, { backgroundColor: rolesWithIcons[0].colors.bg }]}>
+                            <Ionicons
+                                name={rolesWithIcons[0].icon as any}
+                                size={20}
+                                color={rolesWithIcons[0].colors.icon}
+                            />
+                        </View>
+                    </View>
+                    <View style={projectCardStyles.iconSlotTop}>
+                        <View style={[projectCardStyles.iconCircle, { backgroundColor: rolesWithIcons[1].colors.bg }]}>
+                            <Ionicons
+                                name={rolesWithIcons[1].icon as any}
+                                size={20}
+                                color={rolesWithIcons[1].colors.icon}
+                            />
+                        </View>
+                    </View>
+                    <View style={projectCardStyles.iconSlotBottomCenter}>
+                        <View style={[projectCardStyles.iconCircle, { backgroundColor: rolesWithIcons[2].colors.bg }]}>
+                            <Ionicons
+                                name={rolesWithIcons[2].icon as any}
+                                size={20}
+                                color={rolesWithIcons[2].colors.icon}
+                            />
+                        </View>
+                    </View>
+                </View>
+            );
+        } else {
+            // Four icons in 2x2 grid
+            return (
+                <View style={projectCardStyles.iconsContainer}>
+                    {rolesWithIcons.map((item, i) => (
+                        <View key={`icon-${i}`} style={projectCardStyles.iconSlotGrid}>
+                            <View style={[projectCardStyles.iconCircle, { backgroundColor: item.colors.bg }]}>
+                                <Ionicons
+                                    name={item.icon as any}
+                                    size={20}
+                                    color={item.colors.icon}
+                                />
+                            </View>
+                        </View>
+                    ))}
+                </View>
+            );
+        }
+    };
 
     return (
         <TouchableOpacity style={projectCardStyles.card} onPress={onPress} activeOpacity={0.7}>
@@ -46,10 +171,8 @@ const ProjectCard = ({ project, ownerProfile, onPress }: { project: any; ownerPr
                 </View>
             )}
             <View style={projectCardStyles.cardInner}>
-                <Image
-                    source={{ uri: ownerProfile.image || 'https://via.placeholder.com/50' }}
-                    style={projectCardStyles.authorIcon}
-                />
+                {/* Role Icons Container */}
+                {getIconLayout()}
                 <View style={projectCardStyles.cardContent}>
                     <View style={projectCardStyles.cardHeader}>
                         <Text style={projectCardStyles.cardTitle} numberOfLines={1}>{project.title}</Text>
@@ -639,13 +762,66 @@ const projectCardStyles = StyleSheet.create({
     cardInner: {
         flexDirection: 'row',
         padding: 16,
-        alignItems: 'flex-start',
+        alignItems: 'center',
+    },
+    iconsContainer: {
+        width: 70,
+        height: 70,
+        borderRadius: 12,
+        backgroundColor: '#F3F4F6',
+        marginRight: 14,
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+    },
+    iconSlotCenter: {
+        width: '100%',
+        height: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    iconSlotTwo: {
+        width: '50%',
+        height: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    iconSlotTop: {
+        width: '50%',
+        height: '50%',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    iconSlotBottomCenter: {
+        width: '100%',
+        height: '50%',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    iconSlotGrid: {
+        width: '50%',
+        height: '50%',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    iconCircle: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    iconCircleLarge: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     authorIcon: {
         width: 56,
         height: 56,
         borderRadius: 28,
-        marginRight: 16,
+        marginRight: 14,
         backgroundColor: '#EEE',
     },
     cardContent: {
