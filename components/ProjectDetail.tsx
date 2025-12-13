@@ -318,20 +318,6 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
         }
     };
 
-    const handleMessage = () => {
-        if (!currentUser) {
-            Alert.alert('エラー', 'ログインが必要です');
-            return;
-        }
-        if (currentUser.id === project.owner_id) {
-            Alert.alert('通知', '自分自身にはメッセージを送れません');
-            return;
-        }
-        if (owner) {
-            onChat(owner.id, owner.name, owner.image);
-        }
-    };
-
     const handleDelete = () => {
         Alert.alert(
             'プロジェクト削除',
@@ -567,15 +553,11 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
             </ScrollView>
 
             <View style={styles.footer}>
-                <TouchableOpacity style={styles.messageButton} onPress={handleMessage}>
-                    <Ionicons name="chatbubble-outline" size={20} color="#009688" />
-                    <Text style={styles.messageButtonText}>メッセージ</Text>
-                </TouchableOpacity>
-
                 <TouchableOpacity
                     style={[
                         styles.applyButton,
-                        (applying || hasApplied || currentUser?.id === project.owner_id) && styles.disabledButton
+                        (applying || hasApplied || currentUser?.id === project.owner_id) && styles.disabledButton,
+                        { flex: 1 }
                     ]}
                     onPress={handleApply}
                     disabled={applying || hasApplied || currentUser?.id === project.owner_id}
@@ -867,23 +849,6 @@ const styles = StyleSheet.create({
         borderTopColor: '#F3F4F6',
         backgroundColor: 'white',
         gap: 12,
-    },
-    messageButton: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 14,
-        borderRadius: 12,
-        backgroundColor: '#F0FDFA',
-        borderWidth: 1,
-        borderColor: '#009688',
-        gap: 8,
-    },
-    messageButtonText: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#009688',
     },
     applyButton: {
         flex: 2,

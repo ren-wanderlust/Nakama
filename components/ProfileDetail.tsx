@@ -6,6 +6,8 @@ import { AnimatedLikeButton } from './AnimatedLikeButton';
 import { HapticTouchable } from './HapticButton';
 import { TAG_COLORS, translateTag, getStatusTagStyle as getTagStyle } from '../constants/TagConstants';
 import { supabase } from '../lib/supabase';
+import { getRoleColors, getRoleIcon } from '../constants/RoleConstants';
+
 
 interface ProfileDetailProps {
     profile: Profile;
@@ -239,10 +241,14 @@ export function ProfileDetail({ profile, onBack, onLike, onChat, isLiked, onBloc
                             <View style={styles.tagsContainer}>
                                 {skills.map((skill, index) => {
                                     const translatedSkill = translateTag(skill);
-                                    const tagColor = TAG_COLORS[translatedSkill] || { bg: '#F5F5F5', text: '#666666' };
+                                    const roleColors = getRoleColors(translatedSkill);
+                                    const roleIcon = getRoleIcon(translatedSkill);
                                     return (
-                                        <View key={index} style={[styles.skillTag, { backgroundColor: tagColor.bg }]}>
-                                            <Text style={[styles.skillTagText, { color: tagColor.text }]}># {translatedSkill}</Text>
+                                        <View key={index} style={[styles.roleTagNew, { backgroundColor: roleColors.bg, borderColor: roleColors.border }]}>
+                                            <View style={[styles.roleIconCircle, { backgroundColor: roleColors.bg }]}>
+                                                <Ionicons name={roleIcon as any} size={14} color={roleColors.icon} />
+                                            </View>
+                                            <Text style={[styles.roleTagNewText, { color: roleColors.icon }]}>{translatedSkill}</Text>
                                         </View>
                                     );
                                 })}
@@ -262,10 +268,14 @@ export function ProfileDetail({ profile, onBack, onLike, onChat, isLiked, onBloc
                             <View style={styles.tagsContainer}>
                                 {seekingRoles.map((role, index) => {
                                     const translatedRole = translateTag(role);
+                                    const roleColors = getRoleColors(translatedRole);
+                                    const roleIcon = getRoleIcon(translatedRole);
                                     return (
-                                        <View key={index} style={styles.roleTag}>
-                                            <Ionicons name="search" size={12} color="#C2410C" style={{ marginRight: 4 }} />
-                                            <Text style={styles.roleTagText}>{translatedRole}</Text>
+                                        <View key={index} style={[styles.roleTagNew, { backgroundColor: roleColors.bg, borderColor: roleColors.border }]}>
+                                            <View style={[styles.roleIconCircle, { backgroundColor: roleColors.bg }]}>
+                                                <Ionicons name={roleIcon as any} size={14} color={roleColors.icon} />
+                                            </View>
+                                            <Text style={[styles.roleTagNewText, { color: roleColors.icon }]}>{translatedRole}</Text>
                                         </View>
                                     );
                                 })}
@@ -532,6 +542,26 @@ const styles = StyleSheet.create({
     roleTagText: {
         fontSize: 13,
         color: '#C2410C',
+        fontWeight: '600',
+    },
+    roleTagNew: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 12,
+        borderWidth: 1.5,
+        gap: 8,
+    },
+    roleIconCircle: {
+        width: 28,
+        height: 28,
+        borderRadius: 8,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    roleTagNewText: {
+        fontSize: 13,
         fontWeight: '600',
     },
     footer: {

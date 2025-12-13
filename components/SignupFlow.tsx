@@ -22,6 +22,7 @@ import { Session } from '@supabase/supabase-js';
 import * as SecureStore from 'expo-secure-store';
 import { supabase } from '../lib/supabase';
 import universitiesData from '../assets/japanese_universities.json';
+import { getRoleColors, getRoleIcon } from '../constants/RoleConstants';
 
 interface SignupFlowProps {
     onComplete: () => void;
@@ -975,17 +976,17 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
 
     const renderStep4 = () => {
         const roleOptions = [
-            { id: 'engineer', label: 'エンジニア' },
-            { id: 'ideaman', label: 'アイディアマン' },
-            { id: 'marketer', label: 'マーケター' },
-            { id: 'creator', label: 'クリエイター' },
-            { id: 'other', label: 'その他' },
+            { id: 'エンジニア', label: 'エンジニア' },
+            { id: 'アイディアマン', label: 'アイディアマン' },
+            { id: 'マーケター', label: 'マーケター' },
+            { id: 'クリエイター', label: 'クリエイター' },
+            { id: 'その他', label: 'その他' },
         ];
 
         const handleRoleToggle = (roleId: string) => {
             if (skills.includes(roleId)) {
                 setSkills(skills.filter(s => s !== roleId));
-                if (roleId === 'other') {
+                if (roleId === 'その他') {
                     setOtherRoleText('');
                 }
             } else {
@@ -996,7 +997,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
             }
         };
 
-        const isOtherSelected = skills.includes('other');
+        const isOtherSelected = skills.includes('その他');
 
         return (
             <View style={styles.stepContainer}>
@@ -1006,26 +1007,34 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                 </Text>
 
                 <View style={styles.roleContainer}>
-                    {roleOptions.map((option) => (
-                        <TouchableOpacity
-                            key={option.id}
-                            onPress={() => handleRoleToggle(option.id)}
-                            style={[
-                                styles.roleBox,
-                                skills.includes(option.id) && styles.roleBoxSelected
-                            ]}
-                        >
-                            <Text style={[
-                                styles.roleBoxText,
-                                skills.includes(option.id) && styles.roleBoxTextSelected
-                            ]}>
-                                {option.label}
-                            </Text>
-                            {skills.includes(option.id) && (
-                                <Ionicons name="checkmark-circle" size={20} color="#FFD700" style={styles.checkIcon} />
-                            )}
-                        </TouchableOpacity>
-                    ))}
+                    {roleOptions.map((option) => {
+                        const isSelected = skills.includes(option.id);
+                        const roleColors = getRoleColors(option.label);
+                        const roleIcon = getRoleIcon(option.label);
+                        return (
+                            <TouchableOpacity
+                                key={option.id}
+                                onPress={() => handleRoleToggle(option.id)}
+                                style={[
+                                    styles.roleBox,
+                                    isSelected && { backgroundColor: roleColors.bg, borderColor: roleColors.border }
+                                ]}
+                            >
+                                <View style={[styles.roleIconCircle, isSelected && { backgroundColor: roleColors.bg }]}>
+                                    <Ionicons name={roleIcon as any} size={18} color={isSelected ? roleColors.icon : '#6B7280'} />
+                                </View>
+                                <Text style={[
+                                    styles.roleBoxText,
+                                    isSelected && { color: roleColors.icon, fontWeight: '600' }
+                                ]}>
+                                    {option.label}
+                                </Text>
+                                {isSelected && (
+                                    <Ionicons name="checkmark-circle" size={20} color={roleColors.icon} style={styles.checkIcon} />
+                                )}
+                            </TouchableOpacity>
+                        );
+                    })}
                 </View>
 
                 {isOtherSelected && (
@@ -1054,17 +1063,17 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
 
     const renderStep5 = () => {
         const seekingOptions = [
-            { id: 'engineer', label: 'エンジニア' },
-            { id: 'designer', label: 'デザイナー' },
-            { id: 'marketer', label: 'マーケター' },
-            { id: 'creator', label: 'クリエイター' },
-            { id: 'other', label: 'その他' },
+            { id: 'エンジニア', label: 'エンジニア' },
+            { id: 'デザイナー', label: 'デザイナー' },
+            { id: 'マーケター', label: 'マーケター' },
+            { id: 'クリエイター', label: 'クリエイター' },
+            { id: 'その他', label: 'その他' },
         ];
 
         const handleSeekingToggle = (optionId: string) => {
             if (seekingRoles.includes(optionId)) {
                 setSeekingRoles(seekingRoles.filter(s => s !== optionId));
-                if (optionId === 'other') {
+                if (optionId === 'その他') {
                     setOtherSeekingText('');
                 }
             } else {
@@ -1075,7 +1084,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
             }
         };
 
-        const isOtherSelected = seekingRoles.includes('other');
+        const isOtherSelected = seekingRoles.includes('その他');
 
         return (
             <View style={styles.stepContainer}>
@@ -1085,27 +1094,36 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                 </Text>
 
                 <View style={styles.roleContainer}>
-                    {seekingOptions.map((option) => (
-                        <TouchableOpacity
-                            key={option.id}
-                            onPress={() => handleSeekingToggle(option.id)}
-                            style={[
-                                styles.roleBox,
-                                seekingRoles.includes(option.id) && styles.roleBoxSelected
-                            ]}
-                        >
-                            <Text style={[
-                                styles.roleBoxText,
-                                seekingRoles.includes(option.id) && styles.roleBoxTextSelected
-                            ]}>
-                                {option.label}
-                            </Text>
-                            {seekingRoles.includes(option.id) && (
-                                <Ionicons name="checkmark-circle" size={20} color="#FFD700" style={styles.checkIcon} />
-                            )}
-                        </TouchableOpacity>
-                    ))}
+                    {seekingOptions.map((option) => {
+                        const isSelected = seekingRoles.includes(option.id);
+                        const roleColors = getRoleColors(option.label);
+                        const roleIcon = getRoleIcon(option.label);
+                        return (
+                            <TouchableOpacity
+                                key={option.id}
+                                onPress={() => handleSeekingToggle(option.id)}
+                                style={[
+                                    styles.roleBox,
+                                    isSelected && { backgroundColor: roleColors.bg, borderColor: roleColors.border }
+                                ]}
+                            >
+                                <View style={[styles.roleIconCircle, isSelected && { backgroundColor: roleColors.bg }]}>
+                                    <Ionicons name={roleIcon as any} size={18} color={isSelected ? roleColors.icon : '#6B7280'} />
+                                </View>
+                                <Text style={[
+                                    styles.roleBoxText,
+                                    isSelected && { color: roleColors.icon, fontWeight: '600' }
+                                ]}>
+                                    {option.label}
+                                </Text>
+                                {isSelected && (
+                                    <Ionicons name="checkmark-circle" size={20} color={roleColors.icon} style={styles.checkIcon} />
+                                )}
+                            </TouchableOpacity>
+                        );
+                    })}
                 </View>
+
 
                 {isOtherSelected && (
                     <View style={styles.formGroup}>
@@ -1520,6 +1538,14 @@ const styles = StyleSheet.create({
     roleBoxTextSelected: {
         color: '#FF8C00',
         fontWeight: '600',
+    },
+    roleIconCircle: {
+        width: 32,
+        height: 32,
+        borderRadius: 8,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#F3F4F6',
     },
     checkIcon: {
         marginLeft: 4,

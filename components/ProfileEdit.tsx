@@ -22,6 +22,7 @@ import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
 import { SHADOWS } from '../constants/DesignSystem';
 import universitiesData from '../assets/japanese_universities.json';
+import { getRoleColors, getRoleIcon } from '../constants/RoleConstants';
 
 interface ProfileEditProps {
     initialProfile: Profile;
@@ -50,22 +51,22 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
     const [otherRoleText, setOtherRoleText] = useState('');
     const [otherSeekingText, setOtherSeekingText] = useState('');
 
-    // 役割オプション（SignupFlowと同じ）
+    // 役割オプション（RoleConstantsと統一）
     const roleOptions = [
-        { id: 'engineer', label: 'エンジニア', icon: '💻' },
-        { id: 'ideaman', label: 'アイディアマン', icon: '💡' },
-        { id: 'marketer', label: 'マーケター', icon: '📣' },
-        { id: 'creator', label: 'クリエイター', icon: '🎥' },
-        { id: 'other', label: 'その他', icon: '✨' },
+        { id: 'エンジニア', label: 'エンジニア' },
+        { id: 'アイディアマン', label: 'アイディアマン' },
+        { id: 'マーケター', label: 'マーケター' },
+        { id: 'クリエイター', label: 'クリエイター' },
+        { id: 'その他', label: 'その他' },
     ];
 
-    // 探している仲間オプション（SignupFlowと同じ）
+    // 探している仲間オプション（RoleConstantsと統一）
     const seekingOptions = [
-        { id: 'engineer', label: 'エンジニア', icon: '💻' },
-        { id: 'designer', label: 'デザイナー', icon: '🎨' },
-        { id: 'marketer', label: 'マーケター', icon: '📣' },
-        { id: 'creator', label: 'クリエイター', icon: '🎥' },
-        { id: 'other', label: 'その他', icon: '✨' },
+        { id: 'エンジニア', label: 'エンジニア' },
+        { id: 'デザイナー', label: 'デザイナー' },
+        { id: 'マーケター', label: 'マーケター' },
+        { id: 'クリエイター', label: 'クリエイター' },
+        { id: 'その他', label: 'その他' },
     ];
 
     // 学年オプション
@@ -183,13 +184,13 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
             }
 
             // Prepare skills array
-            const finalSkills = skills.includes('other') && otherRoleText.trim()
-                ? [...skills.filter(s => s !== 'other'), otherRoleText.trim()]
+            const finalSkills = skills.includes('その他') && otherRoleText.trim()
+                ? [...skills.filter(s => s !== 'その他'), otherRoleText.trim()]
                 : skills;
 
             // Prepare seeking roles array
-            const finalSeekingRoles = seekingRoles.includes('other') && otherSeekingText.trim()
-                ? [...seekingRoles.filter(s => s !== 'other'), otherSeekingText.trim()]
+            const finalSeekingRoles = seekingRoles.includes('その他') && otherSeekingText.trim()
+                ? [...seekingRoles.filter(s => s !== 'その他'), otherSeekingText.trim()]
                 : seekingRoles;
 
             const { error } = await supabase
@@ -389,31 +390,35 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
                                 <View style={styles.chipContainer}>
                                     {roleOptions.map((option) => {
                                         const isSelected = skills.includes(option.id);
+                                        const roleColors = getRoleColors(option.label);
+                                        const roleIcon = getRoleIcon(option.label);
                                         return (
                                             <TouchableOpacity
                                                 key={option.id}
                                                 onPress={() => handleToggle(option.id, skills, setSkills)}
                                                 style={[
                                                     styles.chip,
-                                                    isSelected && styles.chipSelected
+                                                    isSelected && { backgroundColor: roleColors.bg, borderColor: roleColors.border }
                                                 ]}
                                             >
-                                                <Text style={styles.chipIcon}>{option.icon}</Text>
+                                                <View style={[styles.chipIconCircle, isSelected && { backgroundColor: roleColors.bg }]}>
+                                                    <Ionicons name={roleIcon as any} size={16} color={isSelected ? roleColors.icon : '#6B7280'} />
+                                                </View>
                                                 <Text style={[
                                                     styles.chipText,
-                                                    isSelected && styles.chipTextSelected
+                                                    isSelected && { color: roleColors.icon, fontWeight: '600' }
                                                 ]}>
                                                     {option.label}
                                                 </Text>
                                                 {isSelected && (
-                                                    <Ionicons name="checkmark-circle" size={16} color="#009688" style={styles.chipCheck} />
+                                                    <Ionicons name="checkmark-circle" size={16} color={roleColors.icon} style={styles.chipCheck} />
                                                 )}
                                             </TouchableOpacity>
                                         );
                                     })}
                                 </View>
 
-                                {skills.includes('other') && (
+                                {skills.includes('その他') && (
                                     <View style={styles.otherInputContainer}>
                                         <TextInput
                                             value={otherRoleText}
@@ -441,31 +446,35 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
                                 <View style={styles.chipContainer}>
                                     {seekingOptions.map((option) => {
                                         const isSelected = seekingRoles.includes(option.id);
+                                        const roleColors = getRoleColors(option.label);
+                                        const roleIcon = getRoleIcon(option.label);
                                         return (
                                             <TouchableOpacity
                                                 key={option.id}
                                                 onPress={() => handleToggle(option.id, seekingRoles, setSeekingRoles)}
                                                 style={[
                                                     styles.chip,
-                                                    isSelected && styles.chipSelected
+                                                    isSelected && { backgroundColor: roleColors.bg, borderColor: roleColors.border }
                                                 ]}
                                             >
-                                                <Text style={styles.chipIcon}>{option.icon}</Text>
+                                                <View style={[styles.chipIconCircle, isSelected && { backgroundColor: roleColors.bg }]}>
+                                                    <Ionicons name={roleIcon as any} size={16} color={isSelected ? roleColors.icon : '#6B7280'} />
+                                                </View>
                                                 <Text style={[
                                                     styles.chipText,
-                                                    isSelected && styles.chipTextSelected
+                                                    isSelected && { color: roleColors.icon, fontWeight: '600' }
                                                 ]}>
                                                     {option.label}
                                                 </Text>
                                                 {isSelected && (
-                                                    <Ionicons name="checkmark-circle" size={16} color="#009688" style={styles.chipCheck} />
+                                                    <Ionicons name="checkmark-circle" size={16} color={roleColors.icon} style={styles.chipCheck} />
                                                 )}
                                             </TouchableOpacity>
                                         );
                                     })}
                                 </View>
 
-                                {seekingRoles.includes('other') && (
+                                {seekingRoles.includes('その他') && (
                                     <View style={styles.otherInputContainer}>
                                         <TextInput
                                             value={otherSeekingText}
@@ -847,6 +856,15 @@ const styles = StyleSheet.create({
     },
     chipCheck: {
         marginLeft: 4,
+    },
+    chipIconCircle: {
+        width: 28,
+        height: 28,
+        borderRadius: 8,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#F3F4F6',
+        marginRight: 8,
     },
     otherInputContainer: {
         marginTop: 12,
