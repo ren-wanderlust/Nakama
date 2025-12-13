@@ -473,6 +473,24 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
 
     // ===== RENDER FUNCTIONS =====
 
+    // Role to icon mapping (matching UserProjectPage)
+    const ROLE_ICONS: { [key: string]: string } = {
+        'エンジニア': 'code-slash',
+        'デザイナー': 'color-palette',
+        'マーケター': 'megaphone',
+        'アイディアマン': 'bulb',
+        '誰でも': 'people',
+    };
+
+    // Role to color mapping
+    const ROLE_COLORS: { [key: string]: { bg: string; icon: string } } = {
+        'エンジニア': { bg: '#E3F2FD', icon: '#1976D2' },
+        'デザイナー': { bg: '#F3E5F5', icon: '#7B1FA2' },
+        'マーケター': { bg: '#FFF3E0', icon: '#E65100' },
+        'アイディアマン': { bg: '#FFF9C4', icon: '#F57F17' },
+        '誰でも': { bg: '#E8F5E9', icon: '#388E3C' },
+    };
+
     // Project Card for "応募" tab
     const renderApplicationProjectCard = ({ item }: { item: Application }) => {
         const project = item.project;
@@ -482,6 +500,10 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
         const deadlineString = deadlineDate
             ? `${deadlineDate.getMonth() + 1}/${deadlineDate.getDate()}まで`
             : '';
+
+        const createdDate = new Date(project.created_at);
+        const daysAgo = Math.floor((Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
+        const timeAgo = daysAgo === 0 ? '今日' : daysAgo === 1 ? '昨日' : `${daysAgo}日前`;
 
         const getStatusInfo = () => {
             switch (item.status) {
@@ -498,33 +520,122 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
 
         const statusInfo = getStatusInfo();
 
+        // Get roles with icons and colors, limit to 4
+        const rolesWithIcons = project.required_roles
+            ?.slice(0, 4)
+            .map(role => ({
+                role,
+                icon: ROLE_ICONS[role] || 'help-circle-outline',
+                colors: ROLE_COLORS[role] || { bg: '#F3F4F6', icon: '#6B7280' }
+            })) || [];
+
+        const iconCount = rolesWithIcons.length;
+
+        // Determine layout based on icon count
+        const getIconLayout = () => {
+            if (iconCount === 0) {
+                return null;
+            } else if (iconCount === 1) {
+                return (
+                    <View style={styles.iconsContainer}>
+                        <View style={styles.iconSlotCenter}>
+                            <View style={[styles.iconCircleLarge, { backgroundColor: rolesWithIcons[0].colors.bg }]}>
+                                <Ionicons
+                                    name={rolesWithIcons[0].icon as any}
+                                    size={30}
+                                    color={rolesWithIcons[0].colors.icon}
+                                />
+                            </View>
+                        </View>
+                    </View>
+                );
+            } else if (iconCount === 2) {
+                return (
+                    <View style={styles.iconsContainer}>
+                        <View style={styles.iconSlotTwo}>
+                            <View style={[styles.iconCircle, { backgroundColor: rolesWithIcons[0].colors.bg }]}>
+                                <Ionicons name={rolesWithIcons[0].icon as any} size={20} color={rolesWithIcons[0].colors.icon} />
+                            </View>
+                        </View>
+                        <View style={styles.iconSlotTwo}>
+                            <View style={[styles.iconCircle, { backgroundColor: rolesWithIcons[1].colors.bg }]}>
+                                <Ionicons name={rolesWithIcons[1].icon as any} size={20} color={rolesWithIcons[1].colors.icon} />
+                            </View>
+                        </View>
+                    </View>
+                );
+            } else if (iconCount === 3) {
+                return (
+                    <View style={styles.iconsContainer}>
+                        <View style={styles.iconSlotTop}>
+                            <View style={[styles.iconCircle, { backgroundColor: rolesWithIcons[0].colors.bg }]}>
+                                <Ionicons name={rolesWithIcons[0].icon as any} size={20} color={rolesWithIcons[0].colors.icon} />
+                            </View>
+                        </View>
+                        <View style={styles.iconSlotTop}>
+                            <View style={[styles.iconCircle, { backgroundColor: rolesWithIcons[1].colors.bg }]}>
+                                <Ionicons name={rolesWithIcons[1].icon as any} size={20} color={rolesWithIcons[1].colors.icon} />
+                            </View>
+                        </View>
+                        <View style={styles.iconSlotBottomCenter}>
+                            <View style={[styles.iconCircle, { backgroundColor: rolesWithIcons[2].colors.bg }]}>
+                                <Ionicons name={rolesWithIcons[2].icon as any} size={20} color={rolesWithIcons[2].colors.icon} />
+                            </View>
+                        </View>
+                    </View>
+                );
+            } else {
+                return (
+                    <View style={styles.iconsContainer}>
+                        {rolesWithIcons.map((iconItem, i) => (
+                            <View key={`icon-${i}`} style={styles.iconSlotGrid}>
+                                <View style={[styles.iconCircle, { backgroundColor: iconItem.colors.bg }]}>
+                                    <Ionicons name={iconItem.icon as any} size={20} color={iconItem.colors.icon} />
+                                </View>
+                            </View>
+                        ))}
+                    </View>
+                );
+            }
+        };
+
         return (
             <TouchableOpacity
-                style={styles.projectCard}
-                activeOpacity={0.7}
+                style={styles.appliedProjectCard}
+                activeOpacity={0.85}
                 onPress={() => handleProjectSelect(project.id)}
             >
-                <View style={styles.projectCardInner}>
-                    <Image
-                        source={{ uri: project.owner?.image || 'https://via.placeholder.com/50' }}
-                        style={styles.projectAuthorIcon}
-                    />
-                    <View style={styles.projectCardContent}>
-                        <View style={styles.projectCardHeader}>
-                            <Text style={styles.projectCardTitle} numberOfLines={1}>{project.title}</Text>
+                <View style={styles.appliedCardInner}>
+                    {/* Role Icons Container */}
+                    {getIconLayout()}
+
+                    {/* Card Content */}
+                    <View style={styles.appliedCardContent}>
+                        {/* Title */}
+                        <View style={styles.appliedTitleContainer}>
+                            <Text style={styles.appliedCardTitle} numberOfLines={2}>{project.title}</Text>
+                        </View>
+
+                        {/* Author Info */}
+                        <View style={styles.appliedAuthorRow}>
+                            <Image
+                                source={{ uri: project.owner?.image || 'https://via.placeholder.com/50' }}
+                                style={styles.appliedAuthorIcon}
+                            />
+                            <Text style={styles.appliedAuthorName} numberOfLines={1}>{project.owner?.name || '匿名'}</Text>
+                            <Text style={styles.appliedTimeAgo}>{timeAgo}</Text>
                             {deadlineString ? (
-                                <View style={styles.deadlineBadge}>
-                                    <Ionicons name="time-outline" size={14} color="#D32F2F" />
-                                    <Text style={styles.deadlineText}>{deadlineString}</Text>
+                                <View style={styles.appliedDeadlineBadge}>
+                                    <Ionicons name="time-outline" size={12} color="#FF6B6B" />
+                                    <Text style={styles.appliedDeadlineText}>{deadlineString}</Text>
                                 </View>
                             ) : null}
                         </View>
-                        <Text style={styles.projectCardDescription} numberOfLines={2}>{project.description}</Text>
 
                         {/* Status Badge */}
-                        <View style={[styles.statusBadge, { backgroundColor: statusInfo.color + '20' }]}>
-                            <Ionicons name={statusInfo.icon as any} size={16} color={statusInfo.color} />
-                            <Text style={[styles.statusBadgeText, { color: statusInfo.color }]}>{statusInfo.text}</Text>
+                        <View style={[styles.appliedStatusBadge, { backgroundColor: statusInfo.color + '20' }]}>
+                            <Ionicons name={statusInfo.icon as any} size={14} color={statusInfo.color} />
+                            <Text style={[styles.appliedStatusText, { color: statusInfo.color }]}>{statusInfo.text}</Text>
                         </View>
                     </View>
                 </View>
@@ -1310,5 +1421,146 @@ const styles = StyleSheet.create({
         color: 'white',
         fontSize: 11,
         fontWeight: '500',
+    },
+    // Applied Project Card Styles (matching UserProjectPage)
+    appliedProjectCard: {
+        width: '100%',
+        height: 120,
+        borderRadius: 16,
+        overflow: 'hidden',
+        marginBottom: 16,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    appliedCardInner: {
+        flexDirection: 'row',
+        padding: 16,
+        alignItems: 'center',
+        borderRadius: 16,
+        backgroundColor: 'white',
+        height: '100%',
+    },
+    iconsContainer: {
+        width: 70,
+        height: 70,
+        borderRadius: 12,
+        backgroundColor: '#F3F4F6',
+        marginRight: 14,
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+    },
+    iconSlotCenter: {
+        width: '100%',
+        height: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    iconSlotTwo: {
+        width: '50%',
+        height: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    iconSlotTop: {
+        width: '50%',
+        height: '50%',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    iconSlotBottomCenter: {
+        width: '100%',
+        height: '50%',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    iconSlotGrid: {
+        width: '50%',
+        height: '50%',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    iconCircle: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    iconCircleLarge: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    appliedCardContent: {
+        flex: 1,
+        justifyContent: 'center',
+        height: '100%',
+    },
+    appliedTitleContainer: {
+        marginBottom: 4,
+    },
+    appliedCardTitle: {
+        fontSize: 15,
+        fontWeight: 'bold',
+        color: '#111827',
+        lineHeight: 20,
+    },
+    appliedAuthorRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 4,
+        marginBottom: 6,
+    },
+    appliedAuthorIcon: {
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        marginRight: 6,
+        backgroundColor: '#F3F4F6',
+    },
+    appliedAuthorName: {
+        fontSize: 11,
+        color: '#111827',
+        fontWeight: '500',
+        marginRight: 6,
+        maxWidth: 80,
+    },
+    appliedTimeAgo: {
+        fontSize: 10,
+        color: '#6B7280',
+        marginRight: 'auto',
+    },
+    appliedDeadlineBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255, 107, 107, 0.2)',
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 8,
+        marginLeft: 4,
+    },
+    appliedDeadlineText: {
+        fontSize: 10,
+        color: '#FF6B6B',
+        fontWeight: '600',
+        marginLeft: 2,
+    },
+    appliedStatusBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 10,
+        alignSelf: 'flex-start',
+        gap: 4,
+    },
+    appliedStatusText: {
+        fontSize: 11,
+        fontWeight: '600',
     },
 });

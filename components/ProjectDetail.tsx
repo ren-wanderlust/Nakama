@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
 import { CreateProjectModal } from './CreateProjectModal';
 import { getUserPushTokens, sendPushNotification } from '../lib/notifications';
+import { getRoleColors, getRoleIcon } from '../constants/RoleConstants';
 
 interface Project {
     id: string;
@@ -520,11 +521,24 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                                     <View style={styles.tagGroup}>
                                         <Text style={styles.tagLabel}>募集メンバー</Text>
                                         <View style={styles.tagContainer}>
-                                            {project.required_roles.map((role, index) => (
-                                                <View key={index} style={styles.roleTag}>
-                                                    <Text style={styles.roleTagText}>{role}</Text>
-                                                </View>
-                                            ))}
+                                            {project.required_roles.map((role, index) => {
+                                                const roleColors = getRoleColors(role);
+                                                const roleIcon = getRoleIcon(role);
+                                                return (
+                                                    <View
+                                                        key={index}
+                                                        style={[
+                                                            styles.roleTag,
+                                                            { backgroundColor: roleColors.bg, borderColor: roleColors.border }
+                                                        ]}
+                                                    >
+                                                        <View style={[styles.roleTagIcon, { backgroundColor: roleColors.bg }]}>
+                                                            <Ionicons name={roleIcon as any} size={14} color={roleColors.icon} />
+                                                        </View>
+                                                        <Text style={[styles.roleTagText, { color: roleColors.icon }]}>{role}</Text>
+                                                    </View>
+                                                );
+                                            })}
                                         </View>
                                     </View>
                                 )}
@@ -810,13 +824,24 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     roleTag: {
+        flexDirection: 'row',
+        alignItems: 'center',
         backgroundColor: '#E0F2F1',
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 16,
+        borderWidth: 1,
+        borderColor: '#B2DFDB',
+    },
+    roleTagIcon: {
+        width: 22,
+        height: 22,
+        borderRadius: 6,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 6,
     },
     roleTagText: {
-        color: '#009688',
         fontSize: 13,
         fontWeight: '600',
     },
