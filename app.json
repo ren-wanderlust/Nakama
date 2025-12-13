@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Nakama",
-    "slug": "nakama",
+    "name": "Pogg",
+    "slug": "pogg",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -14,7 +14,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.nakama.app",
+      "bundleIdentifier": "com.pogg.app",
       "buildNumber": "2",
       "infoPlist": {
         "UIBackgroundModes": [
@@ -31,7 +31,7 @@
       }
     },
     "android": {
-      "package": "com.nakama.app",
+      "package": "com.pogg.app",
       "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
