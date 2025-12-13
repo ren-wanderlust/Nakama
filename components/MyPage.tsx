@@ -162,26 +162,38 @@ const ProjectCard = ({ project, ownerProfile, onPress }: { project: any; ownerPr
         }
     };
 
+    const isClosed = project.status === 'closed';
+
     return (
         <ModernCard
             onPress={onPress}
-            style={[projectCardStyles.card, { marginTop: 4, marginBottom: 8 }]}
+            style={[
+                projectCardStyles.card,
+                { marginTop: 4, marginBottom: 8 },
+                isClosed && { backgroundColor: '#F3F4F6' } // 停止中は少し暗くする
+            ]}
             padding="none"
         >
-            {project.pendingCount > 0 && (
+            {isClosed && (
+                <View style={projectCardStyles.recruitmentClosedBadge}>
+                    <Text style={projectCardStyles.recruitmentClosedText}>停止中</Text>
+                </View>
+            )}
+
+            {!isClosed && project.pendingCount > 0 && (
                 <View style={projectCardStyles.notificationBadge}>
                     <Text style={projectCardStyles.notificationText}>
                         {project.pendingCount}
                     </Text>
                 </View>
             )}
-            <View style={projectCardStyles.cardInner}>
+            <View style={[projectCardStyles.cardInner, isClosed && { opacity: 0.7 }]}>
                 {/* Role Icons Container */}
                 {getIconLayout()}
                 <View style={projectCardStyles.cardContent}>
                     <View style={projectCardStyles.cardHeader}>
                         <Text style={projectCardStyles.cardTitle} numberOfLines={1}>{project.title}</Text>
-                        {deadlineString ? (
+                        {deadlineString && !isClosed ? (
                             <View style={projectCardStyles.deadlineBadge}>
                                 <Ionicons name="time-outline" size={14} color="#D32F2F" />
                                 <Text style={projectCardStyles.deadlineText}>{deadlineString}</Text>
@@ -928,6 +940,21 @@ const projectCardStyles = StyleSheet.create({
         zIndex: 10,
     },
     participatingBadgeText: {
+        color: 'white',
+        fontSize: 11,
+        fontFamily: FONTS.bold,
+    },
+    recruitmentClosedBadge: {
+        position: 'absolute',
+        top: 8,
+        right: 8,
+        backgroundColor: '#6B7280', // Gray
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 12,
+        zIndex: 10,
+    },
+    recruitmentClosedText: {
         color: 'white',
         fontSize: 11,
         fontFamily: FONTS.bold,

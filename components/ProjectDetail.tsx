@@ -17,6 +17,7 @@ interface Project {
     deadline?: string | null;
     required_roles?: string[];
     tags?: string[];
+    status?: string; // 'recruiting' | 'closed'
     owner?: {
         id: string;
         name: string;
@@ -51,6 +52,14 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
     const [applying, setApplying] = useState(false);
     const [applicants, setApplicants] = useState<Applicant[]>([]);
     const [hasApplied, setHasApplied] = useState(false);
+    const [currentStatus, setCurrentStatus] = useState<string>(project.status || 'recruiting');
+
+    // プロジェクトのステータスがプロップス変更で更新された場合に備えて同期
+    useEffect(() => {
+        if (project.status) {
+            setCurrentStatus(project.status);
+        }
+    }, [project.status]);
 
     const [showEditModal, setShowEditModal] = useState(false);
 
@@ -360,6 +369,42 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
         );
     };
 
+    const handleToggleStatus = () => {
+        const newStatus = currentStatus === 'recruiting' ? 'closed' : 'recruiting';
+        const actionText = newStatus === 'closed' ? '募集を終了' : '募集を再開';
+
+        Alert.alert(
+            `${actionText}しますか？`,
+            newStatus === 'closed'
+                ? '募集を終了すると、新規の応募を受け付けられなくなります。'
+                : '募集を再開すると、再び応募を受け付けられるようになります。',
+            [
+                { text: 'キャンセル', style: 'cancel' },
+                {
+                    text: '実行',
+                    onPress: async () => {
+                        try {
+                            const { error } = await supabase
+                                .from('projects')
+                                .update({ status: newStatus })
+                                .eq('id', project.id);
+
+                            if (error) throw error;
+
+                            setCurrentStatus(newStatus);
+                            if (onProjectUpdated) onProjectUpdated();
+
+                            Alert.alert('完了', `プロジェクトの${actionText}しました`);
+                        } catch (error) {
+                            console.error('Error updating status:', error);
+                            Alert.alert('エラー', 'ステータスの更新に失敗しました。データベースのカラム設定が必要な場合があります。');
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
     const formatDate = (dateString?: string | null) => {
         if (!dateString) return '期限なし';
         const date = new Date(dateString);
@@ -570,17 +615,30 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                 <TouchableOpacity
                     style={[
                         styles.applyButton,
-                        (applying || hasApplied || currentUser?.id === project.owner_id) && styles.disabledButton,
+                        // 応募中でなく、オーナーでもない場合で、ステータスがclosedならdisabled
+                        // オーナーは常に押せるようにする
+                        (currentUser?.id !== project.owner_id && (applying || hasApplied || currentStatus === 'closed')) && styles.disabledButton,
+                        // オーナー用スタイル（募集中の場合は警告色、終了中は再開色）
+                        currentUser?.id === project.owner_id && (
+                            currentStatus === 'recruiting' ? styles.closeRecruitmentButton : styles.reopenRecruitmentButton
+                        ),
                         { flex: 1 }
                     ]}
-                    onPress={handleApply}
-                    disabled={applying || hasApplied || currentUser?.id === project.owner_id}
+                    onPress={currentUser?.id === project.owner_id ? handleToggleStatus : handleApply}
+                    disabled={currentUser?.id !== project.owner_id && (applying || hasApplied || currentStatus === 'closed')}
                 >
                     {applying ? (
                         <ActivityIndicator color="white" />
                     ) : (
                         <Text style={styles.applyButtonText}>
-                            {hasApplied ? '応募済み' : currentUser?.id === project.owner_id ? '自分のプロジェクト' : '参加を申請する'}
+                            {currentUser?.id === project.owner_id
+                                ? (currentStatus === 'closed' ? '募集を再開する' : '募集を終了する')
+                                : (currentStatus === 'closed'
+                                    ? '募集終了'
+                                    : hasApplied
+                                        ? '応募済み'
+                                        : '参加を申請する')
+                            }
                         </Text>
                     )}
                 </TouchableOpacity>
@@ -891,6 +949,14 @@ const styles = StyleSheet.create({
     disabledButton: {
         backgroundColor: '#9CA3AF',
         shadowOpacity: 0,
+    },
+    closeRecruitmentButton: {
+        backgroundColor: '#EF4444', // 赤色（終了）
+        shadowColor: '#EF4444',
+    },
+    reopenRecruitmentButton: {
+        backgroundColor: '#F59E0B', // アンバー色（再開）
+        shadowColor: '#F59E0B',
     },
     applyButtonText: {
         fontSize: 16,

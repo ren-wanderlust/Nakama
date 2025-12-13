@@ -224,7 +224,8 @@ export function UserProjectPage({ currentUser, onChat, sortOrder = 'recommended'
                         image,
                         university
                     )
-                `);
+                `)
+                .neq('status', 'closed');
 
             if (sortOrder === 'deadline') {
                 query = query.order('deadline', { ascending: true });
