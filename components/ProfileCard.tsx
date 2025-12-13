@@ -3,7 +3,7 @@ import { StyleSheet, Text, View, Image, TouchableOpacity, Dimensions, Animated }
 import { Ionicons } from '@expo/vector-icons';
 import { Profile } from '../types';
 import { AnimatedHeartButton } from './AnimatedLikeButton';
-import { RADIUS, COLORS, SHADOWS, SPACING, AVATAR } from '../constants/DesignSystem';
+import { RADIUS, COLORS, SHADOWS, SPACING, AVATAR, FONTS } from '../constants/DesignSystem';
 import { TAG_COLORS, translateTag, getStatusTagStyle as getTagStyle } from '../constants/TagConstants';
 
 // Role ID to Japanese label mapping
@@ -372,7 +372,7 @@ const styles = StyleSheet.create({
     },
     name: {
         fontSize: 14,
-        fontWeight: 'bold',
+        fontFamily: FONTS.bold,
         color: '#1F2937',
     },
     universityContainer: {
@@ -384,7 +384,7 @@ const styles = StyleSheet.create({
     },
     universityText: {
         fontSize: 10,
-        fontWeight: '600',
+        fontFamily: FONTS.semiBold,
         color: '#0d9488',
         flex: 1,
     },
@@ -393,6 +393,7 @@ const styles = StyleSheet.create({
     },
     bioText: {
         fontSize: 12,
+        fontFamily: FONTS.regular,
         color: '#4B5563',
         lineHeight: 18,
     },

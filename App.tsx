@@ -6,6 +6,13 @@ import * as SecureStore from 'expo-secure-store';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import {
+  useFonts,
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+} from '@expo-google-fonts/inter';
 import { LoginScreen } from './components/LoginScreen';
 import { ProfileCard } from './components/ProfileCard';
 import { ProfileDetail } from './components/ProfileDetail';
@@ -35,6 +42,8 @@ import { registerForPushNotificationsAsync, savePushToken, setupNotificationList
 import { FullPageSkeleton, ProfileListSkeleton } from './components/Skeleton';
 import { FadeTabContent } from './components/AnimatedTabView';
 import { CustomRefreshControl } from './components/CustomRefreshControl';
+
+import { FONTS } from './constants/DesignSystem';
 
 if (Platform.OS === 'android') {
   if (UIManager.setLayoutAnimationEnabledExperimental) {
@@ -1902,7 +1911,7 @@ const styles = StyleSheet.create({
   },
   placeholderTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontFamily: FONTS.bold,
     marginBottom: 8,
     color: '#374151',
   },
@@ -1996,11 +2005,11 @@ const styles = StyleSheet.create({
   controlButtonText: {
     fontSize: 13,
     color: '#374151',
-    fontWeight: '500',
+    fontFamily: FONTS.medium,
   },
   controlButtonTextActive: {
     color: '#FF5252',
-    fontWeight: 'bold',
+    fontFamily: FONTS.bold,
   },
   listContent: {
     padding: 16,
@@ -2158,6 +2167,21 @@ const styles = StyleSheet.create({
 });
 
 export default function App() {
+  const [fontsLoaded] = useFonts({
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+  });
+
+  if (!fontsLoaded) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF' }}>
+        <ActivityIndicator size="large" color="#009688" />
+      </View>
+    );
+  }
+
   return (
     <SafeAreaProvider>
       <AuthProvider>

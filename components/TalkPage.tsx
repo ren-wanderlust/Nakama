@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { ChatListSkeleton } from './Skeleton';
 import { SimpleRefreshControl } from './CustomRefreshControl';
-import { RADIUS, COLORS, SPACING, AVATAR } from '../constants/DesignSystem';
+import { RADIUS, COLORS, SPACING, AVATAR, FONTS } from '../constants/DesignSystem';
 import { ChatEmptyState, EmptyState } from './EmptyState';
 
 interface ChatRoom {
@@ -537,7 +537,7 @@ const styles = StyleSheet.create({
     },
     headerTitle: {
         fontSize: 18,
-        fontWeight: 'bold',
+        fontFamily: FONTS.bold,
         color: '#111827',
     },
     tabContainer: {
@@ -557,7 +557,7 @@ const styles = StyleSheet.create({
     },
     tabText: {
         fontSize: 18,
-        fontWeight: 'bold',
+        fontFamily: FONTS.bold,
         color: '#9CA3AF',
     },
     tabTextActive: {
@@ -580,7 +580,7 @@ const styles = StyleSheet.create({
     tabBadgeText: {
         color: 'white',
         fontSize: 10,
-        fontWeight: 'bold',
+        fontFamily: FONTS.bold,
     },
     listContent: {
         paddingBottom: 20,
@@ -637,20 +637,22 @@ const styles = StyleSheet.create({
     },
     name: {
         fontSize: 16,
-        fontWeight: 'bold',
+        fontFamily: FONTS.bold,
         color: '#111827',
     },
     details: {
         fontSize: 12,
+        fontFamily: FONTS.regular,
         color: '#6b7280',
     },
     timestamp: {
         fontSize: 12,
+        fontFamily: FONTS.regular,
         color: '#9ca3af',
     },
     unrepliedBadge: {
         fontSize: 11,
-        fontWeight: 'bold',
+        fontFamily: FONTS.bold,
         color: '#FF5252',
         marginTop: 4,
     },
@@ -662,6 +664,7 @@ const styles = StyleSheet.create({
     lastMessage: {
         flex: 1,
         fontSize: 14,
+        fontFamily: FONTS.regular,
         color: '#4b5563',
         marginRight: 8,
     },
@@ -683,7 +686,7 @@ const styles = StyleSheet.create({
     unreadText: {
         color: 'white',
         fontSize: 12,
-        fontWeight: 'bold',
+        fontFamily: FONTS.bold,
     },
     emptyContainer: {
         flex: 1,

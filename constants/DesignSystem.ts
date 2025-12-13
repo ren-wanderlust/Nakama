@@ -5,6 +5,75 @@
  */
 
 // ========================================
+// フォントファミリー (Inter)
+// ========================================
+export const FONTS = {
+    // Inter フォントファミリー
+    regular: 'Inter_400Regular',
+    medium: 'Inter_500Medium',
+    semiBold: 'Inter_600SemiBold',
+    bold: 'Inter_700Bold',
+};
+
+// フォントスタイルのプリセット
+export const FONT_STYLES = {
+    // 見出し（大）
+    h1: {
+        fontFamily: 'Inter_700Bold',
+        fontSize: 28,
+        lineHeight: 36,
+    },
+    // 見出し（中）
+    h2: {
+        fontFamily: 'Inter_700Bold',
+        fontSize: 22,
+        lineHeight: 30,
+    },
+    // 見出し（小）
+    h3: {
+        fontFamily: 'Inter_600SemiBold',
+        fontSize: 18,
+        lineHeight: 26,
+    },
+    // サブタイトル
+    subtitle: {
+        fontFamily: 'Inter_600SemiBold',
+        fontSize: 16,
+        lineHeight: 24,
+    },
+    // 本文
+    body: {
+        fontFamily: 'Inter_400Regular',
+        fontSize: 14,
+        lineHeight: 22,
+    },
+    // 本文（強調）
+    bodyMedium: {
+        fontFamily: 'Inter_500Medium',
+        fontSize: 14,
+        lineHeight: 22,
+    },
+    // キャプション
+    caption: {
+        fontFamily: 'Inter_400Regular',
+        fontSize: 12,
+        lineHeight: 18,
+    },
+    // ボタン
+    button: {
+        fontFamily: 'Inter_600SemiBold',
+        fontSize: 15,
+        lineHeight: 22,
+    },
+    // 小さいラベル
+    label: {
+        fontFamily: 'Inter_500Medium',
+        fontSize: 11,
+        lineHeight: 16,
+    },
+};
+
+// ========================================
 // カラーパレット
 // ========================================
 export const COLORS = {
@@ -130,6 +199,32 @@ export const SHADOWS = {
         shadowOpacity: 0.15,
         shadowRadius: 16,
         elevation: 8,
+    },
+    // カード用の特別なシャドウ（拡散強め、色は薄め）
+    card: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        elevation: 4,
+    },
+};
+
+// ========================================
+// ボーダー (Borders)
+// ========================================
+export const BORDERS = {
+    subtle: {
+        borderWidth: 1,
+        borderColor: 'rgba(0,0,0,0.05)',
+    },
+    card: {
+        borderWidth: 1,
+        borderColor: 'rgba(0,0,0,0.06)',
+    },
+    divider: {
+        borderBottomWidth: 1,
+        borderBottomColor: '#F3F4F6',
     },
 };
 

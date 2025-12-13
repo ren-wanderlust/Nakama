@@ -5,7 +5,8 @@ import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
 import { ProjectDetail } from './ProjectDetail';
 import { HapticTouchable, triggerHaptic } from './HapticButton';
-import { SHADOWS } from '../constants/DesignSystem';
+import { SHADOWS, FONTS } from '../constants/DesignSystem';
+import { ModernCard, ModernButton } from './ModernComponents';
 
 interface MyPageProps {
     profile: Profile;
@@ -162,7 +163,11 @@ const ProjectCard = ({ project, ownerProfile, onPress }: { project: any; ownerPr
     };
 
     return (
-        <TouchableOpacity style={projectCardStyles.card} onPress={onPress} activeOpacity={0.7}>
+        <ModernCard
+            onPress={onPress}
+            style={[projectCardStyles.card, { marginTop: 4, marginBottom: 8 }]}
+            padding="none"
+        >
             {project.pendingCount > 0 && (
                 <View style={projectCardStyles.notificationBadge}>
                     <Text style={projectCardStyles.notificationText}>
@@ -186,7 +191,7 @@ const ProjectCard = ({ project, ownerProfile, onPress }: { project: any; ownerPr
                     <Text style={projectCardStyles.cardDescription} numberOfLines={2}>{project.description}</Text>
                 </View>
             </View>
-        </TouchableOpacity>
+        </ModernCard>
     );
 };
 
@@ -355,7 +360,7 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
     );
 
     const renderProfileCard = () => (
-        <View style={styles.profileCard}>
+        <ModernCard style={styles.profileCard} padding="medium">
             <View style={styles.profileRow}>
                 <Image
                     source={{ uri: profile.image }}
@@ -371,17 +376,20 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                         </Text>
                     </View>
                     <View style={styles.editRow}>
-                        <HapticTouchable style={styles.editButton} onPress={onEditProfile} hapticType="light">
-                            <Ionicons name="pencil-outline" size={16} color="#009688" />
-                            <Text style={styles.editButtonText}>プロフィールを編集</Text>
-                        </HapticTouchable>
-                        <HapticTouchable style={styles.settingsButton} onPress={() => setIsMenuVisible(true)} hapticType="light">
+                        <ModernButton
+                            title="プロフィールを編集"
+                            onPress={() => onEditProfile && onEditProfile()}
+                            variant="secondary"
+                            size="small"
+                            icon="pencil-outline"
+                        />
+                        <TouchableOpacity style={styles.settingsButton} onPress={() => setIsMenuVisible(true)}>
                             <Ionicons name="settings-outline" size={18} color="#374151" />
-                        </HapticTouchable>
+                        </TouchableOpacity>
                     </View>
                 </View>
             </View>
-        </View>
+        </ModernCard>
     );
 
     const renderTabs = () => (
@@ -576,7 +584,7 @@ const styles = StyleSheet.create({
     },
     headerUsername: {
         fontSize: 20,
-        fontWeight: 'bold',
+        fontFamily: FONTS.bold,
         color: 'black',
     },
     headerRight: {
@@ -609,7 +617,7 @@ const styles = StyleSheet.create({
     },
     profileName: {
         fontSize: 20,
-        fontWeight: 'bold',
+        fontFamily: FONTS.bold,
         color: '#1F2937',
     },
     universityContainer: {
@@ -707,7 +715,7 @@ const styles = StyleSheet.create({
     },
     emptyTitle: {
         fontSize: 20,
-        fontWeight: 'bold',
+        fontFamily: FONTS.bold,
         color: 'black',
         marginBottom: 8,
     },
@@ -836,7 +844,7 @@ const projectCardStyles = StyleSheet.create({
     },
     cardTitle: {
         fontSize: 16,
-        fontWeight: 'bold',
+        fontFamily: FONTS.bold,
         color: '#111827',
         flex: 1,
         marginRight: 8,
@@ -852,7 +860,7 @@ const projectCardStyles = StyleSheet.create({
     deadlineText: {
         fontSize: 12,
         color: '#D32F2F',
-        fontWeight: 'bold',
+        fontFamily: FONTS.bold,
         marginLeft: 4,
     },
     cardDescription: {
@@ -868,7 +876,7 @@ const projectCardStyles = StyleSheet.create({
     },
     statusText: {
         fontSize: 12,
-        fontWeight: 'bold',
+        fontFamily: FONTS.bold,
     },
     ownerInfo: {
         flexDirection: 'row',
@@ -906,7 +914,7 @@ const projectCardStyles = StyleSheet.create({
     notificationText: {
         color: 'white',
         fontSize: 12,
-        fontWeight: 'bold',
+        fontFamily: FONTS.bold,
         textAlign: 'center',
     },
     participatingBadge: {
@@ -922,6 +930,6 @@ const projectCardStyles = StyleSheet.create({
     participatingBadgeText: {
         color: 'white',
         fontSize: 11,
-        fontWeight: 'bold',
+        fontFamily: FONTS.bold,
     },
 });

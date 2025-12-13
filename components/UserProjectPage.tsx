@@ -8,7 +8,7 @@ import { FilterCriteria } from './FilterModal';
 import { ProjectDetail } from './ProjectDetail';
 import { ProjectListSkeleton } from './Skeleton';
 import { CustomRefreshControl } from './CustomRefreshControl';
-import { RADIUS, COLORS, SHADOWS, SPACING, AVATAR } from '../constants/DesignSystem';
+import { RADIUS, COLORS, SHADOWS, SPACING, AVATAR, FONTS } from '../constants/DesignSystem';
 import { ProjectsEmptyState } from './EmptyState';
 import { translateTag } from '../constants/TagConstants';
 
@@ -516,7 +516,7 @@ const styles = StyleSheet.create({
     },
     cardTitle: {
         fontSize: 16,
-        fontWeight: 'bold',
+        fontFamily: FONTS.bold,
         color: '#111827',
         lineHeight: 22,
     },
@@ -532,7 +532,7 @@ const styles = StyleSheet.create({
     deadlineText: {
         fontSize: 11,
         color: '#FF6B6B',
-        fontWeight: '600',
+        fontFamily: FONTS.semiBold,
         marginLeft: 3,
     },
     cardDescription: {
@@ -584,12 +584,13 @@ const styles = StyleSheet.create({
     authorName: {
         fontSize: 12,
         color: '#111827',
-        fontWeight: '500',
+        fontFamily: FONTS.medium,
         marginRight: 8,
         maxWidth: 100,
     },
     timeAgo: {
         fontSize: 11,
+        fontFamily: FONTS.regular,
         color: '#6B7280',
         marginRight: 'auto',
     },

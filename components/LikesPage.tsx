@@ -9,6 +9,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { ProfileListSkeleton, ProjectListSkeleton } from './Skeleton';
 import { LikesEmptyState } from './EmptyState';
 import { translateTag } from '../constants/TagConstants';
+import { FONTS } from '../constants/DesignSystem';
 import { ProjectDetail } from './ProjectDetail';
 
 interface Project {
