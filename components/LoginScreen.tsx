@@ -295,9 +295,10 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
           {/* Logo - Centered at Top */}
           <View style={styles.logoContainer}>
             <View style={styles.logoWrapper}>
-              <View style={styles.logoIcon}>
-                <Text style={styles.logoText}>P</Text>
-              </View>
+              <Image
+                source={require('../assets/pogg_logo.png')}
+                style={styles.logoIcon}
+              />
               <Text style={styles.appName}>Pogg</Text>
             </View>
             <Text style={styles.logoSubtitle}>Elite Student Network</Text>
@@ -467,12 +468,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   logoIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: '#D4AF37',
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 60,
+    height: 60,
+    borderRadius: 16,
   },
   logoText: {
     color: '#1E3A8A',
