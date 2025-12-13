@@ -1284,7 +1284,7 @@ function AppContent() {
                     style={[styles.searchHeaderGradient, { paddingTop: insets.top + 16 }]}
                   >
                     <View style={styles.headerTop}>
-                      <View style={{ flex: 1 }} />
+                      <View style={styles.headerLeft} />
                       <View style={styles.tabContainer}>
                         <TouchableOpacity
                           style={[styles.tabButton, searchTab === 'projects' && styles.tabButtonActive]}
@@ -1319,7 +1319,7 @@ function AppContent() {
                           <Text style={[styles.tabText, searchTab === 'users' && styles.tabTextActive]}>ユーザー</Text>
                         </TouchableOpacity>
                       </View>
-                      <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                      <View style={styles.headerRight}>
                         <TouchableOpacity
                           style={styles.notificationButton}
                           onPress={() => setShowNotifications(true)}
@@ -1445,6 +1445,8 @@ function AppContent() {
               allProfiles={displayProfiles}
               onProfileSelect={setSelectedProfile}
               onLike={handleLike}
+              onOpenNotifications={() => setShowNotifications(true)}
+              unreadNotificationsCount={unreadNotificationsCount}
             />
           </FadeTabContent>
           <FadeTabContent activeTab={activeTab} tabId="talk">
@@ -1947,7 +1949,12 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   headerLeft: {
-    width: 24, // Balance right icon
+    width: 40,
+  },
+  headerRight: {
+    width: 56,
+    alignItems: 'flex-end',
+    paddingRight: 0,
   },
   headerTitle: {
     fontSize: 32,
@@ -1958,6 +1965,7 @@ const styles = StyleSheet.create({
   },
   notificationButton: {
     padding: 4,
+    marginRight: -8,
   },
   notificationBadgeDot: {
     position: 'absolute',
@@ -2089,10 +2097,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   tabContainer: {
+    flex: 1,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 16,
+    gap: 8,
+    marginLeft: -4,
   },
   tabButton: {
     flexDirection: 'row',

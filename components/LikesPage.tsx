@@ -47,9 +47,11 @@ interface LikesPageProps {
     allProfiles: Profile[];
     onProfileSelect: (profile: Profile) => void;
     onLike: (profileId: string) => void;
+    onOpenNotifications?: () => void;
+    unreadNotificationsCount?: number;
 }
 
-export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLike }: LikesPageProps) {
+export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLike, onOpenNotifications, unreadNotificationsCount = 0 }: LikesPageProps) {
     const { session } = useAuth();
     const insets = useSafeAreaInsets();
 
@@ -888,37 +890,53 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                     style={[styles.headerGradient, { paddingTop: insets.top + 16 }]}
                 >
                     {/* Top Level Tabs: プロジェクト / ユーザー */}
-                    <View style={styles.mainTabContainer}>
-                        <TouchableOpacity
-                            style={[styles.mainTabButton, mainTab === 'project' && styles.mainTabButtonActive]}
-                            onPress={() => setMainTab('project')}
-                            activeOpacity={0.7}
-                        >
-                            <Ionicons
-                                name={mainTab === 'project' ? "folder" : "folder-outline"}
-                                size={20}
-                                color={mainTab === 'project' ? '#009688' : '#9CA3AF'}
-                                style={styles.mainTabIcon}
-                            />
-                            <Text style={[styles.mainTabText, mainTab === 'project' && styles.mainTabTextActive]}>
-                                プロジェクト
-                            </Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={[styles.mainTabButton, mainTab === 'user' && styles.mainTabButtonActive]}
-                            onPress={() => setMainTab('user')}
-                            activeOpacity={0.7}
-                        >
-                            <Ionicons
-                                name={mainTab === 'user' ? "people" : "people-outline"}
-                                size={20}
-                                color={mainTab === 'user' ? '#009688' : '#9CA3AF'}
-                                style={styles.mainTabIcon}
-                            />
-                            <Text style={[styles.mainTabText, mainTab === 'user' && styles.mainTabTextActive]}>
-                                ユーザー
-                            </Text>
-                        </TouchableOpacity>
+                    <View style={styles.headerTop}>
+                        <View style={styles.headerLeft} />
+                        <View style={styles.mainTabContainer}>
+                    <TouchableOpacity
+                                style={[styles.mainTabButton, mainTab === 'project' && styles.mainTabButtonActive]}
+                                onPress={() => setMainTab('project')}
+                                activeOpacity={0.7}
+                            >
+                                <Ionicons
+                                    name={mainTab === 'project' ? "folder" : "folder-outline"}
+                                    size={20}
+                                    color={mainTab === 'project' ? '#009688' : '#9CA3AF'}
+                                    style={styles.mainTabIcon}
+                                />
+                                <Text style={[styles.mainTabText, mainTab === 'project' && styles.mainTabTextActive]}>
+                                    プロジェクト
+                                </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.mainTabButton, mainTab === 'user' && styles.mainTabButtonActive]}
+                                onPress={() => setMainTab('user')}
+                                activeOpacity={0.7}
+                            >
+                                <Ionicons
+                                    name={mainTab === 'user' ? "people" : "people-outline"}
+                                    size={20}
+                                    color={mainTab === 'user' ? '#009688' : '#9CA3AF'}
+                                    style={styles.mainTabIcon}
+                                />
+                                <Text style={[styles.mainTabText, mainTab === 'user' && styles.mainTabTextActive]}>
+                                    ユーザー
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                        <View style={styles.headerRight}>
+                            {onOpenNotifications && (
+                                <TouchableOpacity
+                                    style={styles.notificationButton}
+                                    onPress={onOpenNotifications}
+                                >
+                                    <Ionicons name="notifications-outline" size={24} color="#374151" />
+                                    {unreadNotificationsCount > 0 && (
+                                        <View style={styles.notificationBadgeDot} />
+                                    )}
+                                </TouchableOpacity>
+                            )}
+                        </View>
                     </View>
 
                     {/* Sub Tabs with Modern Design */}
@@ -926,33 +944,33 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                         <View style={styles.subTabContainer}>
                             <TouchableOpacity
                                 style={[styles.subTabButton, userTab === 'received' && styles.subTabButtonActive]}
-                                onPress={() => {
+                        onPress={() => {
                                     setUserTab('received');
                                     userListRef.current?.scrollToIndex({ index: 0, animated: true });
-                                }}
+                        }}
                                 activeOpacity={0.7}
-                            >
+                    >
                                 <Text style={[styles.subTabText, userTab === 'received' && styles.subTabTextActive]}>
                                     興味あり
-                                </Text>
+                        </Text>
                                 {unreadInterestCount > 0 && (
-                                    <View style={styles.badge}>
+                            <View style={styles.badge}>
                                         <Text style={styles.badgeText}>{unreadInterestCount}</Text>
-                                    </View>
-                                )}
-                            </TouchableOpacity>
-                            <TouchableOpacity
+                            </View>
+                        )}
+                    </TouchableOpacity>
+                    <TouchableOpacity
                                 style={[styles.subTabButton, userTab === 'sent' && styles.subTabButtonActive]}
-                                onPress={() => {
+                        onPress={() => {
                                     setUserTab('sent');
                                     userListRef.current?.scrollToIndex({ index: 1, animated: true });
-                                }}
+                        }}
                                 activeOpacity={0.7}
-                            >
+                    >
                                 <Text style={[styles.subTabText, userTab === 'sent' && styles.subTabTextActive]}>
                                     送った
-                                </Text>
-                            </TouchableOpacity>
+                        </Text>
+                    </TouchableOpacity>
                             <TouchableOpacity
                                 style={[styles.subTabButton, userTab === 'matched' && styles.subTabButtonActive]}
                                 onPress={() => {
@@ -967,7 +985,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                                 {unreadMatchCount > 0 && (
                                     <View style={styles.badge}>
                                         <Text style={styles.badgeText}>{unreadMatchCount}</Text>
-                                    </View>
+                </View>
                                 )}
                             </TouchableOpacity>
                         </View>
@@ -1009,29 +1027,29 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
 
             {/* Content */}
             {mainTab === 'user' ? (
-                <FlatList
+            <FlatList
                     ref={userListRef}
                     data={userTabs}
-                    horizontal
-                    pagingEnabled
-                    showsHorizontalScrollIndicator={false}
-                    keyExtractor={(item) => item}
-                    onMomentumScrollEnd={(e) => {
-                        const index = Math.round(e.nativeEvent.contentOffset.x / Dimensions.get('window').width);
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                keyExtractor={(item) => item}
+                onMomentumScrollEnd={(e) => {
+                    const index = Math.round(e.nativeEvent.contentOffset.x / Dimensions.get('window').width);
                         setUserTab(userTabs[index]);
-                    }}
-                    getItemLayout={(data, index) => (
-                        { length: Dimensions.get('window').width, offset: Dimensions.get('window').width * index, index }
-                    )}
-                    initialScrollIndex={0}
-                    renderItem={({ item }) => (
-                        <View style={{ width: Dimensions.get('window').width, flex: 1 }}>
+                }}
+                getItemLayout={(data, index) => (
+                    { length: Dimensions.get('window').width, offset: Dimensions.get('window').width * index, index }
+                )}
+                initialScrollIndex={0}
+                renderItem={({ item }) => (
+                    <View style={{ width: Dimensions.get('window').width, flex: 1 }}>
                             {item === 'received' && renderReceivedList()}
                             {item === 'sent' && renderSentList()}
                             {item === 'matched' && renderMatchedList()}
-                        </View>
-                    )}
-                />
+                    </View>
+                )}
+            />
             ) : (
                 <FlatList
                     ref={projectListRef}
@@ -1100,22 +1118,38 @@ const styles = StyleSheet.create({
     },
     headerGradient: {
         // paddingTop handled in component
-        paddingBottom: 4,
+        paddingBottom: 8,
+    },
+    headerTop: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+    },
+    headerLeft: {
+        width: 40,
+    },
+    headerRight: {
+        width: 56,
+        alignItems: 'flex-end',
+        paddingRight: 0,
     },
     // Main tabs (Project / User)
     mainTabContainer: {
+        flex: 1,
         flexDirection: 'row',
         justifyContent: 'center',
-        gap: 16,
-        paddingBottom: 16,
-        paddingHorizontal: 24,
+        alignItems: 'center',
+        gap: 8,
+        marginLeft: -4,
     },
     mainTabButton: {
         flexDirection: 'row',
         alignItems: 'center',
         paddingVertical: 10,
-        paddingHorizontal: 24,
-        borderRadius: 24,
+        paddingHorizontal: 20,
+        borderRadius: 20,
         backgroundColor: 'transparent',
         gap: 8,
     },
@@ -1133,6 +1167,19 @@ const styles = StyleSheet.create({
     },
     mainTabTextActive: {
         color: '#009688',
+    },
+    notificationButton: {
+        padding: 4,
+        marginRight: -8,
+    },
+    notificationBadgeDot: {
+        position: 'absolute',
+        top: 2,
+        right: 2,
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        backgroundColor: '#EF4444',
     },
     // Sub tabs
     subTabContainer: {
