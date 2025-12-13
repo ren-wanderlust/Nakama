@@ -301,7 +301,7 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
               />
               <Text style={styles.appName}>Pogg</Text>
             </View>
-            <Text style={styles.logoSubtitle}>Elite Student Network</Text>
+            <Text style={styles.logoSubtitle}>Connect with Future Leaders</Text>
           </View>
 
           {/* Main Message - Centered */}
