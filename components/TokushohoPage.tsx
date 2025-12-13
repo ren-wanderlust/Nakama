@@ -37,74 +37,80 @@ export function TokushohoPage({ onBack }: TokushohoPageProps) {
 
                 <View style={styles.infoCard}>
                     <InfoRow
-                        label="販売業者"
-                        value="Nakama運営事務局"
+                        label="事業者の名称"
+                        value="Pogg 運営事務局"
                     />
                     <View style={styles.separator} />
 
                     <InfoRow
                         label="運営統括責任者"
-                        value="※ご請求があった場合に遅滞なく開示いたします"
+                        value="※消費者からのご請求があった場合、遅滞なく開示いたします。"
                     />
                     <View style={styles.separator} />
 
                     <InfoRow
                         label="所在地"
-                        value="※ご請求があった場合に遅滞なく開示いたします"
+                        value="※消費者からのご請求があった場合、遅滞なく開示いたします。"
                     />
                     <View style={styles.separator} />
 
                     <InfoRow
                         label="電話番号"
-                        value="※ご請求があった場合に遅滞なく開示いたします"
+                        value="※消費者からのご請求があった場合、遅滞なく開示いたします。"
                     />
                     <View style={styles.separator} />
 
                     <InfoRow
                         label="メールアドレス"
-                        value="support@nakama-app.com"
+                        value="pogg.contact@gmail.com"
                     />
                     <View style={styles.separator} />
 
                     <InfoRow
                         label="販売価格"
-                        value="各サービスページに表示される価格に準じます。表示価格は税込みです。"
+                        value="購入手続きの際に画面に表示されます。 （基本機能は無料です。有料プランがある場合は、該当ページに税込価格を表示します。）"
                     />
                     <View style={styles.separator} />
 
                     <InfoRow
                         label="商品代金以外の必要料金"
-                        value="インターネット接続料、通信料等はお客様のご負担となります。"
+                        value="・当サイトのページの閲覧、コンテンツ購入、ソフトウェアのダウンロード等に必要となるインターネット接続料金、通信料金等はお客様の負担となります。"
                     />
                     <View style={styles.separator} />
 
                     <InfoRow
                         label="支払方法"
-                        value="クレジットカード決済、App Store決済、Google Play決済"
+                        value={`以下のいずれかのお支払方法をご利用いただけます。
+・App Store 決済（iOS端末のお客様）
+・Google Play 決済（Android端末のお客様）
+・その他、各プラットフォームが定める決済方法`}
                     />
                     <View style={styles.separator} />
 
                     <InfoRow
                         label="支払時期"
-                        value="ご利用のクレジットカード会社の規定に基づきます。"
+                        value="ご利用のプラットフォーム（Apple Inc. / Google LLC）またはクレジットカード会社の規約に基づき、購入完了と同時に課金が行われます。"
                     />
                     <View style={styles.separator} />
 
                     <InfoRow
                         label="商品の引渡時期"
-                        value="決済完了後、即時にサービスをご利用いただけます。"
+                        value="購入手続き完了後、即時にご利用いただけます。"
                     />
                     <View style={styles.separator} />
 
                     <InfoRow
-                        label="返品・キャンセルについて"
-                        value="デジタルコンテンツの性質上、購入後の返品・キャンセルは原則としてお受けできません。ただし、法令に基づく場合はこの限りではありません。"
+                        label="返品・キャンセルに関する特約"
+                        value="デジタルコンテンツの性質上、購入確定後の返品・キャンセル・交換についてはお受けできません。 なお、本サービスには、特定商取引法に規定されるクーリング・オフが適用されません。"
                     />
                     <View style={styles.separator} />
 
                     <InfoRow
                         label="動作環境"
-                        value="iOS 14.0以上 / Android 8.0以上"
+                        value={`以下の環境にて動作確認を行っております。
+・iOS 14.0 以降
+・Android 8.0 以降
+※全ての端末での動作を保証するものではありません。`}
                     />
                 </View>
 
