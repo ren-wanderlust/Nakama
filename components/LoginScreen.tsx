@@ -301,13 +301,19 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
               />
               <Text style={styles.appName}>Pogg</Text>
             </View>
-            <Text style={styles.logoSubtitle}>Connect with Future Leaders</Text>
+            <Text style={[styles.logoSubtitle, { opacity: 0.8, fontSize: 12 }]}>Connect with Future Leaders</Text>
           </View>
 
           {/* Main Message - Centered */}
           <View style={styles.messageContainer}>
             <Text style={styles.title}>
-              東大・早慶・MARCHで{'\n'}未来を創る仲間を見つける
+              未来を創る仲間に出会う
+            </Text>
+            <Text style={styles.subtitle}>
+              プロジェクト・起業・ビジコン・学生団体{'\n'}挑戦する学生のつながり
+            </Text>
+            <Text style={styles.description}>
+              学年・大学を超えてつながる
             </Text>
           </View>
 
@@ -315,12 +321,12 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
           <View style={styles.actionContainer}>
             {/* Create Account Button - Primary */}
             <TouchableOpacity onPress={onCreateAccount} activeOpacity={0.8} style={styles.primaryButton}>
-              <Text style={styles.primaryButtonText}>アカウントを作成</Text>
+              <Text style={styles.primaryButtonText}>アカウント登録</Text>
             </TouchableOpacity>
 
             {/* Login Button - Secondary */}
             <TouchableOpacity onPress={() => setIsLoginModalVisible(true)} activeOpacity={0.8} style={styles.secondaryButton}>
-              <Text style={styles.secondaryButtonText}>アカウントをお持ちの方</Text>
+              <Text style={styles.secondaryButtonText}>ログイン</Text>
             </TouchableOpacity>
 
             {/* Terms */}
@@ -497,10 +503,10 @@ const styles = StyleSheet.create({
   },
   title: {
     color: '#FFFFFF',
-    fontSize: 44,
+    fontSize: 32,
     fontWeight: 'bold',
     textAlign: 'center',
-    lineHeight: 52,
+    lineHeight: 42,
     letterSpacing: -0.5,
   },
   subtitle: {
@@ -509,6 +515,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 24,
     marginTop: 12,
+  },
+  description: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 24,
+    fontWeight: '500',
   },
   actionContainer: {
     gap: 16,
