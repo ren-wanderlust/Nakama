@@ -2113,7 +2113,7 @@ const styles = StyleSheet.create({
   },
   searchHeaderGradient: {
     paddingTop: 16,
-    paddingBottom: 16,
+    paddingBottom: 8,
   },
   emptyStateContainer: {
     flex: 1,
