@@ -53,15 +53,15 @@ export function ContactPage({ onBack }: ContactPageProps) {
 
     const handleEmailContact = () => {
         const subject = inquiryType
-            ? `【${inquiryTypes.find(t => t.id === inquiryType)?.label || 'お問い合わせ'}】Nakamaアプリについて`
-            : '【お問い合わせ】Nakamaアプリについて';
+            ? `【${inquiryTypes.find(t => t.id === inquiryType)?.label || 'お問い合わせ'}】Poggアプリについて`
+            : '【お問い合わせ】Poggアプリについて';
         const body = message || 'お問い合わせ内容をこちらにご記入ください。';
 
-        Linking.openURL(`mailto:support@nakama-app.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
+        Linking.openURL(`mailto:pogg.contact@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
     };
 
     const handleTwitter = () => {
-        Linking.openURL('https://twitter.com/nakama_app');
+        Linking.openURL('https://x.com/pogg_official');
     };
 
     const handleSendInquiry = () => {
@@ -104,7 +104,7 @@ export function ContactPage({ onBack }: ContactPageProps) {
                         <ContactOption
                             icon="mail"
                             title="メールで問い合わせ"
-                            description="support@nakama-app.com"
+                            description="pogg.contact@gmail.com"
                             onPress={handleEmailContact}
                             color="#009688"
                         />
@@ -112,7 +112,7 @@ export function ContactPage({ onBack }: ContactPageProps) {
                         <ContactOption
                             icon="logo-twitter"
                             title="公式Xアカウント"
-                            description="@nakama_app"
+                            description="@pogg_official"
                             onPress={handleTwitter}
                             color="#1DA1F2"
                         />

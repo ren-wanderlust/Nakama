@@ -6,6 +6,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { SHADOWS, FONTS } from '../constants/DesignSystem';
 import { ModernButton, ModernInput } from './ModernComponents';
+import { TermsOfServicePage } from './TermsOfServicePage';
+import { PrivacyPolicyPage } from './PrivacyPolicyPage';
 
 const { width, height } = Dimensions.get('window');
 
@@ -173,6 +175,14 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
       Alert.alert('エラー', error.message || '送信に失敗しました');
     }
   };
+
+  if (isTermsModalVisible) {
+    return <TermsOfServicePage onBack={() => setIsTermsModalVisible(false)} />;
+  }
+
+  if (isPrivacyModalVisible) {
+    return <PrivacyPolicyPage onBack={() => setIsPrivacyModalVisible(false)} />;
+  }
 
   return (
     <View style={styles.container}>
@@ -393,83 +403,7 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
         </TouchableWithoutFeedback>
       </Modal>
 
-      {/* Terms of Service Modal */}
-      <Modal
-        visible={isTermsModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setIsTermsModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.policyModalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>利用規約</Text>
-              <TouchableOpacity onPress={() => setIsTermsModalVisible(false)} style={styles.closeButton}>
-                <Ionicons name="close" size={24} color="#333" />
-              </TouchableOpacity>
-            </View>
-            <ScrollView style={styles.policyScrollView} showsVerticalScrollIndicator={false}>
-              <Text style={styles.policyText}>
-                {/* TODO: 実際の利用規約テキストを追加してください */}
-                <Text style={styles.policyTitle}>第1条（適用）</Text>{'\n\n'}
-                本規約は、本サービスの提供条件及び本サービスの利用に関する当社と登録ユーザーとの間の権利義務関係を定めることを目的とし、登録ユーザーと当社との間の本サービスの利用に関わる一切の関係に適用されます。{'\n\n'}
-
-                <Text style={styles.policyTitle}>第2条（利用登録）</Text>{'\n\n'}
-                本サービスにおいては、登録希望者が本規約に同意の上、当社の定める方法によって利用登録を申請し、当社がこれに対する承認を登録希望者に通知することによって、利用登録が完了するものとします。{'\n\n'}
-
-                <Text style={styles.policyTitle}>第3条（禁止事項）</Text>{'\n\n'}
-                登録ユーザーは、本サービスの利用にあたり、以下の行為をしてはなりません。{'\n'}
-                ・法令または公序良俗に違反する行為{'\n'}
-                ・犯罪行為に関連する行為{'\n'}
-                ・当社のサーバーまたはネットワークの機能を破壊したり、妨害したりする行為{'\n'}
-                ・その他、当社が不適切と判断する行為{'\n\n'}
-
-                {/* 他の条項を追加 */}
-              </Text>
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Privacy Policy Modal */}
-      <Modal
-        visible={isPrivacyModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setIsPrivacyModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.policyModalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>プライバシーポリシー</Text>
-              <TouchableOpacity onPress={() => setIsPrivacyModalVisible(false)} style={styles.closeButton}>
-                <Ionicons name="close" size={24} color="#333" />
-              </TouchableOpacity>
-            </View>
-            <ScrollView style={styles.policyScrollView} showsVerticalScrollIndicator={false}>
-              <Text style={styles.policyText}>
-                {/* TODO: 実際のプライバシーポリシーテキストを追加してください */}
-                <Text style={styles.policyTitle}>1. 収集する情報</Text>{'\n\n'}
-                当社は、本サービスの提供にあたり、以下の情報を収集します：{'\n'}
-                ・氏名、メールアドレス等の個人情報{'\n'}
-                ・プロフィール情報{'\n'}
-                ・サービス利用履歴{'\n\n'}
-
-                <Text style={styles.policyTitle}>2. 情報の利用目的</Text>{'\n\n'}
-                収集した情報は、以下の目的で利用します：{'\n'}
-                ・本サービスの提供・運営のため{'\n'}
-                ・ユーザーからのお問い合わせに回答するため{'\n'}
-                ・本サービスの改善・新サービスの開発のため{'\n\n'}
-
-                <Text style={styles.policyTitle}>3. 情報の第三者提供</Text>{'\n\n'}
-                当社は、ユーザーの同意なく、個人情報を第三者に提供することはありません。ただし、法令に基づく場合はこの限りではありません。{'\n\n'}
-
-                {/* 他の条項を追加 */}
-              </Text>
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
+      {/* Modals removed as we now use conditional rendering for full page experience */}
     </View>
   );
 }
