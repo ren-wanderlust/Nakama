@@ -21,32 +21,156 @@ interface FAQItem {
     answer: string;
 }
 
-const FAQS: FAQItem[] = [
+// FAQカテゴリ定義
+interface FAQCategory {
+    title: string;
+    icon: string;
+    items: FAQItem[];
+}
+
+const FAQ_CATEGORIES: FAQCategory[] = [
     {
-        question: '学生でなくても利用できますか？',
-        answer: 'Nakamaは25歳以下の「挑戦する若者」をメインターゲットとしていますが、年齢要件を満たしていれば、学生・社会人・フリーランス問わずご利用いただけます。'
+        title: 'アカウント・登録について',
+        icon: 'person-circle-outline',
+        items: [
+            {
+                question: '誰でも利用できますか？',
+                answer: 'Nakamaは25歳以下の「挑戦する若者」を対象としたマッチングアプリです。年齢要件を満たしていれば、学生・社会人・フリーランス・起業家など、どなたでもご利用いただけます。'
+            },
+            {
+                question: '登録に必要なものは何ですか？',
+                answer: 'メールアドレスのみで登録が可能です。Gmail、Yahoo!メール、各大学のメールアドレスなど、どのメールアドレスでもご利用いただけます。登録後、プロフィール情報を充実させることで、より良いマッチングが期待できます。'
+            },
+            {
+                question: '本名で登録する必要がありますか？',
+                answer: 'ニックネームでの登録も可能です。ただし、ビジネス目的のマッチングアプリという特性上、信頼性を高めるために実名またはビジネスネームでの登録を推奨しています。プロフィール写真も本人の写真を推奨しています。'
+            },
+            {
+                question: 'プロフィールを後から変更できますか？',
+                answer: 'はい、マイページから「プロフィール編集」をタップすることで、プロフィール写真・自己紹介・スキル・挑戦テーマなど、すべての情報をいつでも変更できます。魅力的なプロフィールはマッチング率アップにつながります。'
+            },
+            {
+                question: '複数のアカウントを作成できますか？',
+                answer: 'いいえ、お一人様につき1アカウントのみとなります。複数アカウントの作成は利用規約違反となり、発覚した場合はすべてのアカウントが停止される可能性があります。'
+            },
+            {
+                question: '退会したいです。',
+                answer: 'マイページの「各種設定」＞「アカウント削除」から手続きが可能です。退会すると、プロフィール情報・マッチング履歴・チャット履歴・プロジェクト情報など、すべてのデータが完全に削除され、復元することはできません。慎重にご検討ください。'
+            }
+        ]
     },
     {
-        question: '利用料金はかかりますか？',
-        answer: '現在、アプリの基本機能はすべて無料でご利用いただけます。（※将来的に企業向けプランなどの有料機能が追加される可能性がありますが、事前の告知なく課金されることはありません）'
+        title: 'マッチング・交流について',
+        icon: 'heart-outline',
+        items: [
+            {
+                question: 'マッチングの仕組みを教えてください。',
+                answer: 'ホーム画面に表示されるユーザーのプロフィールカードをスワイプして「いいね」を送ることができます。お互いが「いいね」を送り合うとマッチングが成立し、チャットが可能になります。興味のあるスキルや挑戦テーマを持つ人を探してみましょう。'
+            },
+            {
+                question: 'マッチングしたらどうすればいいですか？',
+                answer: 'まずはチャットで自己紹介と「なぜいいねしたか」を伝えましょう。お互いの挑戦テーマやスキルについて話し、共通点を見つけてください。相性が良ければ、ZoomやGoogle Meet、カフェでの対面ミーティングを提案してみてください。'
+            },
+            {
+                question: 'マッチングを解除したいです。',
+                answer: 'チャット画面右上のメニュー（︙）から「マッチング解除」を選択できます。解除すると、お互いのチャット履歴が削除され、相手には通知されません。再度マッチングするには、もう一度お互いが「いいね」を送り合う必要があります。'
+            },
+            {
+                question: '相手からメッセージが来ません。',
+                answer: 'マッチング後しばらく経っても返信がない場合は、相手が忙しいか、アプリを確認していない可能性があります。数日待っても返信がない場合は、別のユーザーとのマッチングを試みてください。質の高い最初のメッセージを送ることで返信率が上がります。'
+            },
+            {
+                question: 'いいねを間違えて送ってしまいました。',
+                answer: '一度送った「いいね」は取り消すことができません。マッチングが成立した場合は、正直に間違いであったことを伝えるか、マッチングを解除することができます。'
+            }
+        ]
     },
     {
-        question: '本名で登録する必要がありますか？',
-        answer: 'ニックネームでの登録も可能ですが、信頼性を高めるために実名またはビジネスネームでの登録を推奨しています。'
+        title: 'プロジェクト機能について',
+        icon: 'briefcase-outline',
+        items: [
+            {
+                question: 'プロジェクトとは何ですか？',
+                answer: 'プロジェクトは、ビジネスアイデアや起業計画、イベント企画などを公開し、仲間を募集できる機能です。自分のプロジェクトを掲載したり、他のユーザーのプロジェクトに応募したりすることで、志を同じくするメンバーと出会うことができます。'
+            },
+            {
+                question: 'プロジェクトを作成するにはどうすればいいですか？',
+                answer: 'ホーム画面の「プロジェクト」タブから「新規作成」ボタンをタップし、プロジェクト名・概要・募集するスキル・締め切りなどを入力して公開できます。魅力的な説明文で、どんな仲間を求めているか具体的に記載しましょう。'
+            },
+            {
+                question: 'プロジェクトに応募するとどうなりますか？',
+                answer: '応募すると、プロジェクトオーナーに通知が届きます。オーナーがあなたのプロフィールを確認し、「承認」または「却下」を判断します。承認されると、プロジェクトメンバーとしてチャットグループに参加できます。'
+            },
+            {
+                question: '自分のプロジェクトへの応募を管理するには？',
+                answer: 'マイページの「プロジェクト」から自分が作成したプロジェクトを選択し、「応募者一覧」を確認できます。各応募者のプロフィールを確認し、「承認」または「却下」ボタンで対応してください。'
+            },
+            {
+                question: 'プロジェクトを削除したいです。',
+                answer: 'プロジェクト詳細画面の右上メニューから「削除」を選択できます。ただし、既にメンバーがいる場合は慎重にご検討ください。削除前にメンバーへ連絡することを推奨します。'
+            }
+        ]
     },
     {
-        question: 'マッチングしたらどうすればいいですか？',
-        answer: 'まずはチャットで挨拶をし、お互いの「挑戦テーマ」について軽く話してみましょう。気が合えばZoomやカフェでの壁打ちを提案してみてください。'
+        title: '安全性・通報について',
+        icon: 'shield-checkmark-outline',
+        items: [
+            {
+                question: '怪しい勧誘を受けました。',
+                answer: 'Nakamaではネットワークビジネス(MLM)、マルチ商法、宗教勧誘、情報商材の販売、強引な営業行為を固く禁じています。該当するユーザーを見つけた場合は、チャット画面またはプロフィール画面右上のメニューから「通報」をお願いします。迅速に対応いたします。'
+            },
+            {
+                question: '不適切なメッセージや画像を受け取りました。',
+                answer: '性的なメッセージ、暴言、差別的発言、脅迫など、不快なコンテンツを受け取った場合は、すぐに「通報」してください。チャット画面右上のメニューから通報でき、スクリーンショットも証拠として運営に送信されます。'
+            },
+            {
+                question: '特定のユーザーをブロックしたいです。',
+                answer: 'チャット画面またはプロフィール画面右上のメニューから「ブロック」を選択できます。ブロックすると、相手からのメッセージを受け取らなくなり、お互いのプロフィールが表示されなくなります。ブロックした相手には通知されません。'
+            },
+            {
+                question: '通報したら相手にバレますか？',
+                answer: 'いいえ、通報は完全に匿名で処理されます。通報したことは相手に一切通知されませんので、安心してご報告ください。運営チームが内容を確認し、適切な対応を行います。'
+            },
+            {
+                question: '個人情報は安全ですか？',
+                answer: 'はい、お客様の個人情報は暗号化されて保存され、第三者に無断で提供することはありません。詳細は「プライバシーポリシー」をご確認ください。また、他のユーザーとの交流では、最初から個人情報（電話番号・住所・LINE IDなど）を共有しないことを推奨します。'
+            },
+            {
+                question: '実際に会う際の注意点はありますか？',
+                answer: '初対面の相手と会う際は、①公共の場所を選ぶ、②友人に行き先を伝える、③昼間の時間帯にする、④お酒の席は避ける、⑤おかしいと思ったらすぐに帰る、などの対策を推奨します。安全を第一に行動してください。'
+            }
+        ]
     },
     {
-        question: '怪しい勧誘を受けました。',
-        answer: 'Nakamaではネットワークビジネス(MLM)、宗教勧誘、強引な営業行為を固く禁じています。該当するユーザーを見つけた場合は、プロフィール画面右上のメニューから「通報」をお願いします。'
-    },
-    {
-        question: '退会したいです。',
-        answer: 'マイページの「各種設定」＞「アカウント削除」から手続きが可能です。一度削除したデータは復元できませんのでご注意ください。'
+        title: '料金・その他',
+        icon: 'help-circle-outline',
+        items: [
+            {
+                question: '利用料金はかかりますか？',
+                answer: '現在、Nakamaのすべての機能は完全無料でご利用いただけます。マッチング・チャット・プロジェクト作成・応募など、制限なくお使いいただけます。将来的にプレミアム機能が追加される可能性がありますが、事前の告知なく課金されることはありません。'
+            },
+            {
+                question: '通知が届きません。',
+                answer: 'スマートフォンの「設定」＞「通知」からNakamaアプリの通知が有効になっているか確認してください。また、おやすみモードや低電力モードが有効だと通知が制限される場合があります。問題が解決しない場合は、アプリを再起動してお試しください。'
+            },
+            {
+                question: 'アプリが正常に動作しません。',
+                answer: '①アプリを完全に終了して再起動する、②インターネット接続を確認する、③アプリを最新バージョンにアップデートする、④スマートフォンを再起動する、の順にお試しください。それでも解決しない場合は「お問い合わせ」からご連絡ください。'
+            },
+            {
+                question: 'パスワードを忘れました。',
+                answer: 'ログイン画面の「パスワードをお忘れですか？」をタップし、登録したメールアドレスを入力してください。パスワードリセット用のリンクがメールで届きます。迷惑メールフォルダも確認してください。'
+            },
+            {
+                question: 'お問い合わせはどこからできますか？',
+                answer: 'このヘルプ画面下部の「お問い合わせ」から、メールでお問い合わせいただけます。通常3営業日以内にご返信いたします。バグ報告・機能リクエスト・その他ご意見もお待ちしております。'
+            }
+        ]
     }
 ];
+
+// 後方互換性のため、従来のFAQS配列も維持（フラット化）
+const FAQS: FAQItem[] = FAQ_CATEGORIES.flatMap(category => category.items);
 
 const AccordionItem = ({ item }: { item: FAQItem }) => {
     const [expanded, setExpanded] = useState(false);
@@ -107,16 +231,23 @@ export function HelpPage({ onBack }: HelpPageProps) {
             </View>
 
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-                {/* FAQ Section */}
-                <Text style={styles.sectionTitle}>よくある質問 (FAQ)</Text>
-                <View style={styles.faqSection}>
-                    {FAQS.map((faq, index) => (
-                        <View key={index}>
-                            <AccordionItem item={faq} />
-                            {index < FAQS.length - 1 && <View style={styles.separator} />}
+                {/* FAQ Categories */}
+                {FAQ_CATEGORIES.map((category, categoryIndex) => (
+                    <View key={categoryIndex}>
+                        <View style={styles.categoryHeader}>
+                            <Ionicons name={category.icon as any} size={20} color="#6366F1" />
+                            <Text style={styles.categoryTitle}>{category.title}</Text>
                         </View>
-                    ))}
-                </View>
+                        <View style={styles.faqSection}>
+                            {category.items.map((faq, itemIndex) => (
+                                <View key={itemIndex}>
+                                    <AccordionItem item={faq} />
+                                    {itemIndex < category.items.length - 1 && <View style={styles.separator} />}
+                                </View>
+                            ))}
+                        </View>
+                    </View>
+                ))}
 
                 {/* Other Links Section */}
                 <Text style={styles.sectionTitle}>規約・その他</Text>
@@ -186,7 +317,8 @@ const styles = StyleSheet.create({
     },
     content: {
         flex: 1,
-        padding: 16,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
     },
     sectionTitle: {
         fontSize: 14,
@@ -195,6 +327,19 @@ const styles = StyleSheet.create({
         marginBottom: 12,
         marginLeft: 4,
         marginTop: 8,
+    },
+    categoryHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 12,
+        marginTop: 16,
+        paddingHorizontal: 4,
+    },
+    categoryTitle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#1F2937',
+        marginLeft: 8,
     },
     faqSection: {
         backgroundColor: 'white',
@@ -211,8 +356,9 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: 16,
-        minHeight: 56,
+        paddingVertical: 14,
+        paddingHorizontal: 12,
+        minHeight: 52,
     },
     questionText: {
         fontSize: 15,
@@ -223,8 +369,8 @@ const styles = StyleSheet.create({
         lineHeight: 22,
     },
     answerContainer: {
-        paddingHorizontal: 16,
-        paddingBottom: 16,
+        paddingHorizontal: 12,
+        paddingBottom: 14,
         backgroundColor: '#F9FAFB',
     },
     answerText: {
