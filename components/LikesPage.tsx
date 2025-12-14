@@ -885,7 +885,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
             {/* Modern Header */}
             <View style={styles.header}>
                 {/* Background */}
-                <View style={[styles.headerGradient, { paddingTop: insets.top + 16, paddingBottom: 8, backgroundColor: '#F39800' }]}>
+                <View style={[styles.headerGradient, { paddingTop: insets.top + 16, paddingBottom: 8, backgroundColor: 'white' }]}>
                     {/* Top Level Tabs: プロジェクト / ユーザー */}
                     <View style={styles.headerTop}>
                         <View style={styles.headerLeft} />
@@ -898,7 +898,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                                 <Ionicons
                                     name={mainTab === 'project' ? "folder" : "folder-outline"}
                                     size={20}
-                                    color={mainTab === 'project' ? '#F39800' : 'white'}
+                                    color={mainTab === 'project' ? 'white' : '#F39800'}
                                     style={styles.mainTabIcon}
                                 />
                                 <Text style={[styles.mainTabText, mainTab === 'project' && styles.mainTabTextActive]}>
@@ -913,7 +913,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                                 <Ionicons
                                     name={mainTab === 'user' ? "people" : "people-outline"}
                                     size={20}
-                                    color={mainTab === 'user' ? '#F39800' : 'white'}
+                                    color={mainTab === 'user' ? 'white' : '#F39800'}
                                     style={styles.mainTabIcon}
                                 />
                                 <Text style={[styles.mainTabText, mainTab === 'user' && styles.mainTabTextActive]}>
@@ -927,7 +927,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                                     style={styles.notificationButton}
                                     onPress={onOpenNotifications}
                                 >
-                                    <Ionicons name="notifications-outline" size={24} color="white" />
+                                    <Ionicons name="notifications-outline" size={24} color="#F39800" />
                                     {unreadNotificationsCount > 0 && (
                                         <View style={styles.notificationBadgeDot} />
                                     )}
@@ -1102,10 +1102,10 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f9fafb',
+        backgroundColor: '#FFF3E0',
     },
     header: {
-        backgroundColor: '#F39800',
+        backgroundColor: 'white',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.08,
@@ -1151,7 +1151,7 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     mainTabButtonActive: {
-        backgroundColor: 'white',
+        backgroundColor: '#F39800',
     },
     mainTabIcon: {
         marginRight: 4,
@@ -1159,11 +1159,11 @@ const styles = StyleSheet.create({
     mainTabText: {
         fontSize: 17,
         fontWeight: '700',
-        color: 'white',
+        color: '#F39800',
         letterSpacing: 0.2,
     },
     mainTabTextActive: {
-        color: '#F39800',
+        color: 'white',
     },
     notificationButton: {
         padding: 4,

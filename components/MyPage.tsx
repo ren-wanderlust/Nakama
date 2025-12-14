@@ -581,7 +581,7 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: 'white',
+        backgroundColor: '#FFF3E0',
     },
     header: {
         flexDirection: 'row',

@@ -417,7 +417,7 @@ export function UserProjectPage({ currentUser, onChat, sortOrder = 'recommended'
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#FAFAFA',
+        backgroundColor: '#FFF3E0',
     },
     loadingContainer: {
         flex: 1,

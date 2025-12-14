@@ -1253,16 +1253,16 @@ function AppContent() {
         {/* Header */}
         {/* Header */}
         <View style={styles.headerContainer}>
-          <View style={{ width: '100%', backgroundColor: '#F39800' }}>
+          <View style={{ width: '100%', backgroundColor: 'white' }}>
             {activeTab !== 'search' && activeTab !== 'likes' && activeTab !== 'talk' && activeTab !== 'challenge' && activeTab !== 'profile' && (
               <View style={[styles.headerTop, { paddingTop: insets.top + 10 }]}>
                 <View style={styles.headerLeft} />
-                <Text style={[styles.headerTitle, { color: 'white' }]}>Pogg</Text>
+                <Text style={[styles.headerTitle, { color: '#F39800' }]}>Pogg</Text>
                 <TouchableOpacity
                   style={styles.notificationButton}
                   onPress={() => setShowNotifications(true)}
                 >
-                  <Ionicons name="notifications-outline" size={24} color="white" />
+                  <Ionicons name="notifications-outline" size={24} color="#F39800" />
                   {unreadNotificationsCount > 0 && (
                     <View style={styles.notificationBadgeDot} />
                   )}
@@ -1273,8 +1273,8 @@ function AppContent() {
             {activeTab === 'search' && (
               <View>
                 {/* Modern Header */}
-                <View style={[styles.searchHeader, { backgroundColor: '#F39800' }]}>
-                  <View style={[styles.searchHeaderGradient, { paddingTop: insets.top + 16, backgroundColor: '#F39800' }]}>
+                <View style={[styles.searchHeader, { backgroundColor: 'white' }]}>
+                  <View style={[styles.searchHeaderGradient, { paddingTop: insets.top + 16, backgroundColor: 'white' }]}>
                     <View style={styles.headerTop}>
                       <View style={styles.headerLeft} />
                       <View style={styles.tabContainer}>
@@ -1289,7 +1289,7 @@ function AppContent() {
                           <Ionicons
                             name={searchTab === 'projects' ? "folder" : "folder-outline"}
                             size={20}
-                            color={searchTab === 'projects' ? '#F39800' : 'white'}
+                            color={searchTab === 'projects' ? 'white' : '#F39800'}
                             style={styles.tabIcon}
                           />
                           <Text style={[styles.tabText, searchTab === 'projects' && styles.tabTextActive]}>プロジェクト</Text>
@@ -1305,7 +1305,7 @@ function AppContent() {
                           <Ionicons
                             name={searchTab === 'users' ? "people" : "people-outline"}
                             size={20}
-                            color={searchTab === 'users' ? '#F39800' : 'white'}
+                            color={searchTab === 'users' ? 'white' : '#F39800'}
                             style={styles.tabIcon}
                           />
                           <Text style={[styles.tabText, searchTab === 'users' && styles.tabTextActive]}>ユーザー</Text>
@@ -1316,7 +1316,7 @@ function AppContent() {
                           style={styles.notificationButton}
                           onPress={() => setShowNotifications(true)}
                         >
-                          <Ionicons name="notifications-outline" size={24} color="white" />
+                          <Ionicons name="notifications-outline" size={24} color="#F39800" />
                           {unreadNotificationsCount > 0 && (
                             <View style={styles.notificationBadgeDot} />
                           )}
@@ -1908,7 +1908,7 @@ const styles = StyleSheet.create({
   },
   contentArea: {
     flex: 1,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: '#FFF3E0',
     // paddingBottom handled in FlatList contentContainerStyle
   },
   placeholderTitle: {
@@ -2107,7 +2107,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0, // Remove old bottom border
   },
   tabButtonActive: {
-    backgroundColor: 'white',
+    backgroundColor: '#F39800',
   },
   tabIcon: {
     marginRight: 4,
@@ -2115,11 +2115,11 @@ const styles = StyleSheet.create({
   tabText: {
     fontSize: 17,
     fontWeight: '700',
-    color: 'white',
+    color: '#F39800',
     letterSpacing: 0.2,
   },
   tabTextActive: {
-    color: '#F39800',
+    color: 'white',
   },
   searchHeader: {
     backgroundColor: 'white',

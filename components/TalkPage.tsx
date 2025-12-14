@@ -427,7 +427,7 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
             <View style={styles.container}>
                 {/* Header */}
                 <View style={styles.header}>
-                    <View style={{ width: '100%', paddingTop: insets.top + 16, paddingBottom: 8, alignItems: 'center', backgroundColor: '#F39800' }}>
+                    <View style={{ width: '100%', paddingTop: insets.top + 16, paddingBottom: 8, alignItems: 'center', backgroundColor: 'white' }}>
                         <View style={styles.tabContainer}>
                             <TouchableOpacity style={[styles.tabButton, styles.tabButtonActive]}>
                                 <View style={styles.tabLabelRow}>
@@ -461,7 +461,7 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
         <View style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
-                <View style={{ width: '100%', paddingTop: insets.top + 16, paddingBottom: 8, alignItems: 'center', backgroundColor: '#F39800' }}>
+                <View style={{ width: '100%', paddingTop: insets.top + 16, paddingBottom: 8, alignItems: 'center', backgroundColor: 'white' }}>
                     <View style={styles.tabContainer}>
                         <TouchableOpacity
                             style={[styles.tabButton, talkTab === 'team' && styles.tabButtonActive]}
@@ -528,7 +528,7 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f9fafb',
+        backgroundColor: '#FFF3E0',
     },
     loadingContainer: {
         justifyContent: 'center',
@@ -559,15 +559,15 @@ const styles = StyleSheet.create({
         backgroundColor: 'transparent',
     },
     tabButtonActive: {
-        backgroundColor: 'white',
+        backgroundColor: '#F39800',
     },
     tabText: {
         fontSize: 18,
         fontFamily: FONTS.bold,
-        color: 'white',
+        color: '#F39800',
     },
     tabTextActive: {
-        color: '#F39800',
+        color: 'white',
     },
     tabLabelRow: {
         flexDirection: 'row',
