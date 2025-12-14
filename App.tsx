@@ -1253,21 +1253,16 @@ function AppContent() {
         {/* Header */}
         {/* Header */}
         <View style={styles.headerContainer}>
-          <LinearGradient
-            colors={['#E0F2F1', '#FFFFFF']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 0, y: 1 }}
-            style={{ width: '100%' }}
-          >
+          <View style={{ width: '100%', backgroundColor: '#F39800' }}>
             {activeTab !== 'search' && activeTab !== 'likes' && activeTab !== 'talk' && activeTab !== 'challenge' && activeTab !== 'profile' && (
               <View style={[styles.headerTop, { paddingTop: insets.top + 10 }]}>
                 <View style={styles.headerLeft} />
-                <Text style={styles.headerTitle}>Nakama</Text>
+                <Text style={[styles.headerTitle, { color: 'white' }]}>Nakama</Text>
                 <TouchableOpacity
                   style={styles.notificationButton}
                   onPress={() => setShowNotifications(true)}
                 >
-                  <Ionicons name="notifications-outline" size={24} color="#374151" />
+                  <Ionicons name="notifications-outline" size={24} color="white" />
                   {unreadNotificationsCount > 0 && (
                     <View style={styles.notificationBadgeDot} />
                   )}
@@ -1277,12 +1272,9 @@ function AppContent() {
 
             {activeTab === 'search' && (
               <View>
-                {/* Modern Header with Gradient */}
-                <View style={styles.searchHeader}>
-                  <LinearGradient
-                    colors={['#E0F2F1', '#FFFFFF']}
-                    style={[styles.searchHeaderGradient, { paddingTop: insets.top + 16 }]}
-                  >
+                {/* Modern Header */}
+                <View style={[styles.searchHeader, { backgroundColor: '#F39800' }]}>
+                  <View style={[styles.searchHeaderGradient, { paddingTop: insets.top + 16, backgroundColor: '#F39800' }]}>
                     <View style={styles.headerTop}>
                       <View style={styles.headerLeft} />
                       <View style={styles.tabContainer}>
@@ -1297,7 +1289,7 @@ function AppContent() {
                           <Ionicons
                             name={searchTab === 'projects' ? "folder" : "folder-outline"}
                             size={20}
-                            color={searchTab === 'projects' ? '#009688' : '#9CA3AF'}
+                            color={searchTab === 'projects' ? '#F39800' : 'white'}
                             style={styles.tabIcon}
                           />
                           <Text style={[styles.tabText, searchTab === 'projects' && styles.tabTextActive]}>プロジェクト</Text>
@@ -1313,7 +1305,7 @@ function AppContent() {
                           <Ionicons
                             name={searchTab === 'users' ? "people" : "people-outline"}
                             size={20}
-                            color={searchTab === 'users' ? '#009688' : '#9CA3AF'}
+                            color={searchTab === 'users' ? '#F39800' : 'white'}
                             style={styles.tabIcon}
                           />
                           <Text style={[styles.tabText, searchTab === 'users' && styles.tabTextActive]}>ユーザー</Text>
@@ -1324,14 +1316,14 @@ function AppContent() {
                           style={styles.notificationButton}
                           onPress={() => setShowNotifications(true)}
                         >
-                          <Ionicons name="notifications-outline" size={24} color="#374151" />
+                          <Ionicons name="notifications-outline" size={24} color="white" />
                           {unreadNotificationsCount > 0 && (
                             <View style={styles.notificationBadgeDot} />
                           )}
                         </TouchableOpacity>
                       </View>
                     </View>
-                  </LinearGradient>
+                  </View>
                 </View>
 
                 <View style={styles.searchControlBar}>
@@ -1339,7 +1331,7 @@ function AppContent() {
                     style={[styles.filterButton, isFilterActive && styles.filterButtonActive]}
                     onPress={() => setIsFilterOpen(true)}
                   >
-                    <Ionicons name="search" size={16} color={isFilterActive ? "#FF5252" : "#9CA3AF"} />
+                    <Ionicons name="search" size={16} color="#F39800" />
                     <Text style={[styles.controlButtonText, isFilterActive && styles.controlButtonTextActive]}>
                       絞り込み
                     </Text>
@@ -1352,12 +1344,12 @@ function AppContent() {
                     <Text style={styles.controlButtonText}>
                       {sortOrder === 'recommended' ? 'おすすめ順' : sortOrder === 'newest' ? '新着順' : '締め切り順'}
                     </Text>
-                    <Ionicons name="chevron-down" size={14} color="#374151" />
+                    <Ionicons name="chevron-down" size={14} color="#F39800" />
                   </TouchableOpacity>
                 </View>
               </View>
             )}
-          </LinearGradient>
+          </View>
         </View>
 
         {/* Content */}
@@ -1998,12 +1990,12 @@ const styles = StyleSheet.create({
     gap: 6,
     justifyContent: 'flex-start', // Left aligned content
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#F39800',
   },
   filterButtonActive: {
-    backgroundColor: '#FFEBEE',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#FF8A80',
+    borderColor: '#F39800',
   },
   sortButton: {
     flex: 4, // 40% (approx 35% requested, adjusted for gap)
@@ -2016,15 +2008,15 @@ const styles = StyleSheet.create({
     gap: 4,
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#F39800',
   },
   controlButtonText: {
     fontSize: 13,
-    color: '#374151',
+    color: '#F39800',
     fontFamily: FONTS.medium,
   },
   controlButtonTextActive: {
-    color: '#FF5252',
+    color: '#F39800',
     fontFamily: FONTS.bold,
   },
   listContent: {
@@ -2115,7 +2107,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0, // Remove old bottom border
   },
   tabButtonActive: {
-    backgroundColor: '#E0F2F1',
+    backgroundColor: 'white',
   },
   tabIcon: {
     marginRight: 4,
@@ -2123,11 +2115,11 @@ const styles = StyleSheet.create({
   tabText: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#9CA3AF',
+    color: 'white',
     letterSpacing: 0.2,
   },
   tabTextActive: {
-    color: '#009688',
+    color: '#F39800',
   },
   searchHeader: {
     backgroundColor: 'white',

@@ -427,10 +427,7 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
             <View style={styles.container}>
                 {/* Header */}
                 <View style={[styles.header, { paddingBottom: 0 }]}>
-                    <LinearGradient
-                        colors={['#E0F2F1', '#FFFFFF']}
-                        style={{ width: '100%', paddingTop: insets.top + 16, paddingBottom: 0, alignItems: 'center' }}
-                    >
+                    <View style={{ width: '100%', paddingTop: insets.top + 16, paddingBottom: 0, alignItems: 'center', backgroundColor: '#F39800' }}>
                         <View style={styles.tabContainer}>
                             <TouchableOpacity style={[styles.tabButton, styles.tabButtonActive]}>
                                 <View style={styles.tabLabelRow}>
@@ -453,7 +450,7 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
                                 </View>
                             </TouchableOpacity>
                         </View>
-                    </LinearGradient>
+                    </View>
                 </View>
                 <ChatListSkeleton count={6} />
             </View>
@@ -464,10 +461,7 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
         <View style={styles.container}>
             {/* Header */}
             <View style={[styles.header, { paddingBottom: 0 }]}>
-                <LinearGradient
-                    colors={['#E0F2F1', '#FFFFFF']}
-                    style={{ width: '100%', paddingTop: insets.top + 16, paddingBottom: 0, alignItems: 'center' }}
-                >
+                <View style={{ width: '100%', paddingTop: insets.top + 16, paddingBottom: 0, alignItems: 'center', backgroundColor: '#F39800' }}>
                     <View style={styles.tabContainer}>
                         <TouchableOpacity
                             style={[styles.tabButton, talkTab === 'team' && styles.tabButtonActive]}
@@ -502,7 +496,7 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
                             </View>
                         </TouchableOpacity>
                     </View>
-                </LinearGradient>
+                </View>
             </View>
 
             {/* Content */}
@@ -561,20 +555,20 @@ const styles = StyleSheet.create({
     },
     tabButton: {
         paddingVertical: 8,
-        paddingHorizontal: 4,
-        borderBottomWidth: 2,
-        borderBottomColor: 'transparent',
+        paddingHorizontal: 16,
+        borderRadius: 20,
+        backgroundColor: 'transparent',
     },
     tabButtonActive: {
-        borderBottomColor: '#009688',
+        backgroundColor: 'white',
     },
     tabText: {
         fontSize: 18,
         fontFamily: FONTS.bold,
-        color: '#9CA3AF',
+        color: 'white',
     },
     tabTextActive: {
-        color: '#009688',
+        color: '#F39800',
     },
     tabLabelRow: {
         flexDirection: 'row',

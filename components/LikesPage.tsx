@@ -882,13 +882,10 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
 
     return (
         <View style={styles.container}>
-            {/* Modern Header with Gradient */}
+            {/* Modern Header */}
             <View style={styles.header}>
-                {/* Gradient Background */}
-                <LinearGradient
-                    colors={['#E0F2F1', '#FFFFFF']}
-                    style={[styles.headerGradient, { paddingTop: insets.top + 16 }]}
-                >
+                {/* Background */}
+                <View style={[styles.headerGradient, { paddingTop: insets.top + 16, backgroundColor: '#F39800' }]}>
                     {/* Top Level Tabs: プロジェクト / ユーザー */}
                     <View style={styles.headerTop}>
                         <View style={styles.headerLeft} />
@@ -901,7 +898,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                                 <Ionicons
                                     name={mainTab === 'project' ? "folder" : "folder-outline"}
                                     size={20}
-                                    color={mainTab === 'project' ? '#009688' : '#9CA3AF'}
+                                    color={mainTab === 'project' ? '#F39800' : 'white'}
                                     style={styles.mainTabIcon}
                                 />
                                 <Text style={[styles.mainTabText, mainTab === 'project' && styles.mainTabTextActive]}>
@@ -916,7 +913,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                                 <Ionicons
                                     name={mainTab === 'user' ? "people" : "people-outline"}
                                     size={20}
-                                    color={mainTab === 'user' ? '#009688' : '#9CA3AF'}
+                                    color={mainTab === 'user' ? '#F39800' : 'white'}
                                     style={styles.mainTabIcon}
                                 />
                                 <Text style={[styles.mainTabText, mainTab === 'user' && styles.mainTabTextActive]}>
@@ -930,7 +927,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                                     style={styles.notificationButton}
                                     onPress={onOpenNotifications}
                                 >
-                                    <Ionicons name="notifications-outline" size={24} color="#374151" />
+                                    <Ionicons name="notifications-outline" size={24} color="white" />
                                     {unreadNotificationsCount > 0 && (
                                         <View style={styles.notificationBadgeDot} />
                                     )}
@@ -1022,7 +1019,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                             </TouchableOpacity>
                         </View>
                     )}
-                </LinearGradient>
+                </View>
             </View>
 
             {/* Content */}
@@ -1108,7 +1105,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#f9fafb',
     },
     header: {
-        backgroundColor: 'white',
+        backgroundColor: '#F39800',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.08,
@@ -1154,7 +1151,7 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     mainTabButtonActive: {
-        backgroundColor: '#E0F2F1',
+        backgroundColor: 'white',
     },
     mainTabIcon: {
         marginRight: 4,
@@ -1162,11 +1159,11 @@ const styles = StyleSheet.create({
     mainTabText: {
         fontSize: 17,
         fontWeight: '700',
-        color: '#9CA3AF',
+        color: 'white',
         letterSpacing: 0.2,
     },
     mainTabTextActive: {
-        color: '#009688',
+        color: '#F39800',
     },
     notificationButton: {
         padding: 4,
