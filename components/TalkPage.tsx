@@ -426,8 +426,8 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
         return (
             <View style={styles.container}>
                 {/* Header */}
-                <View style={[styles.header, { paddingBottom: 0 }]}>
-                    <View style={{ width: '100%', paddingTop: insets.top + 16, paddingBottom: 0, alignItems: 'center', backgroundColor: '#F39800' }}>
+                <View style={styles.header}>
+                    <View style={{ width: '100%', paddingTop: insets.top + 16, paddingBottom: 8, alignItems: 'center', backgroundColor: '#F39800' }}>
                         <View style={styles.tabContainer}>
                             <TouchableOpacity style={[styles.tabButton, styles.tabButtonActive]}>
                                 <View style={styles.tabLabelRow}>
@@ -460,8 +460,8 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
     return (
         <View style={styles.container}>
             {/* Header */}
-            <View style={[styles.header, { paddingBottom: 0 }]}>
-                <View style={{ width: '100%', paddingTop: insets.top + 16, paddingBottom: 0, alignItems: 'center', backgroundColor: '#F39800' }}>
+            <View style={styles.header}>
+                <View style={{ width: '100%', paddingTop: insets.top + 16, paddingBottom: 8, alignItems: 'center', backgroundColor: '#F39800' }}>
                     <View style={styles.tabContainer}>
                         <TouchableOpacity
                             style={[styles.tabButton, talkTab === 'team' && styles.tabButtonActive]}
@@ -537,7 +537,6 @@ const styles = StyleSheet.create({
     header: {
         backgroundColor: 'transparent',
         // paddingTop handled in component
-        paddingBottom: 0, // Adjusted for tabs
         borderBottomWidth: 1,
         borderBottomColor: '#e5e7eb',
         alignItems: 'center',
@@ -590,6 +589,7 @@ const styles = StyleSheet.create({
         fontFamily: FONTS.bold,
     },
     listContent: {
+        paddingTop: 8,
         paddingBottom: 20,
     },
     roomItem: {
