@@ -157,11 +157,10 @@ const styles = StyleSheet.create({
         height: 32,
         borderRadius: 16,
         borderWidth: 2,
-        borderColor: '#F39800',
         borderColor: 'transparent',
     },
     profileIconActive: {
-        borderColor: 'white',
+        borderColor: '#F39800',
         borderWidth: 2,
         backgroundColor: '#F39800',
     },
