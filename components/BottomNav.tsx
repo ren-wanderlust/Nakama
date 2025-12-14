@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View, Platform, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Path } from 'react-native-svg';
 import { Profile } from '../types';
 import { HapticTouchable } from './HapticButton';
 import { SHADOWS } from '../constants/DesignSystem';
@@ -54,7 +55,28 @@ export function BottomNav({ activeTab, onTabChange, currentUser, badges, onCreat
                                 hapticType="medium"
                             >
                                 <View style={styles.createButton}>
-                                    <Ionicons name="add" size={28} color="white" />
+                                    <Svg width={45} height={45} viewBox="0 0 50 50" style={[styles.eggSvg, { transform: [{ scaleY: -1 }] }]}>
+                                    <Path
+                                        d="
+                                            M25 5.5
+                                            C14.2 5.5, 9.2 12.2, 10.2 22.0
+                                            C11.4 32.0, 16.5 40.5, 20.5 43.5
+                                            C22.5 44.8, 27.5 44.8, 29.5 43.5
+                                            C33.5 40.5, 38.6 32.0, 39.8 22.0
+                                            C40.8 12.2, 35.8 5.5, 25 5.5
+                                            Z
+                                        "
+                                        fill="white"
+                                        stroke="#F39800"
+                                        strokeWidth="2"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                    />
+                                    </Svg>
+
+                                    <View style={styles.plusIconContainer}>
+                                        <Ionicons name="add" size={24} color="#F39800" />
+                                    </View>
                                 </View>
                             </HapticTouchable>
                         );
@@ -132,14 +154,21 @@ const styles = StyleSheet.create({
         gap: 2,
     },
     createButton: {
-        width: 48,
-        height: 48,
-        borderRadius: 14,
-        backgroundColor: '#111827',
+        width: 40,
+        height: 40,
         alignItems: 'center',
         justifyContent: 'center',
-        marginTop: -20,
-        ...SHADOWS.xl,
+        position: 'relative',
+    },
+    eggSvg: {
+        position: 'absolute',
+        top: -3,
+    },
+    plusIconContainer: {
+        position: 'absolute',
+        alignItems: 'center',
+        justifyContent: 'center',
+        top: 9,
     },
     tabLabel: {
         fontSize: 10,
