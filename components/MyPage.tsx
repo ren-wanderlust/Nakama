@@ -54,6 +54,12 @@ const ProjectCard = ({ project, ownerProfile, onPress }: { project: any; ownerPr
     const deadlineString = deadlineDate
         ? `${deadlineDate.getMonth() + 1}/${deadlineDate.getDate()}まで`
         : '';
+    
+    // 作成日を取得
+    const createdDate = project.created_at ? new Date(project.created_at) : null;
+    const createdDateString = createdDate
+        ? `${createdDate.getFullYear()}/${createdDate.getMonth() + 1}/${createdDate.getDate()}`
+        : '';
 
     // Get roles with icons and colors, limit to 4
     const rolesWithIcons = project.required_roles
@@ -169,7 +175,7 @@ const ProjectCard = ({ project, ownerProfile, onPress }: { project: any; ownerPr
             onPress={onPress}
             style={[
                 projectCardStyles.card,
-                { marginTop: 4, marginBottom: 8 },
+                { marginTop: 2, marginBottom: 4 },
                 isClosed && { backgroundColor: '#F3F4F6' } // 停止中は少し暗くする
             ]}
             padding="none"
@@ -200,7 +206,9 @@ const ProjectCard = ({ project, ownerProfile, onPress }: { project: any; ownerPr
                             </View>
                         ) : null}
                     </View>
-                    <Text style={projectCardStyles.cardDescription} numberOfLines={2}>{project.description}</Text>
+                    {createdDateString ? (
+                        <Text style={projectCardStyles.createdDateText}>{createdDateString}</Text>
+                    ) : null}
                 </View>
             </View>
         </ModernCard>
@@ -472,7 +480,7 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                 }
                 contentContainerStyle={styles.projectListContent}
                 showsVerticalScrollIndicator={false}
-                ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+                ItemSeparatorComponent={() => <View style={{ height: 6 }} />}
                 ListEmptyComponent={
                     (activeTab === 'myProjects' ? !loadingProjects : !loadingParticipating) ? (
                         <View style={styles.emptyContainer}>
@@ -781,14 +789,14 @@ const projectCardStyles = StyleSheet.create({
     },
     cardInner: {
         flexDirection: 'row',
-        padding: 16,
+        padding: 12,
         alignItems: 'center',
     },
     iconsContainer: {
         width: 70,
         height: 70,
         borderRadius: 12,
-        backgroundColor: '#F3F4F6',
+        backgroundColor: 'transparent',
         marginRight: 14,
         flexDirection: 'row',
         flexWrap: 'wrap',
@@ -852,7 +860,7 @@ const projectCardStyles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 6,
+        marginBottom: 4,
     },
     cardTitle: {
         fontSize: 16,
@@ -879,6 +887,11 @@ const projectCardStyles = StyleSheet.create({
         fontSize: 14,
         color: '#4B5563',
         lineHeight: 20,
+    },
+    createdDateText: {
+        fontSize: 12,
+        color: '#6B7280',
+        marginTop: 4,
     },
     // 応募したプロジェクト用の追加スタイル
     statusBadge: {
