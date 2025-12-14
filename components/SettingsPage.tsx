@@ -262,7 +262,7 @@ export function SettingsPage({ onBack, onLogout }: SettingsPageProps) {
 
                 {/* App Version */}
                 <View style={styles.versionContainer}>
-                    <Text style={styles.versionText}>Nakama v1.0.0</Text>
+                    <Text style={styles.versionText}>Pogg v1.0.0</Text>
                 </View>
             </ScrollView>
 

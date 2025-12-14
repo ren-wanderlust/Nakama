@@ -1257,7 +1257,7 @@ function AppContent() {
             {activeTab !== 'search' && activeTab !== 'likes' && activeTab !== 'talk' && activeTab !== 'challenge' && activeTab !== 'profile' && (
               <View style={[styles.headerTop, { paddingTop: insets.top + 10 }]}>
                 <View style={styles.headerLeft} />
-                <Text style={[styles.headerTitle, { color: 'white' }]}>Nakama</Text>
+                <Text style={[styles.headerTitle, { color: 'white' }]}>Pogg</Text>
                 <TouchableOpacity
                   style={styles.notificationButton}
                   onPress={() => setShowNotifications(true)}
