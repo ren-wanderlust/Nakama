@@ -195,12 +195,13 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
                 });
             }
 
-            // --- Team Chats (New Logic) ---
+            // --- Team Chats (Optimized - No N+1) ---
             const { data: teamRoomsData } = await supabase
                 .from('chat_rooms')
                 .select(`
                     id,
                     project_id,
+                    created_at,
                     project:projects (
                         id,
                         title,
@@ -213,17 +214,61 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
                 .eq('type', 'group');
 
             let teamRooms: ChatRoom[] = [];
-            if (teamRoomsData) {
-                const teamRoomPromises = teamRoomsData.map(async (room: any) => {
-                    // Fetch last message for this room
-                    const { data: msgs } = await supabase
-                        .from('messages')
-                        .select('*')
-                        .eq('chat_room_id', room.id)
-                        .order('created_at', { ascending: false })
-                        .limit(1);
+            if (teamRoomsData && teamRoomsData.length > 0) {
+                const roomIds = teamRoomsData.map(room => room.id);
 
-                    const lastMsg = msgs?.[0];
+                // ✅ Batch Query 1: Fetch latest messages for all rooms at once
+                // Using PostgreSQL's DISTINCT ON to get only the latest message per room
+                const { data: latestMessages } = await supabase
+                    .from('messages')
+                    .select('chat_room_id, content, created_at, sender_id')
+                    .in('chat_room_id', roomIds)
+                    .order('chat_room_id', { ascending: true })
+                    .order('created_at', { ascending: false });
+
+                // Group messages by room_id (get the first/latest one per room)
+                const messagesByRoom = new Map<string, any>();
+                latestMessages?.forEach(msg => {
+                    if (!messagesByRoom.has(msg.chat_room_id)) {
+                        messagesByRoom.set(msg.chat_room_id, msg);
+                    }
+                });
+
+                // ✅ Batch Query 2: Fetch read status for all rooms at once
+                const { data: readStatuses } = await supabase
+                    .from('chat_room_read_status')
+                    .select('chat_room_id, last_read_at')
+                    .eq('user_id', user.id)
+                    .in('chat_room_id', roomIds);
+
+                const readStatusByRoom = new Map<string, string>();
+                readStatuses?.forEach(status => {
+                    readStatusByRoom.set(status.chat_room_id, status.last_read_at);
+                });
+
+                // ✅ Batch Query 3: Fetch unread counts for all rooms at once
+                // We need to count messages per room where created_at > last_read_at
+                const unreadCountPromises = roomIds.map(async (roomId) => {
+                    const lastReadTime = readStatusByRoom.get(roomId) || '1970-01-01';
+                    const { count } = await supabase
+                        .from('messages')
+                        .select('id', { count: 'exact', head: true })
+                        .eq('chat_room_id', roomId)
+                        .gt('created_at', lastReadTime)
+                        .neq('sender_id', user.id);
+                    return { roomId, count: count || 0 };
+                });
+
+                const unreadCounts = await Promise.all(unreadCountPromises);
+                const unreadCountByRoom = new Map<string, number>();
+                unreadCounts.forEach(({ roomId, count }) => {
+                    unreadCountByRoom.set(roomId, count);
+                });
+
+                // ✅ Merge all data on client side
+                teamRooms = teamRoomsData.map((room: any) => {
+                    const lastMsg = messagesByRoom.get(room.id);
+
                     let timestamp = '';
                     if (lastMsg) {
                         const lastMsgDate = new Date(lastMsg.created_at);
@@ -236,41 +281,23 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
                         }
                     }
 
-                    // Get unread count (messages from others after lastReadTime)
-                    const { data: readStatus } = await supabase
-                        .from('chat_room_read_status')
-                        .select('last_read_at')
-                        .eq('user_id', user.id)
-                        .eq('chat_room_id', room.id)
-                        .single();
-
-                    const lastReadTime = readStatus?.last_read_at || '1970-01-01';
-                    const { count: unreadCount } = await supabase
-                        .from('messages')
-                        .select('id', { count: 'exact', head: true })
-                        .eq('chat_room_id', room.id)
-                        .gt('created_at', lastReadTime)
-                        .neq('sender_id', user.id);
-
                     return {
                         id: room.id,
-                        partnerId: room.id, // Use room ID as partnerId for group
+                        partnerId: room.id,
                         partnerName: room.project?.title || 'Team Chat',
                         partnerAge: 0,
                         partnerLocation: '',
                         partnerImage: room.project?.owner?.image || room.project?.image_url || 'https://via.placeholder.com/150',
                         lastMessage: lastMsg?.content || 'チームチャットが作成されました',
-                        unreadCount: unreadCount || 0,
+                        unreadCount: unreadCountByRoom.get(room.id) || 0,
                         timestamp: timestamp,
-                        rawTimestamp: lastMsg?.created_at || room.created_at || '1970-01-01T00:00:00.000Z', // Fallback to old for empty rooms
+                        rawTimestamp: lastMsg?.created_at || room.created_at || '1970-01-01T00:00:00.000Z',
                         isOnline: false,
                         isUnreplied: false,
                         type: 'group' as const,
                         projectId: room.project_id || room.project?.id,
                     };
                 });
-
-                teamRooms = await Promise.all(teamRoomPromises);
             }
 
             // Merge and Sort
