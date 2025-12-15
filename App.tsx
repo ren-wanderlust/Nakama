@@ -179,7 +179,7 @@ function AppContent() {
 
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, name, age, university, company, grade, image, theme, bio, skills, seeking_for, seeking_roles, status_tags, is_student, created_at')
+        .select('id, name, age, university, company, grade, image, bio, skills, seeking_for, seeking_roles, status_tags, is_student, created_at')
         .order('created_at', { ascending: false })
         .range(from, to);
 
@@ -295,7 +295,7 @@ function AppContent() {
       if (newMatches.length > 0) {
         const { data: profilesData } = await supabase
           .from('profiles')
-          .select('id, name, age, university, company, grade, image, theme, bio, skills, seeking_for, seeking_roles, status_tags, is_student, created_at')
+          .select('id, name, age, university, company, grade, image, bio, skills, seeking_for, seeking_roles, status_tags, is_student, created_at')
           .in('id', newMatches);
 
         const matchProfiles: Profile[] = (profilesData || []).map((profileData: any) => ({
@@ -306,7 +306,7 @@ function AppContent() {
           company: profileData.company,
           grade: profileData.grade || '',
           image: profileData.image,
-          challengeTheme: profileData.challenge_theme || '',
+          challengeTheme: profileData.theme || '',
           theme: profileData.theme || '',
           bio: profileData.bio,
           skills: profileData.skills || [],
@@ -745,7 +745,7 @@ function AppContent() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, name, age, university, company, grade, image, theme, bio, skills, seeking_for, seeking_roles, status_tags, is_student, created_at')
+        .select('id, name, age, university, company, grade, image, bio, skills, seeking_for, seeking_roles, status_tags, is_student, created_at')
         .eq('id', session.user.id)
         .maybeSingle();
 
@@ -835,7 +835,7 @@ function AppContent() {
           // Fetch sender's profile to display modal
           const { data: senderProfile } = await supabase
             .from('profiles')
-            .select('id, name, age, university, company, grade, image, theme, bio, skills, seeking_for, seeking_roles, status_tags, is_student, created_at')
+            .select('id, name, age, university, company, grade, image, bio, skills, seeking_for, seeking_roles, status_tags, is_student, created_at')
             .eq('id', senderId)
             .single();
 
@@ -1076,7 +1076,7 @@ function AppContent() {
             // Fetch profile from supabase if not in displayProfiles
         const { data: profileData } = await supabase
           .from('profiles')
-          .select('id, name, age, university, company, grade, image, theme, bio, skills, seeking_for, seeking_roles, status_tags, is_student, created_at')
+          .select('id, name, age, university, company, grade, image, bio, skills, seeking_for, seeking_roles, status_tags, is_student, created_at')
           .eq('id', profileId)
           .single();
 
@@ -1494,7 +1494,7 @@ function AppContent() {
                   // Fetch profile if not in local list
                   supabase
                     .from('profiles')
-                    .select('id, name, age, university, company, grade, image, theme, bio, skills, seeking_for, seeking_roles, status_tags, is_student, created_at')
+                    .select('id, name, age, university, company, grade, image, bio, skills, seeking_for, seeking_roles, status_tags, is_student, created_at')
                     .eq('id', partnerId)
                     .single()
                     .then(({ data, error }) => {
@@ -1640,7 +1640,7 @@ function AppContent() {
                       // Fetch if not in list
                       supabase
                         .from('profiles')
-                        .select('id, name, age, university, company, grade, image, theme, bio, skills, seeking_for, seeking_roles, status_tags, is_student, created_at')
+                        .select('id, name, age, university, company, grade, image, bio, skills, seeking_for, seeking_roles, status_tags, is_student, created_at')
                         .eq('name', activeChatRoom.partnerName)
                         .single()
                         .then(({ data, error }) => {
@@ -1675,7 +1675,7 @@ function AppContent() {
                     } else {
                       supabase
                         .from('profiles')
-                        .select('id, name, age, university, company, grade, image, theme, bio, skills, seeking_for, seeking_roles, status_tags, is_student, created_at')
+                        .select('id, name, age, university, company, grade, image, bio, skills, seeking_for, seeking_roles, status_tags, is_student, created_at')
                         .eq('id', memberId)
                         .single()
                         .then(({ data, error }) => {
