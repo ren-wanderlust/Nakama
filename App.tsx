@@ -37,8 +37,14 @@ import { Profile } from './types';
 import { mapProfileRowToProfile } from './utils/profileMapper';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { supabase } from './lib/supabase';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import { queryClient, asyncStoragePersister } from './lib/queryClient';
 import { Alert } from 'react-native';
 import { TERMS_OF_SERVICE, PRIVACY_POLICY } from './constants/LegalTexts';
+import { useQueryClient } from '@tanstack/react-query';
+import { useProfilesList } from './data/hooks/useProfilesList';
+import { useUnreadCount } from './data/hooks/useUnreadCount';
+import { queryKeys } from './data/queryKeys';
 import { registerForPushNotificationsAsync, savePushToken, setupNotificationListeners, getUserPushTokens, sendPushNotification } from './lib/notifications';
 import { FullPageSkeleton, ProfileListSkeleton } from './components/Skeleton';
 import { FadeTabContent } from './components/AnimatedTabView';
@@ -110,17 +116,21 @@ function AppContent() {
   const [sortOrder, setSortOrder] = useState<'recommended' | 'newest' | 'deadline'>('recommended');
   const [isSortModalOpen, setIsSortModalOpen] = useState(false);
 
-  const [displayProfiles, setDisplayProfiles] = useState<Profile[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [showCreateProjectModal, setShowCreateProjectModal] = useState(false);
   const [matchedProfile, setMatchedProfile] = useState<Profile | null>(null);
   const [pendingMatches, setPendingMatches] = useState<Profile[]>([]); // Queue of unviewed matches
   const [pendingAppsCount, setPendingAppsCount] = useState(0);
-  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
   const [unreadLikesCount, setUnreadLikesCount] = useState(0);
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
   const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false); // テスト用: falseで開始
+
+  // React Query hooks
+  const queryClient = useQueryClient();
+  const profilesQuery = useProfilesList(sortOrder === 'newest' ? 'newest' : sortOrder === 'recommended' ? 'recommended' : 'deadline');
+  const unreadCountQuery = useUnreadCount(session?.user?.id);
+  const unreadMessagesCount = unreadCountQuery.data ?? 0;
 
   // Initialize push notifications
   React.useEffect(() => {
@@ -163,58 +173,14 @@ function AppContent() {
     };
   }, [session?.user]);
 
-  const [page, setPage] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const PAGE_SIZE = 20;
-
-  // Fetch profiles from Supabase
-  const fetchProfiles = async (pageNumber = 0, shouldRefresh = false) => {
-    if (!shouldRefresh && (!hasMore || loadingMore)) return;
-
-    try {
-      if (pageNumber > 0) setLoadingMore(true);
-
-      const from = pageNumber * PAGE_SIZE;
-      const to = from + PAGE_SIZE - 1;
-
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, name, age, university, company, grade, image, bio, skills, seeking_for, seeking_roles, status_tags, is_student, created_at')
-        .order('created_at', { ascending: false })
-        .range(from, to);
-
-      if (error) throw error;
-
-      if (data) {
-        const mappedProfiles: Profile[] = data.map((item: any) =>
-          mapProfileRowToProfile(item)
-        );
-
-        if (shouldRefresh) {
-          setDisplayProfiles(mappedProfiles);
-        } else {
-          setDisplayProfiles(prev => {
-            const existingIds = new Set(prev.map(p => p.id));
-            const newProfiles = mappedProfiles.filter(p => !existingIds.has(p.id));
-            return [...prev, ...newProfiles];
-          });
-        }
-
-        setHasMore(data.length === PAGE_SIZE);
-        setPage(pageNumber);
-      }
-    } catch (error) {
-      console.error('Error fetching profiles:', error);
-      Alert.alert('エラー', 'データの取得に失敗しました');
-    } finally {
-      setLoadingMore(false);
-    }
-  };
+  // プロフィール一覧をReact Queryから取得（useInfiniteQuery）
+  const displayProfiles: Profile[] = profilesQuery.data?.pages.flatMap((page: any) => page.profiles) || [];
+  const loadingMore = profilesQuery.isFetchingNextPage;
+  const hasMore = profilesQuery.hasNextPage ?? false;
 
   const loadMoreProfiles = () => {
-    if (!loadingMore && hasMore) {
-      fetchProfiles(page + 1);
+    if (profilesQuery.hasNextPage && !profilesQuery.isFetchingNextPage) {
+      profilesQuery.fetchNextPage();
     }
   };
 
@@ -342,45 +308,25 @@ function AppContent() {
     };
   }, [session?.user]);
 
-  // Fetch unread messages count (Individual + Group) via RPC
+  // Realtime subscription for unread messages count (invalidateQueries使用)
   React.useEffect(() => {
     if (!session?.user) return;
 
-    const fetchUnreadMessages = async () => {
-      try {
-        const { data, error } = await supabase.rpc('get_unread_message_count', {
-          p_user_id: session.user.id,
-        });
-
-        if (error) {
-          console.log('Error fetching unread messages via RPC:', error);
-          return;
-        }
-
-        setUnreadMessagesCount(data ?? 0);
-      } catch (e) {
-        console.log('Error fetching unread messages via RPC:', e);
-      }
-    };
-
-    // 初回取得
-    fetchUnreadMessages();
-
-    // Subscribe to messages (Insert and Update) and refresh via RPC
+    // Subscribe to messages (Insert and Update) and invalidate query
     const channel = supabase
       .channel(`unread_messages_${session.user.id}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'messages' },
         () => {
-          fetchUnreadMessages();
+          queryClient.invalidateQueries({ queryKey: queryKeys.unreadCount.detail(session.user.id) });
         }
       )
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'messages' },
         () => {
-          fetchUnreadMessages(); // is_read 変更も含めて同期
+          queryClient.invalidateQueries({ queryKey: queryKeys.unreadCount.detail(session.user.id) });
         }
       )
       .subscribe();
@@ -388,7 +334,7 @@ function AppContent() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [session?.user]);
+  }, [session?.user, queryClient]);
 
   // Fetch unread likes count ("興味あり" + "未確認マッチング" + "未読募集" badge)
   React.useEffect(() => {
@@ -619,7 +565,8 @@ function AppContent() {
             }
           }
 
-          setUnreadMessagesCount((dmCount || 0) + groupCount);
+          // 未読数はReact Queryで管理されているため、invalidateQueriesで更新
+          queryClient.invalidateQueries({ queryKey: queryKeys.unreadCount.detail(session.user.id) });
         } catch (e) {
           console.log('Error refreshing unread count:', e);
         }
@@ -678,7 +625,6 @@ function AppContent() {
   React.useEffect(() => {
     if (session?.user) {
       fetchCurrentUser();
-      fetchProfiles();
       fetchMatches();
 
       // Check for unviewed matches after fetching matches
@@ -778,12 +724,13 @@ function AppContent() {
 
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
-    setPage(0);
-    setHasMore(true);
-    await fetchProfiles(0, true);
-    await fetchMatches();
+    await Promise.all([
+      profilesQuery.refetch(),
+      unreadCountQuery.refetch(),
+      fetchMatches(),
+    ]);
     setRefreshing(false);
-  }, []);
+  }, [profilesQuery, unreadCountQuery]);
 
   // Determine if filter is active
   const isFilterActive = React.useMemo(() => {
@@ -1069,8 +1016,20 @@ function AppContent() {
   const handleBlockUser = (userId: string) => {
     console.log('Blocking user:', userId);
 
-    // UI反映: リストから削除
-    setDisplayProfiles(prev => prev.filter(p => p.id !== userId));
+    // UI反映: リストから削除（React Queryキャッシュを直接更新）
+    queryClient.setQueryData(
+      queryKeys.profiles.list(20, sortOrder === 'newest' ? 'newest' : sortOrder === 'recommended' ? 'recommended' : 'deadline'),
+      (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          pages: old.pages.map((page: any) => ({
+            ...page,
+            profiles: page.profiles.filter((p: Profile) => p.id !== userId),
+          })),
+        };
+      }
+    );
 
     // いいねリストからも削除
     if (likedProfiles.has(userId)) {
@@ -1127,7 +1086,7 @@ function AppContent() {
       setCurrentUser(updatedProfile);
       setShowProfileEdit(false);
       Alert.alert('完了', 'プロフィールを更新しました');
-      fetchProfiles(); // Refresh list to show updates
+      profilesQuery.refetch(); // Refresh list to show updates
     } catch (error: any) {
       console.error('Error updating profile:', error);
       Alert.alert('エラー', 'プロフィールの更新に失敗しました');
@@ -2118,9 +2077,17 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
+      <PersistQueryClientProvider
+        client={queryClient}
+        persistOptions={{
+          persister: asyncStoragePersister,
+          maxAge: 30 * 60 * 1000, // 30分
+        }}
+      >
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </PersistQueryClientProvider>
     </SafeAreaProvider>
   );
 }

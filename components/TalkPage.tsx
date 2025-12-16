@@ -8,22 +8,10 @@ import { ChatListSkeleton } from './Skeleton';
 import { SimpleRefreshControl } from './CustomRefreshControl';
 import { RADIUS, COLORS, SPACING, AVATAR, FONTS } from '../constants/DesignSystem';
 import { ChatEmptyState, EmptyState } from './EmptyState';
-
-interface ChatRoom {
-    id: string;
-    partnerId: string;
-    partnerName: string;
-    partnerAge: number;
-    partnerImage: string;
-    lastMessage: string;
-    unreadCount: number;
-    timestamp: string;
-    isOnline?: boolean;
-    isUnreplied: boolean;
-    type: 'individual' | 'group';
-    rawTimestamp: string;
-    projectId?: string;  // For group chats
-}
+import { useQueryClient } from '@tanstack/react-query';
+import { useChatRooms } from '../data/hooks/useChatRooms';
+import { queryKeys } from '../data/queryKeys';
+import { ChatRoom } from '../data/api/chatRooms';
 
 interface TalkPageProps {
     onOpenChat?: (room: ChatRoom) => void;
@@ -35,27 +23,41 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
     const insets = useSafeAreaInsets();
     const [talkTab, setTalkTab] = useState<'individual' | 'team'>('team');
     const talkListRef = useRef<FlatList>(null);
-    const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
-    const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const queryClient = useQueryClient();
+
+    // Get current user ID
+    const [userId, setUserId] = useState<string | undefined>(undefined);
+    useEffect(() => {
+        const getUserId = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            setUserId(user?.id);
+        };
+        getUserId();
+    }, []);
+
+    // React Query hook for chat rooms
+    const chatRoomsQuery = useChatRooms(userId);
+    const chatRooms: ChatRoom[] = chatRoomsQuery.data || [];
+    const loading = chatRoomsQuery.isLoading;
 
     const onRefresh = async () => {
         setRefreshing(true);
-        await fetchChatRooms();
+        await chatRoomsQuery.refetch();
         setRefreshing(false);
     };
 
     useEffect(() => {
-        fetchChatRooms();
+        if (!userId) return;
 
         // Subscribe to new messages
         const messageSubscription = supabase
             .channel('public:messages')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => {
-                fetchChatRooms();
+                queryClient.invalidateQueries({ queryKey: queryKeys.chatRooms.list(userId) });
             })
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, () => {
-                fetchChatRooms(); // Handle read status changes
+                queryClient.invalidateQueries({ queryKey: queryKeys.chatRooms.list(userId) });
             })
             .subscribe();
 
@@ -63,10 +65,10 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
         const likesSubscription = supabase
             .channel('public:likes')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'likes' }, () => {
-                fetchChatRooms();
+                queryClient.invalidateQueries({ queryKey: queryKeys.chatRooms.list(userId) });
             })
             .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'likes' }, () => {
-                fetchChatRooms(); // Handle unmatch
+                queryClient.invalidateQueries({ queryKey: queryKeys.chatRooms.list(userId) });
             })
             .subscribe();
 
@@ -74,7 +76,7 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
             supabase.removeChannel(messageSubscription);
             supabase.removeChannel(likesSubscription);
         };
-    }, []);
+    }, [userId, queryClient]);
 
     // Unread totals
     const teamUnreadTotal = chatRooms
@@ -84,240 +86,6 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
         .filter(room => room.type === 'individual')
         .reduce((sum, room) => sum + (room.unreadCount || 0), 0);
 
-    const fetchChatRooms = async () => {
-        try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
-
-            // --- Individual Chats (Existing Logic) ---
-            const { data: myLikes } = await supabase.from('likes').select('receiver_id').eq('sender_id', user.id);
-            const { data: receivedLikes } = await supabase.from('likes').select('sender_id').eq('receiver_id', user.id);
-            const myLikedIds = new Set(myLikes?.map(l => l.receiver_id) || []);
-            const matchedIds = new Set<string>();
-            receivedLikes?.forEach(l => {
-                if (myLikedIds.has(l.sender_id)) matchedIds.add(l.sender_id);
-            });
-
-            const { data: messages, error: messagesError } = await supabase
-                .from('messages')
-                .select('id, content, sender_id, receiver_id, chat_room_id, created_at')
-                .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
-                .order('created_at', { ascending: false });
-
-            if (messagesError) throw messagesError;
-
-            const individualRoomsMap = new Map<string, any>();
-            if (messages) {
-                for (const msg of messages) {
-                    if (msg.chat_room_id) continue; // Skip group messages for individual list
-
-                    const partnerId = msg.sender_id === user.id ? msg.receiver_id : msg.sender_id;
-                    if (matchedIds.has(partnerId)) {
-                        if (!individualRoomsMap.has(partnerId)) {
-                            individualRoomsMap.set(partnerId, {
-                                lastMessage: msg.content,
-                                timestamp: msg.created_at,
-                                unreadCount: 0,
-                                lastSenderId: msg.sender_id,
-                                type: 'individual'
-                            });
-                        }
-                    }
-                }
-            }
-
-            matchedIds.forEach(partnerId => {
-                if (!individualRoomsMap.has(partnerId)) {
-                    individualRoomsMap.set(partnerId, {
-                        lastMessage: 'マッチングしました！メッセージを送ってみましょう',
-                        timestamp: new Date().toISOString(),
-                        unreadCount: 0,
-                        isNewMatch: true,
-                        lastSenderId: null,
-                        type: 'individual'
-                    });
-                }
-            });
-
-            // Fetch unread counts per individual chat
-            // Count messages sent TO me that are not read
-            const { data: unreadData } = await supabase
-                .from('messages')
-                .select('sender_id')
-                .eq('receiver_id', user.id)
-                .or('is_read.is.null,is_read.eq.false');
-
-            const unreadMap = new Map<string, number>();
-            unreadData?.forEach((m: any) => {
-                unreadMap.set(m.sender_id, (unreadMap.get(m.sender_id) || 0) + 1);
-            });
-
-            const partnerIds = Array.from(individualRoomsMap.keys());
-            let individualRooms: ChatRoom[] = [];
-
-            if (partnerIds.length > 0) {
-                const { data: profiles } = await supabase
-                    .from('profiles')
-                    .select('id, name, age, image')
-                    .in('id', partnerIds);
-                individualRooms = partnerIds.map(partnerId => {
-                    const partnerProfile = profiles?.find(p => p.id === partnerId);
-                    const roomData = individualRoomsMap.get(partnerId);
-                    const lastMsgDate = new Date(roomData.timestamp);
-                    const now = new Date();
-                    const diff = now.getTime() - lastMsgDate.getTime();
-                    let timestamp = '';
-                    if (diff < 24 * 60 * 60 * 1000) {
-                        timestamp = lastMsgDate.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
-                    } else {
-                        timestamp = `${lastMsgDate.getMonth() + 1}/${lastMsgDate.getDate()}`;
-                    }
-
-                    return {
-                        id: partnerId,
-                        partnerId: partnerId,
-                        partnerName: partnerProfile?.name || 'Unknown',
-                        partnerAge: partnerProfile?.age || 0,
-                        partnerImage: partnerProfile?.image || 'https://via.placeholder.com/150',
-                        lastMessage: roomData.lastMessage,
-                        unreadCount: unreadMap.get(partnerId) || 0,
-                        timestamp: timestamp,
-                        rawTimestamp: roomData.timestamp,
-                        isOnline: false,
-                        isUnreplied: roomData.lastSenderId === partnerId,
-                        type: 'individual'
-                    };
-                });
-            }
-
-            // --- Team Chats (Optimized - No N+1) ---
-            const { data: teamRoomsData } = await supabase
-                .from('chat_rooms')
-                .select(`
-                    id,
-                    project_id,
-                    created_at,
-                    project:projects (
-                        id,
-                        title,
-                        image_url,
-                        owner:profiles!owner_id (
-                            image
-                        )
-                    )
-                `)
-                .eq('type', 'group');
-
-            let teamRooms: ChatRoom[] = [];
-            if (teamRoomsData && teamRoomsData.length > 0) {
-                const roomIds = teamRoomsData.map(room => room.id);
-
-                // ✅ Batch Query 1: Fetch latest messages for all rooms at once
-                // Using PostgreSQL's DISTINCT ON to get only the latest message per room
-                const { data: latestMessages } = await supabase
-                    .from('messages')
-                    .select('chat_room_id, content, created_at, sender_id')
-                    .in('chat_room_id', roomIds)
-                    .order('chat_room_id', { ascending: true })
-                    .order('created_at', { ascending: false });
-
-                // Group messages by room_id (get the first/latest one per room)
-                const messagesByRoom = new Map<string, any>();
-                latestMessages?.forEach(msg => {
-                    if (!messagesByRoom.has(msg.chat_room_id)) {
-                        messagesByRoom.set(msg.chat_room_id, msg);
-                    }
-                });
-
-                // ✅ Batch Query 2: Fetch read status for all rooms at once
-                const { data: readStatuses } = await supabase
-                    .from('chat_room_read_status')
-                    .select('chat_room_id, last_read_at')
-                    .eq('user_id', user.id)
-                    .in('chat_room_id', roomIds);
-
-                const readStatusByRoom = new Map<string, string>();
-                readStatuses?.forEach(status => {
-                    readStatusByRoom.set(status.chat_room_id, status.last_read_at);
-                });
-
-                // ✅ Batch Query 3: Fetch unread messages for all rooms at once
-                // ルームごとにクエリを投げる代わりに、対象ルーム＋最小既読時刻を使って一括取得し、クライアント側で集計する
-                const allLastReadTimes = Array.from(readStatusByRoom.values());
-                const globalMinLastRead =
-                    allLastReadTimes.length > 0
-                        ? allLastReadTimes.reduce(
-                              (min, current) =>
-                                  new Date(current).getTime() < new Date(min).getTime() ? current : min,
-                              allLastReadTimes[0]
-                          )
-                        : '1970-01-01';
-
-                const { data: unreadMessages } = await supabase
-                    .from('messages')
-                    .select('chat_room_id, created_at, sender_id')
-                    .in('chat_room_id', roomIds)
-                    .gt('created_at', globalMinLastRead)
-                    .neq('sender_id', user.id);
-
-                const unreadCountByRoom = new Map<string, number>();
-                unreadMessages?.forEach((msg: any) => {
-                    const lastReadTime = readStatusByRoom.get(msg.chat_room_id) || '1970-01-01';
-                    if (new Date(msg.created_at).getTime() > new Date(lastReadTime).getTime()) {
-                        unreadCountByRoom.set(
-                            msg.chat_room_id,
-                            (unreadCountByRoom.get(msg.chat_room_id) || 0) + 1
-                        );
-                    }
-                });
-
-                // ✅ Merge all data on client side
-                teamRooms = teamRoomsData.map((room: any) => {
-                    const lastMsg = messagesByRoom.get(room.id);
-
-                    let timestamp = '';
-                    if (lastMsg) {
-                        const lastMsgDate = new Date(lastMsg.created_at);
-                        const now = new Date();
-                        const diff = now.getTime() - lastMsgDate.getTime();
-                        if (diff < 24 * 60 * 60 * 1000) {
-                            timestamp = lastMsgDate.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
-                        } else {
-                            timestamp = `${lastMsgDate.getMonth() + 1}/${lastMsgDate.getDate()}`;
-                        }
-                    }
-
-                    return {
-                        id: room.id,
-                        partnerId: room.id,
-                        partnerName: room.project?.title || 'Team Chat',
-                        partnerAge: 0,
-                        partnerLocation: '',
-                        partnerImage: room.project?.owner?.image || room.project?.image_url || 'https://via.placeholder.com/150',
-                        lastMessage: lastMsg?.content || 'チームチャットが作成されました',
-                        unreadCount: unreadCountByRoom.get(room.id) || 0,
-                        timestamp: timestamp,
-                        rawTimestamp: lastMsg?.created_at || room.created_at || '1970-01-01T00:00:00.000Z',
-                        isOnline: false,
-                        isUnreplied: false,
-                        type: 'group' as const,
-                        projectId: room.project_id || room.project?.id,
-                    };
-                });
-            }
-
-            // Merge and Sort
-            const allRooms = [...individualRooms, ...teamRooms];
-            allRooms.sort((a, b) => new Date(b.rawTimestamp).getTime() - new Date(a.rawTimestamp).getTime());
-
-            setChatRooms(allRooms);
-
-        } catch (error) {
-            console.error('Error fetching chat rooms:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const renderIndividualList = () => {
         const individualRooms = chatRooms.filter(r => r.type === 'individual');
