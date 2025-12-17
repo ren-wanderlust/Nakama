@@ -242,6 +242,26 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
         }
     }, [projects, onBadgeUpdate]);
 
+    // Realtime subscription for projects and project_applications changes
+    useEffect(() => {
+        if (!profile.id) return;
+
+        const projectsChannel = supabase
+            .channel(`my_projects_${profile.id}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'projects', filter: `owner_id=eq.${profile.id}` }, () => {
+                queryClient.invalidateQueries({ queryKey: queryKeys.myProjects.detail(profile.id) });
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'project_applications' }, () => {
+                queryClient.invalidateQueries({ queryKey: queryKeys.myProjects.detail(profile.id) });
+                queryClient.invalidateQueries({ queryKey: queryKeys.participatingProjects.detail(profile.id) });
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(projectsChannel);
+        };
+    }, [profile.id, queryClient]);
+
     const handleDeleteAccount = async () => {
         setIsDeleting(true);
         try {

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Dimensions, Image, Modal, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
@@ -216,6 +217,7 @@ export function UserProjectPage({ currentUser, onChat, sortOrder = 'recommended'
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [selectedProject, setSelectedProject] = useState<Project | null>(null);
     const queryClient = useQueryClient();
+    const { session } = useAuth();
 
     // React Query hook
     const projectsQuery = useProjectsList(sortOrder);
@@ -227,6 +229,26 @@ export function UserProjectPage({ currentUser, onChat, sortOrder = 'recommended'
         await projectsQuery.refetch();
         setRefreshing(false);
     }, [projectsQuery]);
+
+    // Realtime subscription for projects changes
+    useEffect(() => {
+        const projectsChannel = supabase
+            .channel('public:projects')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'projects' }, () => {
+                queryClient.invalidateQueries({ queryKey: queryKeys.projects.list(sortOrder) });
+            })
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'projects' }, () => {
+                queryClient.invalidateQueries({ queryKey: queryKeys.projects.list(sortOrder) });
+            })
+            .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'projects' }, () => {
+                queryClient.invalidateQueries({ queryKey: queryKeys.projects.list(sortOrder) });
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(projectsChannel);
+        };
+    }, [sortOrder, queryClient]);
 
     const handleCreatePress = () => {
         if (!currentUser) {

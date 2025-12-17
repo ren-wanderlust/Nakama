@@ -57,4 +57,10 @@ export const queryKeys = {
     recruiting: (userId: string) => [...queryKeys.projectApplications.all, 'recruiting', userId] as const,
     applied: (userId: string) => [...queryKeys.projectApplications.all, 'applied', userId] as const,
   },
+
+  // マッチ一覧（ユーザー単位）
+  matches: {
+    all: ['matches'] as const,
+    detail: (userId: string) => [...queryKeys.matches.all, userId] as const,
+  },
 };

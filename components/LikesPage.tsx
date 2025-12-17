@@ -86,6 +86,26 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
         fetchCurrentUser();
     }, [session]);
 
+    // Realtime subscription for likes and project_applications changes
+    useEffect(() => {
+        if (!session?.user) return;
+
+        const likesChannel = supabase
+            .channel(`likes_page_${session.user.id}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'likes', filter: `receiver_id=eq.${session.user.id}` }, () => {
+                queryClient.invalidateQueries({ queryKey: queryKeys.receivedLikes.detail(session.user.id) });
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'project_applications' }, () => {
+                queryClient.invalidateQueries({ queryKey: queryKeys.projectApplications.recruiting(session.user.id) });
+                queryClient.invalidateQueries({ queryKey: queryKeys.projectApplications.applied(session.user.id) });
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(likesChannel);
+        };
+    }, [session?.user, queryClient]);
+
     // Fetch project details for viewing
     const handleProjectSelect = async (projectId: string) => {
         try {
