@@ -3,11 +3,14 @@ import { createClient } from '@supabase/supabase-js';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
-// TODO: Supabaseのプロジェクト設定から取得したURLとAnon Keyをここに設定してください
-// 1. https://supabase.com/dashboard で新しいプロジェクトを作成
-// 2. Project Settings -> API から URL と anon/public key をコピーして以下に貼り付け
-const SUPABASE_URL = 'https://qexnfdidlqewfxskkqow.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_Vk8g53TJnlk4sySpbMAVEw_1FZabrBp';
+import Constants from 'expo-constants';
+
+const extra = Constants.expoConfig?.extra as {
+    supabaseUrl?: string;
+    supabaseAnonKey?: string;
+};
+const SUPABASE_URL = extra?.supabaseUrl;
+const SUPABASE_ANON_KEY = extra?.supabaseAnonKey;
 
 // セッションの永続化にSecureStoreを使用するアダプター
 const ExpoSecureStoreAdapter = {

@@ -1,0 +1,89 @@
+import { ExpoConfig, ConfigContext } from 'expo/config';
+
+export default ({ config }: ConfigContext) => {
+  return {
+    name: 'Pogg',
+    slug: 'pogg',
+    version: '1.0.0',
+    orientation: 'portrait',
+    icon: './assets/icon.png',
+    userInterfaceStyle: 'light',
+    newArchEnabled: true,
+    splash: {
+      image: './assets/splash-icon.png',
+      resizeMode: 'contain',
+      backgroundColor: '#ffffff',
+    },
+    ios: {
+      supportsTablet: true,
+      bundleIdentifier: 'com.pogg.app',
+      buildNumber: '3',
+      infoPlist: {
+        UIBackgroundModes: ['remote-notification'],
+        NSCameraUsageDescription:
+          'プロフィール写真の撮影やチャットで画像を送信するためにカメラへのアクセスが必要です。',
+        NSPhotoLibraryUsageDescription:
+          'プロフィール写真の設定やチャットで画像を送信するために写真ライブラリへのアクセスが必要です。',
+        NSPhotoLibraryAddUsageDescription:
+          '撮影した写真を保存するために写真ライブラリへのアクセスが必要です。',
+        NSMicrophoneUsageDescription:
+          '音声メッセージを録音するためにマイクへのアクセスが必要です。',
+        CFBundleAllowMixedLocalizations: true,
+      },
+      config: {
+        usesNonExemptEncryption: false,
+      },
+    },
+    android: {
+      package: 'com.pogg.app',
+      versionCode: 2,
+      adaptiveIcon: {
+        foregroundImage: './assets/adaptive-icon.png',
+        backgroundColor: '#ffffff',
+      },
+      edgeToEdgeEnabled: true,
+      predictiveBackGestureEnabled: false,
+      permissions: [
+        'android.permission.RECEIVE_BOOT_COMPLETED',
+        'android.permission.VIBRATE',
+        'android.permission.CAMERA',
+        'android.permission.READ_EXTERNAL_STORAGE',
+        'android.permission.WRITE_EXTERNAL_STORAGE',
+        'android.permission.RECORD_AUDIO',
+      ],
+    },
+    web: {
+      favicon: './assets/favicon.png',
+    },
+    plugins: [
+      'expo-router',
+      [
+        'expo-notifications',
+        {
+          icon: './assets/notification-icon.png',
+          color: '#009688',
+          sounds: [],
+        },
+      ],
+      [
+        'expo-image-picker',
+        {
+          photosPermission:
+            'プロフィール写真の設定やチャットで画像を送信するために写真ライブラリへのアクセスが必要です。',
+          cameraPermission:
+            'プロフィール写真の撮影やチャットで画像を送信するためにカメラへのアクセスが必要です。',
+        },
+      ],
+      'expo-secure-store',
+    ],
+    extra: {
+      router: {},
+      eas: {
+        projectId: '6d305de9-2af6-46c8-b06e-d59ed8dbc10e',
+      },
+      supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
+      supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+    },
+    owner: 'renmoriyasu',
+  };
+};

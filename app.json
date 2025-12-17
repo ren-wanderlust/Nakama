@@ -74,7 +74,9 @@
       "router": {},
       "eas": {
         "projectId": "6d305de9-2af6-46c8-b06e-d59ed8dbc10e"
-      }
+      },
+      "supabaseUrl": "EXPO_PUBLIC_SUPABASE_URL",
+      "supabaseAnonKey": "EXPO_PUBLIC_SUPABASE_ANON_KEY"
     },
     "owner": "renmoriyasu"
   }
