@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import { StyleSheet, Text, View, Modal, Image, TouchableOpacity, Dimensions, Animated, Easing } from 'react-native';
+import { StyleSheet, Text, View, Modal, TouchableOpacity, Dimensions, Animated, Easing } from 'react-native';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Profile } from '../types';
@@ -243,7 +244,13 @@ export function MatchingModal({ visible, profile, onClose, onChat }: MatchingMod
                     <View style={styles.avatarWrapper}>
                         <View style={styles.avatarGlow} />
                         <View style={styles.avatarContainer}>
-                            <Image source={{ uri: profile.image }} style={styles.avatar} />
+                            <Image
+                                source={{ uri: profile.image }}
+                                style={styles.avatar}
+                                contentFit="cover"
+                                cachePolicy="memory-disk"
+                                transition={300}
+                            />
                             <Animated.View style={[
                                 styles.iconBadge,
                                 { transform: [{ scale: Animated.multiply(badgeScaleAnim, heartBeatAnim) }] }
