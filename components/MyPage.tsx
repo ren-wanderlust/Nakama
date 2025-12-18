@@ -575,7 +575,7 @@ const styles = StyleSheet.create({
     profileCard: {
         paddingVertical: 20,
         paddingHorizontal: 16,
-        marginHorizontal: 16,
+        marginHorizontal: 8,
         marginBottom: 12,
         marginTop: 4, // move slightly upward on screen
         backgroundColor: '#FAFAFA',
@@ -643,7 +643,7 @@ const styles = StyleSheet.create({
     },
     tabsContainer: {
         flexDirection: 'row',
-        marginHorizontal: 16,
+        marginHorizontal: 8,
         marginBottom: 16,
         backgroundColor: '#F3F4F6',
         borderRadius: 12,
@@ -676,7 +676,7 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     projectListContent: {
-        paddingHorizontal: 16,
+        paddingHorizontal: 8,
         paddingBottom: 20,
     },
     emptyContainer: {
