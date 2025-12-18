@@ -1,5 +1,6 @@
 import React, { useRef, useCallback, useState } from 'react';
-import { StyleSheet, Text, View, Image, TouchableOpacity, Dimensions, Animated } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, Dimensions, Animated } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { Profile } from '../types';
 import { AnimatedHeartButton } from './AnimatedLikeButton';
