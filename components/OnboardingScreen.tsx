@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
-import { StyleSheet, Text, View, FlatList, TouchableOpacity, Dimensions, SafeAreaView, Image, Animated } from 'react-native';
+import { StyleSheet, Text, View, FlatList, TouchableOpacity, Dimensions, SafeAreaView, Animated } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SHADOWS } from '../constants/DesignSystem';
@@ -99,7 +100,13 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
             <View style={styles.slide}>
                 {/* 背景画像 */}
                 <View style={styles.imageContainer}>
-                    <Image source={item.image} style={styles.image} resizeMode="cover" />
+                    <Image
+                        source={item.image}
+                        style={styles.image}
+                        contentFit="cover"
+                        cachePolicy="memory-disk"
+                        transition={300}
+                    />
                     <LinearGradient
                         colors={['rgba(0,0,0,0.2)', 'rgba(0,0,0,0.4)', 'rgba(0,0,0,0.7)']}
                         style={styles.gradientOverlay}
