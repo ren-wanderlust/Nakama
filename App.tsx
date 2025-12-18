@@ -74,12 +74,20 @@ function AppContent() {
   const [showSignup, setShowSignup] = useState(false);
 
   React.useEffect(() => {
-    // Check onboarding status
+    // Check onboarding status - ユーザーIDごとに管理
     const checkOnboarding = async () => {
+      if (!session?.user) {
+        setHasCompletedOnboarding(true);
+        return;
+      }
+
       try {
-        const hasSeenOnboarding = await SecureStore.getItemAsync('hasSeenOnboarding');
-        if (!hasSeenOnboarding && session?.user) {
-          // 初回起動時、ログイン済みならオンボーディングを表示
+        // ユーザーIDごとにオンボーディング状態を保存
+        const onboardingKey = `hasSeenOnboarding_${session.user.id}`;
+        const hasSeenOnboarding = await SecureStore.getItemAsync(onboardingKey);
+
+        if (!hasSeenOnboarding) {
+          // 初回起動時、このユーザーはまだオンボーディングを見ていない
           setShowOnboarding(true);
         }
       } catch (error) {
@@ -88,7 +96,7 @@ function AppContent() {
       setHasCompletedOnboarding(true);
     };
     checkOnboarding();
-  }, [session?.user]);
+  }, [session?.user?.id]);
 
   const [activeTab, setActiveTab] = useState('search');
   const [previousTab, setPreviousTab] = useState<string | null>(null);
@@ -131,10 +139,10 @@ function AppContent() {
   const unreadCountQuery = useUnreadCount(session?.user?.id);
   const matchesQuery = useMatches(session?.user?.id);
   const unreadMessagesCount = unreadCountQuery.data ?? 0;
-  
+
   // Matches data from React Query
-  const matchedProfileIds: Set<string> = (matchesQuery.data?.matchIds instanceof Set) 
-    ? matchesQuery.data.matchIds 
+  const matchedProfileIds: Set<string> = (matchesQuery.data?.matchIds instanceof Set)
+    ? matchesQuery.data.matchIds
     : new Set();
   const likedProfiles: Set<string> = (matchesQuery.data?.myLikedIds instanceof Set)
     ? matchesQuery.data.myLikedIds
@@ -540,10 +548,10 @@ function AppContent() {
               const globalMinLastRead =
                 allLastReadTimes.length > 0
                   ? allLastReadTimes.reduce(
-                      (min, current) =>
-                        new Date(current).getTime() < new Date(min).getTime() ? current : min,
-                      allLastReadTimes[0]
-                    )
+                    (min, current) =>
+                      new Date(current).getTime() < new Date(min).getTime() ? current : min,
+                    allLastReadTimes[0]
+                  )
                   : '1970-01-01';
 
               const { data: unreadMessages } = await supabase
@@ -826,7 +834,7 @@ function AppContent() {
                   .delete()
                   .eq('sender_id', session.user.id)
                   .eq('receiver_id', profileId);
-                
+
                 // Invalidate queries to refresh data
                 queryClient.invalidateQueries({ queryKey: queryKeys.matches.detail(session.user.id) });
               } catch (error) {
@@ -912,11 +920,11 @@ function AppContent() {
 
           if (!matchedUser) {
             // Fetch profile from supabase if not in displayProfiles
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('id, name, age, university, company, grade, image, bio, skills, seeking_for, seeking_roles, status_tags, is_student, created_at')
-          .eq('id', profileId)
-          .single();
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('id, name, age, university, company, grade, image, bio, skills, seeking_for, seeking_roles, status_tags, is_student, created_at')
+              .eq('id', profileId)
+              .single();
 
             if (profileData) {
               matchedUser = {
@@ -1755,9 +1763,12 @@ function AppContent() {
         <OnboardingScreen
           onComplete={async () => {
             setShowOnboarding(false);
-            // 表示済みフラグを保存
+            // 表示済みフラグを保存（ユーザーIDごと）
             try {
-              await SecureStore.setItemAsync('hasSeenOnboarding', 'true');
+              if (session?.user?.id) {
+                const onboardingKey = `hasSeenOnboarding_${session.user.id}`;
+                await SecureStore.setItemAsync(onboardingKey, 'true');
+              }
             } catch (error) {
               console.log('Error saving onboarding status:', error);
             }
