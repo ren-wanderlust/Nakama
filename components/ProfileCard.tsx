@@ -46,7 +46,7 @@ interface ProfileCardProps {
 }
 
 const { width } = Dimensions.get('window');
-const GAP = 12;
+const GAP = 6;
 const PADDING = 16;
 const CARD_WIDTH = (width - (PADDING * 2) - GAP) / 2;
 
@@ -264,7 +264,7 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.background.primary,
         borderRadius: RADIUS.lg,
         padding: SPACING.lg,
-        marginBottom: SPACING.lg,
+        marginBottom: SPACING.xs,
         position: 'relative',
         ...SHADOWS.md,
         borderWidth: 1,

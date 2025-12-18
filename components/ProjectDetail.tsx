@@ -56,6 +56,7 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
     const [applying, setApplying] = useState(false);
     const [applicants, setApplicants] = useState<Applicant[]>([]);
     const [hasApplied, setHasApplied] = useState(false);
+    const [applicationStatus, setApplicationStatus] = useState<string | null>(null);
     const [currentStatus, setCurrentStatus] = useState<string>(project.status || 'recruiting');
 
     // プロジェクトのステータスがプロップス変更で更新された場合に備えて同期
@@ -121,8 +122,9 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                 setApplicants(formattedApplicants);
 
                 if (currentUser) {
-                    const applied = formattedApplicants.some(a => a.user_id === currentUser.id);
-                    setHasApplied(applied);
+                    const myApp = formattedApplicants.find(a => a.user_id === currentUser.id);
+                    setHasApplied(!!myApp);
+                    setApplicationStatus(myApp ? myApp.status : null);
                 }
             }
         } catch (error) {
@@ -139,7 +141,7 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
             Alert.alert('通知', '自分のプロジェクトには応募できません');
             return;
         }
-        if (hasApplied) {
+        if (hasApplied && applicationStatus !== 'rejected') {
             Alert.alert('通知', 'すでに応募済みです');
             return;
         }
@@ -164,16 +166,27 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                 return;
             }
 
-            // Create application record
-            const { error: appError } = await supabase
-                .from('project_applications')
-                .insert({
-                    project_id: project.id,
-                    user_id: currentUser.id,
-                    status: 'pending'
-                });
+            if (hasApplied && applicationStatus === 'rejected') {
+                // Re-apply: update existing application status to pending
+                const { error: updateError } = await supabase
+                    .from('project_applications')
+                    .update({ status: 'pending', created_at: new Date().toISOString() })
+                    .eq('project_id', project.id)
+                    .eq('user_id', currentUser.id);
 
-            if (appError) throw appError;
+                if (updateError) throw updateError;
+            } else {
+                // Create new application record
+                const { error: appError } = await supabase
+                    .from('project_applications')
+                    .insert({
+                        project_id: project.id,
+                        user_id: currentUser.id,
+                        status: 'pending'
+                    });
+
+                if (appError) throw appError;
+            }
 
             // Send notification to owner
             const { error: notifError } = await supabase
@@ -312,6 +325,22 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
         }
     };
 
+    // 棄却確認用のアラート
+    const handleRejectConfirmation = (applicationId: string, userName: string) => {
+        Alert.alert(
+            '棄却の確認',
+            `本当に${userName}さんを棄却しますか？\nこの操作は取り消せません。`,
+            [
+                { text: 'キャンセル', style: 'cancel' },
+                {
+                    text: '棄却する',
+                    style: 'destructive',
+                    onPress: () => updateApplicantStatus(applicationId, 'rejected', userName)
+                }
+            ]
+        );
+    };
+
     const handleApplicantPress = (applicant: Applicant) => {
         if (currentUser?.id !== project.owner_id) return;
 
@@ -324,7 +353,7 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                     {
                         text: '棄却する',
                         style: 'destructive',
-                        onPress: () => updateApplicantStatus(applicant.id, 'rejected', applicant.user.name)
+                        onPress: () => handleRejectConfirmation(applicant.id, applicant.user.name)
                     },
                     {
                         text: '承認する',
@@ -542,7 +571,7 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                                             <View style={styles.pendingCardActions}>
                                                 <TouchableOpacity
                                                     style={styles.rejectButton}
-                                                    onPress={() => updateApplicantStatus(applicant.id, 'rejected', applicant.user.name)}
+                                                    onPress={() => handleRejectConfirmation(applicant.id, applicant.user.name)}
                                                 >
                                                     <Ionicons name="close" size={18} color="#EF4444" />
                                                     <Text style={styles.rejectButtonText}>棄却</Text>
@@ -624,8 +653,8 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                     style={[
                         styles.applyButton,
                         // 応募中でなく、オーナーでもない場合で、ステータスがclosedならdisabled
-                        // オーナーは常に押せるようにする
-                        (currentUser?.id !== project.owner_id && (applying || hasApplied || currentStatus === 'closed')) && styles.disabledButton,
+                        // rejectedの場合は再応募可能なのでdisabledにしない
+                        (currentUser?.id !== project.owner_id && (applying || (hasApplied && applicationStatus !== 'rejected') || currentStatus === 'closed')) && styles.disabledButton,
                         // オーナー用スタイル（募集中の場合は警告色、終了中は再開色）
                         currentUser?.id === project.owner_id && (
                             currentStatus === 'recruiting' ? styles.closeRecruitmentButton : styles.reopenRecruitmentButton
@@ -633,20 +662,17 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                         { flex: 1 }
                     ]}
                     onPress={currentUser?.id === project.owner_id ? handleToggleStatus : handleApply}
-                    disabled={currentUser?.id !== project.owner_id && (applying || hasApplied || currentStatus === 'closed')}
+                    disabled={currentUser?.id !== project.owner_id && (applying || (hasApplied && applicationStatus !== 'rejected') || currentStatus === 'closed')}
                 >
                     {applying ? (
                         <ActivityIndicator color="white" />
                     ) : (
                         <Text style={styles.applyButtonText}>
                             {currentUser?.id === project.owner_id
-                                ? (currentStatus === 'closed' ? '募集を再開する' : '募集を終了する')
-                                : (currentStatus === 'closed'
-                                    ? '募集終了'
-                                    : hasApplied
-                                        ? '応募済み'
-                                        : '参加を申請する')
-                            }
+                                ? (currentStatus === 'recruiting' ? '募集を停止する' : '募集を再開する')
+                                : (hasApplied
+                                    ? (applicationStatus === 'rejected' ? '再応募する' : '応募済み')
+                                    : '応募する')}
                         </Text>
                     )}
                 </TouchableOpacity>

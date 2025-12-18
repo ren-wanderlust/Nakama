@@ -573,15 +573,17 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalKeyboardAvoid: {
+    flex: 1,
     width: '100%',
+    justifyContent: 'flex-end',
   },
   modalContent: {
+    flex: 1,
     backgroundColor: 'white',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
     paddingBottom: 40,
-    minHeight: 400,
   },
   modalHeader: {
     flexDirection: 'row',

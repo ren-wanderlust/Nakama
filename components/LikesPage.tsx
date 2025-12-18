@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, FlatList, Image, Dimensions, Alert, Modal } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, FlatList, Image, Dimensions, Alert, Modal, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -51,6 +51,9 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
 
     const userListRef = useRef<FlatList>(null);
     const projectListRef = useRef<FlatList>(null);
+
+    // Refresh state
+    const [refreshing, setRefreshing] = useState(false);
 
     // React Query hooks
     const receivedLikesQuery = useReceivedLikes(session?.user?.id);
@@ -114,6 +117,21 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
             supabase.removeChannel(likesChannel);
         };
     }, [session?.user, queryClient]);
+
+    // Pull to refresh handler
+    const onRefresh = async () => {
+        setRefreshing(true);
+        try {
+            await Promise.all([
+                receivedLikesQuery.refetch(),
+                projectApplicationsQuery.refetch(),
+            ]);
+        } catch (error) {
+            console.error('Error refreshing:', error);
+        } finally {
+            setRefreshing(false);
+        }
+    };
 
     // Fetch project details for viewing
     const handleProjectSelect = async (projectId: string) => {
@@ -519,7 +537,6 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
     // User tab - Received likes
     const renderReceivedList = () => {
         if (loadingUser) return <ProfileListSkeleton count={4} />;
-        if (displayReceivedLikes.length === 0) return <LikesEmptyState type="received" />;
 
         return (
             <FlatList
@@ -536,17 +553,19 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                 )}
                 keyExtractor={(item) => item.id}
                 numColumns={2}
-                contentContainerStyle={styles.listContent}
-                columnWrapperStyle={styles.columnWrapper}
+                contentContainerStyle={[styles.listContent, displayReceivedLikes.length === 0 && { flex: 1 }]}
+                columnWrapperStyle={displayReceivedLikes.length > 0 ? styles.columnWrapper : undefined}
                 showsVerticalScrollIndicator={false}
+                refreshControl={
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F39800" />
+                }
+                ListEmptyComponent={<LikesEmptyState type="received" />}
             />
         );
     };
 
     // User tab - Sent likes
     const renderSentList = () => {
-        if (sentLikes.length === 0) return <LikesEmptyState type="sent" />;
-
         return (
             <FlatList
                 data={sentLikes}
@@ -562,17 +581,19 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                 )}
                 keyExtractor={(item) => item.id}
                 numColumns={2}
-                contentContainerStyle={styles.listContent}
-                columnWrapperStyle={styles.columnWrapper}
+                contentContainerStyle={[styles.listContent, sentLikes.length === 0 && { flex: 1 }]}
+                columnWrapperStyle={sentLikes.length > 0 ? styles.columnWrapper : undefined}
                 showsVerticalScrollIndicator={false}
+                refreshControl={
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F39800" />
+                }
+                ListEmptyComponent={<LikesEmptyState type="sent" />}
             />
         );
     };
 
     // User tab - Matched profiles
     const renderMatchedList = () => {
-        if (matchedProfiles.length === 0) return <LikesEmptyState type="matched" />;
-
         return (
             <FlatList
                 data={matchedProfiles}
@@ -590,9 +611,13 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                 )}
                 keyExtractor={(item) => item.id}
                 numColumns={2}
-                contentContainerStyle={styles.listContent}
-                columnWrapperStyle={styles.columnWrapper}
+                contentContainerStyle={[styles.listContent, matchedProfiles.length === 0 && { flex: 1 }]}
+                columnWrapperStyle={matchedProfiles.length > 0 ? styles.columnWrapper : undefined}
                 showsVerticalScrollIndicator={false}
+                refreshControl={
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F39800" />
+                }
+                ListEmptyComponent={<LikesEmptyState type="matched" />}
             />
         );
     };
@@ -600,35 +625,28 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
     // Project tab - Recruiting (応募者一覧)
     const renderRecruitingList = () => {
         if (loadingProject) return <ProfileListSkeleton count={4} />;
-        if (recruitingApplications.length === 0) {
-            return (
-                <View style={styles.emptyContainer}>
-                    <Ionicons name="people-outline" size={64} color="#d1d5db" />
-                    <Text style={styles.emptyText}>応募者はまだいません</Text>
-                    <Text style={styles.emptySubText}>プロジェクトを作成すると、応募者がここに表示されます</Text>
-                </View>
-            );
-        }
 
         const pendingApps = recruitingApplications.filter(a => a.status === 'pending');
 
-        if (pendingApps.length === 0) {
-            return (
-                <View style={styles.emptyContainer}>
-                    <Ionicons name="people-outline" size={64} color="#d1d5db" />
-                    <Text style={styles.emptyText}>応募者はまだいません</Text>
-                    <Text style={styles.emptySubText}>プロジェクトを作成すると、応募者がここに表示されます</Text>
-                </View>
-            );
-        }
+        const RecruitingEmptyComponent = () => (
+            <View style={styles.emptyContainer}>
+                <Ionicons name="people-outline" size={64} color="#d1d5db" />
+                <Text style={styles.emptyText}>応募者はまだいません</Text>
+                <Text style={styles.emptySubText}>プロジェクトを作成すると、応募者がここに表示されます</Text>
+            </View>
+        );
 
         return (
             <FlatList
                 data={pendingApps}
                 renderItem={renderApplicantCard}
                 keyExtractor={(item) => item.id}
-                contentContainerStyle={styles.listContent}
+                contentContainerStyle={[styles.listContent, pendingApps.length === 0 && { flex: 1 }]}
                 showsVerticalScrollIndicator={false}
+                refreshControl={
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F39800" />
+                }
+                ListEmptyComponent={<RecruitingEmptyComponent />}
             />
         );
     };
@@ -636,23 +654,26 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
     // Project tab - Applied (応募したプロジェクト)
     const renderAppliedList = () => {
         if (loadingProject) return <ProjectListSkeleton count={4} />;
-        if (appliedApplications.length === 0) {
-            return (
-                <View style={styles.emptyContainer}>
-                    <Ionicons name="briefcase-outline" size={64} color="#d1d5db" />
-                    <Text style={styles.emptyText}>応募したプロジェクトはありません</Text>
-                    <Text style={styles.emptySubText}>気になるプロジェクトに応募してみましょう</Text>
-                </View>
-            );
-        }
+
+        const AppliedEmptyComponent = () => (
+            <View style={styles.emptyContainer}>
+                <Ionicons name="briefcase-outline" size={64} color="#d1d5db" />
+                <Text style={styles.emptyText}>応募したプロジェクトはありません</Text>
+                <Text style={styles.emptySubText}>気になるプロジェクトに応募してみましょう</Text>
+            </View>
+        );
 
         return (
             <FlatList
                 data={appliedApplications}
                 renderItem={renderApplicationProjectCard}
                 keyExtractor={(item) => item.id}
-                contentContainerStyle={styles.listContent}
+                contentContainerStyle={[styles.listContent, appliedApplications.length === 0 && { flex: 1 }]}
                 showsVerticalScrollIndicator={false}
+                refreshControl={
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F39800" />
+                }
+                ListEmptyComponent={<AppliedEmptyComponent />}
             />
         );
     };

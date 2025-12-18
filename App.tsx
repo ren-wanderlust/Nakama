@@ -608,7 +608,7 @@ function AppContent() {
           age: data.age,
           university: data.university,
           company: data.company,
-          grade: data.grade || '',
+          grade: data.grade,
           image: data.image,
           challengeTheme: '',
           theme: '',
@@ -1448,7 +1448,9 @@ function AppContent() {
               onClose={() => setShowCreateProjectModal(false)}
               onCreated={() => {
                 setShowCreateProjectModal(false);
-                // Optionally refresh projects list
+                // Refresh projects list immediately
+                queryClient.invalidateQueries({ queryKey: queryKeys.projects.lists() });
+                queryClient.invalidateQueries({ queryKey: queryKeys.myProjects.detail(currentUser.id) });
                 setActiveTab('search');
               }}
             />

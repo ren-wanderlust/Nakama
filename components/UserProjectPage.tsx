@@ -420,7 +420,7 @@ const styles = StyleSheet.create({
     },
     grid: {
         flexDirection: 'column',
-        gap: 16,
+        gap: 6,
     },
     card: {
         width: '100%',

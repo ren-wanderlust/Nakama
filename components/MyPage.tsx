@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, Image, TouchableOpacity, ScrollView, SafeAreaView, Alert, ActivityIndicator, Modal, FlatList, Dimensions, TouchableWithoutFeedback } from 'react-native';
+import { StyleSheet, Text, View, Image, TouchableOpacity, ScrollView, SafeAreaView, Alert, ActivityIndicator, Modal, FlatList, Dimensions, TouchableWithoutFeedback, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
@@ -190,25 +190,28 @@ const ProjectCard = ({ project, ownerProfile, onPress }: { project: any; ownerPr
                 </View>
             )}
 
-            {!isClosed && project.pendingCount > 0 && (
-                <View style={projectCardStyles.notificationBadge}>
-                    <Text style={projectCardStyles.notificationText}>
-                        {project.pendingCount}
-                    </Text>
-                </View>
-            )}
+
             <View style={[projectCardStyles.cardInner, isClosed && { opacity: 0.7 }]}>
                 {/* Role Icons Container */}
                 {getIconLayout()}
                 <View style={projectCardStyles.cardContent}>
                     <View style={projectCardStyles.cardHeader}>
                         <Text style={projectCardStyles.cardTitle} numberOfLines={1}>{project.title}</Text>
-                        {deadlineString && !isClosed ? (
-                            <View style={projectCardStyles.deadlineBadge}>
-                                <Ionicons name="time-outline" size={14} color="#D32F2F" />
-                                <Text style={projectCardStyles.deadlineText}>{deadlineString}</Text>
-                            </View>
-                        ) : null}
+                        <View style={projectCardStyles.badgesRow}>
+                            {deadlineString && !isClosed ? (
+                                <View style={projectCardStyles.deadlineBadge}>
+                                    <Ionicons name="time-outline" size={14} color="#D32F2F" />
+                                    <Text style={projectCardStyles.deadlineText}>{deadlineString}</Text>
+                                </View>
+                            ) : null}
+                            {!isClosed && project.pendingCount > 0 && (
+                                <View style={projectCardStyles.inlineNotificationBadge}>
+                                    <Text style={projectCardStyles.notificationText}>
+                                        {project.pendingCount}
+                                    </Text>
+                                </View>
+                            )}
+                        </View>
                     </View>
                     {createdDateString ? (
                         <Text style={projectCardStyles.createdDateText}>{createdDateString}</Text>
@@ -224,6 +227,7 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
     const [selectedProject, setSelectedProject] = useState<any | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [activeTab, setActiveTab] = useState<'myProjects' | 'participatingProjects'>('myProjects');
+    const [refreshing, setRefreshing] = useState(false);
     const queryClient = useQueryClient();
 
     // React Query hooks
@@ -262,6 +266,21 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
             supabase.removeChannel(projectsChannel);
         };
     }, [profile.id, queryClient]);
+
+    // Pull to refresh handler
+    const onRefresh = async () => {
+        setRefreshing(true);
+        try {
+            await Promise.all([
+                myProjectsQuery.refetch(),
+                participatingProjectsQuery.refetch(),
+            ]);
+        } catch (error) {
+            console.error('Error refreshing:', error);
+        } finally {
+            setRefreshing(false);
+        }
+    };
 
     const handleDeleteAccount = async () => {
         setIsDeleting(true);
@@ -419,6 +438,9 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                 }
                 contentContainerStyle={styles.projectListContent}
                 showsVerticalScrollIndicator={false}
+                refreshControl={
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#009688" />
+                }
                 ItemSeparatorComponent={() => <View style={{ height: 6 }} />}
                 ListEmptyComponent={
                     (activeTab === 'myProjects' ? !loadingProjects : !loadingParticipating) ? (
@@ -874,6 +896,20 @@ const projectCardStyles = StyleSheet.create({
         justifyContent: 'center',
         paddingHorizontal: 6,
         zIndex: 10,
+    },
+    badgesRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    inlineNotificationBadge: {
+        backgroundColor: '#EF4444',
+        minWidth: 20,
+        height: 20,
+        borderRadius: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 6,
     },
     notificationText: {
         color: 'white',
