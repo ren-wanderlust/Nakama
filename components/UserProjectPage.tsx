@@ -15,6 +15,7 @@ import { CustomRefreshControl } from './CustomRefreshControl';
 import { RADIUS, COLORS, SHADOWS, SPACING, AVATAR, FONTS } from '../constants/DesignSystem';
 import { ProjectsEmptyState } from './EmptyState';
 import { translateTag } from '../constants/TagConstants';
+import { getImageSource } from '../constants/DefaultImages';
 
 interface Project {
     id: string;
@@ -191,7 +192,7 @@ const ProjectCard = ({ project, onPress }: { project: Project; onPress: () => vo
                     {/* Author Info */}
                     <View style={styles.authorRow}>
                         <Image
-                            source={{ uri: project.owner?.image || 'https://via.placeholder.com/50' }}
+                            source={getImageSource(project.owner?.image)}
                             style={styles.authorIcon}
                         />
                         <Text style={styles.authorName} numberOfLines={1}>

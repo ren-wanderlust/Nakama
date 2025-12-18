@@ -17,6 +17,7 @@ import { LikesEmptyState } from './EmptyState';
 import { translateTag } from '../constants/TagConstants';
 import { FONTS } from '../constants/DesignSystem';
 import { ProjectDetail } from './ProjectDetail';
+import { getImageSource } from '../constants/DefaultImages';
 
 // Project型とApplication型はdata/apiからインポート
 import { Application } from '../data/api/applications';
@@ -395,7 +396,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                         {/* Author Info */}
                         <View style={styles.appliedAuthorRow}>
                             <Image
-                                source={{ uri: project.owner?.image || 'https://via.placeholder.com/50' }}
+                                source={getImageSource(project.owner?.image)}
                                 style={styles.appliedAuthorIcon}
                             />
                             <Text style={styles.appliedAuthorName} numberOfLines={1}>{project.owner?.name || '匿名'}</Text>
@@ -448,7 +449,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                 <View style={styles.recruitingCardHeader}>
                     <TouchableOpacity onPress={() => handleApplicantProfileSelect(item)}>
                         <Image
-                            source={{ uri: user.image || 'https://via.placeholder.com/50' }}
+                            source={getImageSource(user.image)}
                             style={styles.recruitingAvatar}
                         />
                     </TouchableOpacity>

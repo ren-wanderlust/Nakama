@@ -119,7 +119,7 @@ export async function fetchChatRooms(userId: string): Promise<ChatRoom[]> {
         partnerId: partnerId,
         partnerName: partnerProfile?.name || 'Unknown',
         partnerAge: partnerProfile?.age || 0,
-        partnerImage: partnerProfile?.image || 'https://via.placeholder.com/150',
+        partnerImage: partnerProfile?.image || '',
         lastMessage: roomData.lastMessage,
         unreadCount: unreadMap.get(partnerId) || 0,
         timestamp: timestamp,
@@ -186,10 +186,10 @@ export async function fetchChatRooms(userId: string): Promise<ChatRoom[]> {
     const globalMinLastRead =
       allLastReadTimes.length > 0
         ? allLastReadTimes.reduce(
-            (min, current) =>
-              new Date(current).getTime() < new Date(min).getTime() ? current : min,
-            allLastReadTimes[0]
-          )
+          (min, current) =>
+            new Date(current).getTime() < new Date(min).getTime() ? current : min,
+          allLastReadTimes[0]
+        )
         : '1970-01-01';
 
     const { data: unreadMessages } = await supabase
@@ -231,7 +231,7 @@ export async function fetchChatRooms(userId: string): Promise<ChatRoom[]> {
         partnerId: room.id,
         partnerName: room.project?.title || 'Team Chat',
         partnerAge: 0,
-        partnerImage: room.project?.owner?.image || room.project?.image_url || 'https://via.placeholder.com/150',
+        partnerImage: room.project?.owner?.image || room.project?.image_url || '',
         lastMessage: lastMsg?.content || 'チームチャットが作成されました',
         unreadCount: unreadCountByRoom.get(room.id) || 0,
         timestamp: timestamp,

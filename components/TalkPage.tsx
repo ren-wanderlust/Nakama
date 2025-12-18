@@ -12,6 +12,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useChatRooms } from '../data/hooks/useChatRooms';
 import { queryKeys } from '../data/queryKeys';
 import { ChatRoom } from '../data/api/chatRooms';
+import { getImageSource } from '../constants/DefaultImages';
 
 interface TalkPageProps {
     onOpenChat?: (room: ChatRoom) => void;
@@ -108,7 +109,7 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
                                 activeOpacity={0.7}
                             >
                                 <Image
-                                    source={{ uri: item.partnerImage }}
+                                    source={getImageSource(item.partnerImage)}
                                     style={styles.avatar}
                                 />
                             </TouchableOpacity>
@@ -154,88 +155,128 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
         }
     };
 
-const renderTeamList = () => {
-    const teamRooms = chatRooms.filter(r => r.type === 'group');
+    const renderTeamList = () => {
+        const teamRooms = chatRooms.filter(r => r.type === 'group');
 
-    if (teamRooms.length > 0) {
-        return (
-            <FlatList
-                data={teamRooms}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item }) => (
-                    <TouchableOpacity
-                        style={styles.roomItem}
-                        onPress={() => onOpenChat?.(item)}
-                        activeOpacity={0.7}
-                    >
-                        {/* Avatar - Tappable for project detail */}
+        if (teamRooms.length > 0) {
+            return (
+                <FlatList
+                    data={teamRooms}
+                    keyExtractor={(item) => item.id}
+                    renderItem={({ item }) => (
                         <TouchableOpacity
-                            style={styles.avatarContainer}
-                            onPress={() => item.projectId && onViewProject?.(item.projectId)}
+                            style={styles.roomItem}
+                            onPress={() => onOpenChat?.(item)}
                             activeOpacity={0.7}
                         >
-                            <Image
-                                source={{ uri: item.partnerImage }}
-                                style={styles.avatar}
-                            />
-                            <View style={styles.groupBadgeOverlay}>
-                                <Ionicons name="people" size={12} color="white" />
-                            </View>
-                        </TouchableOpacity>
-
-                        {/* Content */}
-                        <View style={styles.content}>
-                            <View style={styles.topRow}>
-                                <View style={styles.nameContainer}>
-                                    <Text style={styles.name}>{item.partnerName}</Text>
+                            {/* Avatar - Tappable for project detail */}
+                            <TouchableOpacity
+                                style={styles.avatarContainer}
+                                onPress={() => item.projectId && onViewProject?.(item.projectId)}
+                                activeOpacity={0.7}
+                            >
+                                <Image
+                                    source={getImageSource(item.partnerImage)}
+                                    style={styles.avatar}
+                                />
+                                <View style={styles.groupBadgeOverlay}>
+                                    <Ionicons name="people" size={12} color="white" />
                                 </View>
-                                <Text style={styles.timestamp}>{item.timestamp}</Text>
+                            </TouchableOpacity>
+
+                            {/* Content */}
+                            <View style={styles.content}>
+                                <View style={styles.topRow}>
+                                    <View style={styles.nameContainer}>
+                                        <Text style={styles.name}>{item.partnerName}</Text>
+                                    </View>
+                                    <Text style={styles.timestamp}>{item.timestamp}</Text>
+                                </View>
+
+                                <View style={styles.messageRow}>
+                                    <Text style={styles.lastMessage} numberOfLines={1}>
+                                        {item.lastMessage}
+                                    </Text>
+                                </View>
                             </View>
 
-                            <View style={styles.messageRow}>
-                                <Text style={styles.lastMessage} numberOfLines={1}>
-                                    {item.lastMessage}
-                                </Text>
-                            </View>
-                        </View>
+                            {item.unreadCount > 0 ? (
+                                <View style={styles.unreadBadge}>
+                                    <Text style={styles.unreadText}>{item.unreadCount}</Text>
+                                </View>
+                            ) : (
+                                <Ionicons name="chevron-forward" size={20} color="#9ca3af" style={styles.chevronIcon} />
+                            )}
+                        </TouchableOpacity>
+                    )}
+                    contentContainerStyle={styles.listContent}
+                    refreshControl={
+                        <SimpleRefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                    }
+                />
+            );
+        } else {
+            return (
+                <EmptyState
+                    variant="chat"
+                    icon="people-outline"
+                    title="まだチームチャットがありません"
+                    description="2人以上のメンバーが承認されると、自動的にチームチャットが作成されます"
+                />
+            );
+        }
+    };
 
-                        {item.unreadCount > 0 ? (
-                            <View style={styles.unreadBadge}>
-                                <Text style={styles.unreadText}>{item.unreadCount}</Text>
-                            </View>
-                        ) : (
-                            <Ionicons name="chevron-forward" size={20} color="#9ca3af" style={styles.chevronIcon} />
-                        )}
-                    </TouchableOpacity>
-                )}
-                contentContainerStyle={styles.listContent}
-                refreshControl={
-                    <SimpleRefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-                }
-            />
-        );
-    } else {
+    if (loading) {
         return (
-            <EmptyState
-                variant="chat"
-                icon="people-outline"
-                title="まだチームチャットがありません"
-                description="2人以上のメンバーが承認されると、自動的にチームチャットが作成されます"
-            />
+            <View style={styles.container}>
+                {/* Header */}
+                <View style={styles.header}>
+                    <View style={{ width: '100%', paddingTop: insets.top + 16, paddingBottom: 8, alignItems: 'center', backgroundColor: 'white' }}>
+                        <View style={styles.tabContainer}>
+                            <TouchableOpacity style={[styles.tabButton, styles.tabButtonActive]}>
+                                <View style={styles.tabLabelRow}>
+                                    <Text style={[styles.tabText, styles.tabTextActive]}>チーム</Text>
+                                    {teamUnreadTotal > 0 && (
+                                        <View style={styles.tabBadge}>
+                                            <Text style={styles.tabBadgeText}>{teamUnreadTotal}</Text>
+                                        </View>
+                                    )}
+                                </View>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.tabButton}>
+                                <View style={styles.tabLabelRow}>
+                                    <Text style={styles.tabText}>個人</Text>
+                                    {individualUnreadTotal > 0 && (
+                                        <View style={styles.tabBadge}>
+                                            <Text style={styles.tabBadgeText}>{individualUnreadTotal}</Text>
+                                        </View>
+                                    )}
+                                </View>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+                <ChatListSkeleton count={6} />
+            </View>
         );
     }
-};
 
-if (loading) {
     return (
         <View style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
                 <View style={{ width: '100%', paddingTop: insets.top + 16, paddingBottom: 8, alignItems: 'center', backgroundColor: 'white' }}>
                     <View style={styles.tabContainer}>
-                        <TouchableOpacity style={[styles.tabButton, styles.tabButtonActive]}>
+                        <TouchableOpacity
+                            style={[styles.tabButton, talkTab === 'team' && styles.tabButtonActive]}
+                            onPress={() => {
+                                setTalkTab('team');
+                                talkListRef.current?.scrollToIndex({ index: 0, animated: true });
+                            }}
+                        >
                             <View style={styles.tabLabelRow}>
-                                <Text style={[styles.tabText, styles.tabTextActive]}>チーム</Text>
+                                <Text style={[styles.tabText, talkTab === 'team' && styles.tabTextActive]}>チーム</Text>
                                 {teamUnreadTotal > 0 && (
                                     <View style={styles.tabBadge}>
                                         <Text style={styles.tabBadgeText}>{teamUnreadTotal}</Text>
@@ -243,9 +284,15 @@ if (loading) {
                                 )}
                             </View>
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.tabButton}>
+                        <TouchableOpacity
+                            style={[styles.tabButton, talkTab === 'individual' && styles.tabButtonActive]}
+                            onPress={() => {
+                                setTalkTab('individual');
+                                talkListRef.current?.scrollToIndex({ index: 1, animated: true });
+                            }}
+                        >
                             <View style={styles.tabLabelRow}>
-                                <Text style={styles.tabText}>個人</Text>
+                                <Text style={[styles.tabText, talkTab === 'individual' && styles.tabTextActive]}>個人</Text>
                                 {individualUnreadTotal > 0 && (
                                     <View style={styles.tabBadge}>
                                         <Text style={styles.tabBadgeText}>{individualUnreadTotal}</Text>
@@ -256,77 +303,31 @@ if (loading) {
                     </View>
                 </View>
             </View>
-            <ChatListSkeleton count={6} />
+
+            {/* Content */}
+            <FlatList
+                ref={talkListRef}
+                data={['team', 'individual']}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                keyExtractor={(item) => item}
+                onMomentumScrollEnd={(e) => {
+                    const index = Math.round(e.nativeEvent.contentOffset.x / Dimensions.get('window').width);
+                    setTalkTab(index === 0 ? 'team' : 'individual');
+                }}
+                getItemLayout={(data, index) => (
+                    { length: Dimensions.get('window').width, offset: Dimensions.get('window').width * index, index }
+                )}
+                initialScrollIndex={0}
+                renderItem={({ item }) => (
+                    <View style={{ width: Dimensions.get('window').width, flex: 1 }}>
+                        {item === 'team' ? renderTeamList() : renderIndividualList()}
+                    </View>
+                )}
+            />
         </View>
     );
-}
-
-return (
-    <View style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-            <View style={{ width: '100%', paddingTop: insets.top + 16, paddingBottom: 8, alignItems: 'center', backgroundColor: 'white' }}>
-                <View style={styles.tabContainer}>
-                    <TouchableOpacity
-                        style={[styles.tabButton, talkTab === 'team' && styles.tabButtonActive]}
-                        onPress={() => {
-                            setTalkTab('team');
-                            talkListRef.current?.scrollToIndex({ index: 0, animated: true });
-                        }}
-                    >
-                        <View style={styles.tabLabelRow}>
-                            <Text style={[styles.tabText, talkTab === 'team' && styles.tabTextActive]}>チーム</Text>
-                            {teamUnreadTotal > 0 && (
-                                <View style={styles.tabBadge}>
-                                    <Text style={styles.tabBadgeText}>{teamUnreadTotal}</Text>
-                                </View>
-                            )}
-                        </View>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[styles.tabButton, talkTab === 'individual' && styles.tabButtonActive]}
-                        onPress={() => {
-                            setTalkTab('individual');
-                            talkListRef.current?.scrollToIndex({ index: 1, animated: true });
-                        }}
-                    >
-                        <View style={styles.tabLabelRow}>
-                            <Text style={[styles.tabText, talkTab === 'individual' && styles.tabTextActive]}>個人</Text>
-                            {individualUnreadTotal > 0 && (
-                                <View style={styles.tabBadge}>
-                                    <Text style={styles.tabBadgeText}>{individualUnreadTotal}</Text>
-                                </View>
-                            )}
-                        </View>
-                    </TouchableOpacity>
-                </View>
-            </View>
-        </View>
-
-        {/* Content */}
-        <FlatList
-            ref={talkListRef}
-            data={['team', 'individual']}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            keyExtractor={(item) => item}
-            onMomentumScrollEnd={(e) => {
-                const index = Math.round(e.nativeEvent.contentOffset.x / Dimensions.get('window').width);
-                setTalkTab(index === 0 ? 'team' : 'individual');
-            }}
-            getItemLayout={(data, index) => (
-                { length: Dimensions.get('window').width, offset: Dimensions.get('window').width * index, index }
-            )}
-            initialScrollIndex={0}
-            renderItem={({ item }) => (
-                <View style={{ width: Dimensions.get('window').width, flex: 1 }}>
-                    {item === 'team' ? renderTeamList() : renderIndividualList()}
-                </View>
-            )}
-        />
-    </View>
-);
 }
 
 const styles = StyleSheet.create({

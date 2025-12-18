@@ -10,6 +10,7 @@ import { ProjectDetail } from './ProjectDetail';
 import { HapticTouchable, triggerHaptic } from './HapticButton';
 import { SHADOWS, FONTS } from '../constants/DesignSystem';
 import { ModernCard, ModernButton } from './ModernComponents';
+import { getImageSource } from '../constants/DefaultImages';
 
 interface MyPageProps {
     profile: Profile;
@@ -57,7 +58,7 @@ const ProjectCard = ({ project, ownerProfile, onPress }: { project: any; ownerPr
     const deadlineString = deadlineDate
         ? `${deadlineDate.getMonth() + 1}/${deadlineDate.getDate()}まで`
         : '';
-    
+
     // 作成日を取得
     const createdDate = project.created_at ? new Date(project.created_at) : null;
     const createdDateString = createdDate
@@ -386,7 +387,7 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
             </View>
             <View style={projectCardStyles.cardInner}>
                 <Image
-                    source={{ uri: item.owner?.image || 'https://via.placeholder.com/50' }}
+                    source={getImageSource(item.owner?.image)}
                     style={projectCardStyles.authorIcon}
                 />
                 <View style={projectCardStyles.cardContent}>

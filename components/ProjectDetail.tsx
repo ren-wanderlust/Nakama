@@ -6,6 +6,7 @@ import { Profile } from '../types';
 import { CreateProjectModal } from './CreateProjectModal';
 import { getUserPushTokens, sendPushNotification } from '../lib/notifications';
 import { getRoleColors, getRoleIcon } from '../constants/RoleConstants';
+import { getImageSource } from '../constants/DefaultImages';
 
 interface Project {
     id: string;
@@ -467,7 +468,7 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                     <View style={styles.metaRow}>
                         <View style={styles.ownerRow}>
                             <Image
-                                source={{ uri: owner?.image || 'https://via.placeholder.com/40' }}
+                                source={getImageSource(owner?.image)}
                                 style={styles.ownerImage}
                             />
                             <View>
@@ -493,7 +494,7 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                                 {applicants.filter(a => a.status === 'approved').map((applicant) => (
                                     <View key={applicant.id} style={styles.applicantItem}>
                                         <Image
-                                            source={{ uri: applicant.user.image || 'https://via.placeholder.com/40' }}
+                                            source={getImageSource(applicant.user.image)}
                                             style={styles.applicantImage}
                                         />
                                         <Text style={styles.applicantName} numberOfLines={1}>
@@ -519,7 +520,7 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                                         <View key={applicant.id} style={styles.pendingCard}>
                                             <View style={styles.pendingCardHeader}>
                                                 <Image
-                                                    source={{ uri: applicant.user.image || 'https://via.placeholder.com/40' }}
+                                                    source={getImageSource(applicant.user.image)}
                                                     style={styles.pendingCardImage}
                                                 />
                                                 <View style={styles.pendingCardInfo}>
