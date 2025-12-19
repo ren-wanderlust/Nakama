@@ -2,7 +2,7 @@ import { supabase } from '../../lib/supabase';
 
 export interface Notification {
   id: string;
-  type: 'important' | 'update' | 'psychology' | 'other' | 'like' | 'match' | 'application_status';
+  type: 'important' | 'update' | 'psychology' | 'other' | 'like' | 'match' | 'application' | 'application_status';
   title: string;
   content?: string;
   image_url?: string;
@@ -14,7 +14,7 @@ export interface Notification {
 
 export interface FormattedNotification {
   id: string;
-  type: 'important' | 'update' | 'psychology' | 'other' | 'like' | 'match' | 'application_status';
+  type: 'important' | 'update' | 'psychology' | 'other' | 'like' | 'match' | 'application' | 'application_status';
   title: string;
   content?: string;
   date: string;

@@ -79,6 +79,10 @@ export function NotificationsPage({ onBack, onNotificationsRead, onViewProject, 
                 return { backgroundColor: '#FF7F11', text: 'いいね' };
             case 'match':
                 return { backgroundColor: '#009688', text: 'マッチング' };
+            case 'application':
+                return { backgroundColor: '#2196F3', text: 'プロジェクト応募' };
+            case 'application_status':
+                return { backgroundColor: '#4CAF50', text: '応募結果' };
             default:
                 return { backgroundColor: '#2196F3', text: 'お知らせ' };
         }
@@ -93,8 +97,14 @@ export function NotificationsPage({ onBack, onNotificationsRead, onViewProject, 
             senderId: item.senderId
         });
 
-        // プロジェクト関連の通知（応募など）
-        if (item.projectId && onViewProject) {
+        // プロジェクト応募通知の場合は、応募者のプロフィールを表示
+        if (item.type === 'application' && item.senderId && onViewProfile) {
+            console.log('Navigating to applicant profile:', item.senderId);
+            onBack(); // 通知ページを閉じる
+            onViewProfile(item.senderId);
+        }
+        // その他のプロジェクト関連の通知（応募ステータス変更など）
+        else if (item.projectId && onViewProject) {
             console.log('Navigating to project:', item.projectId);
             onBack(); // 通知ページを閉じる
             onViewProject(item.projectId);
