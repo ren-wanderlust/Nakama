@@ -29,6 +29,7 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
   const rotateAnimation = useRef(new Animated.Value(0)).current;
   const particleAnimations = useRef(
     Array.from({ length: 20 }, () => ({
+      // 初期位置を0に設定（画面下部から開始）
       translateY: new Animated.Value(0),
       translateX: new Animated.Value(0),
       opacity: new Animated.Value(Math.random() * 0.6 + 0.4),
@@ -272,7 +273,7 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
                 styles.particle,
                 {
                   left: `${(index * 5) % 100}%`,
-                  top: height,
+                  top: height + 50,
                   transform: [
                     { translateY: particle.translateY },
                     { translateX: particle.translateX },
