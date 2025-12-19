@@ -103,22 +103,33 @@ const MessageBubble = ({
     const isMe = message.sender === 'me';
     const swipeableRef = useRef<any>(null);
     const [imageModalVisible, setImageModalVisible] = useState(false);
-    
+
     // For reply messages: track widths of each element to determine max width
     const [replySenderWidth, setReplySenderWidth] = useState(0);
     const [replyTextWidth, setReplyTextWidth] = useState(0);
     const [mainMessageWidth, setMainMessageWidth] = useState(0);
-    
+
     const screenWidth = Dimensions.get('window').width;
     const defaultMaxWidth = screenWidth * 0.75; // 75% of screen width
-    
+
+    // Helper to format reply text (force wrap every 20 chars)
+    const formatReplyText = (text: string) => {
+        if (!text) return '';
+        const chunks = text.match(/.{1,20}/g);
+        return chunks ? chunks.join('\n') : text;
+    };
+
+    const replyText = message.replyTo ? formatReplyText(message.replyTo.text) : '';
+
     // Calculate max width from reply elements and main message
-    const maxReplyWidth = message.replyTo 
-        ? Math.max(replySenderWidth, replyTextWidth, mainMessageWidth)
-        : 0;
-    
+    // replyContainerOverhead = Padding(8*2) + Bar(3) + Margin(8) = 27
+    const replyContainerOverhead = 27;
+    // Add buffer (+4) to prevent unnatural line breaks due to rendering differences
+    const replyContentWidth = Math.max(replySenderWidth, replyTextWidth) + 4;
+    const totalReplyWidth = message.replyTo ? replyContentWidth + replyContainerOverhead : 0;
+
     // Dynamic maxWidth: use the larger of default or required width
-    const requiredWidth = maxReplyWidth > 0 ? maxReplyWidth + 32 : 0; // Add padding (16*2)
+    const requiredWidth = totalReplyWidth > 0 ? Math.max(totalReplyWidth, mainMessageWidth) + 32 : 0; // Add bubble padding (16*2)
     const dynamicMaxWidth = requiredWidth > 0 && requiredWidth > defaultMaxWidth
         ? requiredWidth
         : defaultMaxWidth;
@@ -190,73 +201,74 @@ const MessageBubble = ({
                         </TouchableOpacity>
                     )}
 
-                    <View 
-                        style={[
-                            styles.messageContainer, 
-                            isMe ? styles.messageContainerMe : styles.messageContainerOther,
-                            { maxWidth: dynamicMaxWidth }
-                        ]}
-                    >
-                        {/* Measurement Text Components (hidden, off-screen) for width calculation */}
-                        {message.replyTo && (
-                            <>
-                                {/* Measure reply sender name width without constraints */}
-                                <Text
-                                    style={{
-                                        position: 'absolute',
-                                        left: -9999,
-                                        opacity: 0,
-                                        fontSize: 11, // replySenderMeと同じ
-                                        fontWeight: 'bold',
-                                    }}
-                                    onLayout={(e) => {
-                                        const width = e.nativeEvent?.layout?.width;
-                                        if (width && width > 0) {
-                                            setReplySenderWidth(width);
-                                        }
-                                    }}
-                                >
-                                    {message.replyTo.senderName}
-                                </Text>
-                                {/* Measure reply text width without constraints */}
-                                <Text
-                                    style={{
-                                        position: 'absolute',
-                                        left: -9999,
-                                        opacity: 0,
-                                        fontSize: 13, // replyTextMeと同じ
-                                    }}
-                                    onLayout={(e) => {
-                                        const width = e.nativeEvent?.layout?.width;
-                                        if (width && width > 0) {
-                                            setReplyTextWidth(width);
-                                        }
-                                    }}
-                                >
-                                    {message.replyTo.text}
-                                </Text>
-                            </>
-                        )}
-                        {/* Measure main message width without constraints */}
-                        {message.text && (
+                    {/* Measurement Text Components (hidden, off-screen) for width calculation - Moved outside messageContainer */}
+                    {message.replyTo && (
+                        <>
+                            {/* Measure reply sender name width without constraints */}
                             <Text
                                 style={{
                                     position: 'absolute',
                                     left: -9999,
                                     opacity: 0,
-                                    fontSize: 15, // messageTextMeと同じ
+                                    fontSize: 11, // replySenderMeと同じ
+                                    fontWeight: 'bold',
                                 }}
                                 onLayout={(e) => {
                                     const width = e.nativeEvent?.layout?.width;
                                     if (width && width > 0) {
-                                        setMainMessageWidth(width);
+                                        setReplySenderWidth(width);
                                     }
                                 }}
                             >
-                                {message.text}
+                                {message.replyTo.senderName}
                             </Text>
-                        )}
-                        
+                            {/* Measure reply text width without constraints */}
+                            <Text
+                                style={{
+                                    position: 'absolute',
+                                    left: -9999,
+                                    opacity: 0,
+                                    fontSize: 13, // replyTextMeと同じ
+                                }}
+                                onLayout={(e) => {
+                                    const width = e.nativeEvent?.layout?.width;
+                                    if (width && width > 0) {
+                                        setReplyTextWidth(width);
+                                    }
+                                }}
+                            >
+                                {replyText}
+                            </Text>
+                        </>
+                    )}
+                    {/* Measure main message width without constraints */}
+                    {message.text && (
+                        <Text
+                            style={{
+                                position: 'absolute',
+                                left: -9999,
+                                opacity: 0,
+                                fontSize: 15, // messageTextMeと同じ
+                            }}
+                            onLayout={(e) => {
+                                const width = e.nativeEvent?.layout?.width;
+                                if (width && width > 0) {
+                                    setMainMessageWidth(width);
+                                }
+                            }}
+                        >
+                            {message.text}
+                        </Text>
+                    )}
+
+                    <View
+                        style={[
+                            styles.messageContainer,
+                            isMe ? styles.messageContainerMe : styles.messageContainerOther,
+                            { maxWidth: dynamicMaxWidth }
+                        ]}
+                    >
+
                         {/* Sender name for group chats */}
                         {!isMe && isGroup && message.senderName && (
                             <Text style={styles.senderName}>
@@ -291,7 +303,7 @@ const MessageBubble = ({
                                             end={{ x: 1, y: 0 }}
                                             style={[
                                                 styles.bubbleGradient,
-                                                maxReplyWidth > 0 && { minWidth: maxReplyWidth + 32 } // Add padding (16*2)
+                                                totalReplyWidth > 0 && { minWidth: totalReplyWidth + 32 } // Add padding (16*2)
                                             ]}
                                         >
                                             {message.replyTo && (
@@ -299,7 +311,7 @@ const MessageBubble = ({
                                                     <View style={styles.replyBarMe} />
                                                     <View style={styles.replyContent}>
                                                         <Text style={styles.replySenderMe}>{message.replyTo.senderName}</Text>
-                                                        <Text style={styles.replyTextMe} numberOfLines={1}>{message.replyTo.text}</Text>
+                                                        <Text style={styles.replyTextMe}>{replyText}</Text>
                                                     </View>
                                                 </View>
                                             )}
@@ -336,10 +348,10 @@ const MessageBubble = ({
                                             onLongPress={handleLongPress}
                                             activeOpacity={0.8}
                                         >
-                                            <View 
+                                            <View
                                                 style={[
                                                     styles.bubbleOther,
-                                                    maxReplyWidth > 0 && { minWidth: maxReplyWidth + 32 } // Add padding (16*2)
+                                                    totalReplyWidth > 0 && { minWidth: totalReplyWidth + 32 } // Add padding (16*2)
                                                 ]}
                                             >
                                                 {message.replyTo && (
@@ -347,7 +359,7 @@ const MessageBubble = ({
                                                         <View style={styles.replyBarOther} />
                                                         <View style={styles.replyContent}>
                                                             <Text style={styles.replySenderOther}>{message.replyTo.senderName}</Text>
-                                                            <Text style={styles.replyTextOther} numberOfLines={1}>{message.replyTo.text}</Text>
+                                                            <Text style={styles.replyTextOther}>{replyText}</Text>
                                                         </View>
                                                     </View>
                                                 )}
@@ -390,7 +402,7 @@ const MessageBubble = ({
                         cachePolicy="memory-disk"
                     />
                 </View>
-            </Modal>
+            </Modal >
         </>
     );
 };
@@ -951,7 +963,7 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                             contentFit="cover"
                             cachePolicy="memory-disk"
                         />
-                        <Text style={styles.headerName}>{partnerName}</Text>
+                        <Text style={styles.headerName} numberOfLines={2} ellipsizeMode="tail">{partnerName}</Text>
                     </View>
 
                     <TouchableOpacity onPress={handleMenuPress} style={styles.menuButton}>
@@ -1054,7 +1066,7 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f9fafb',
+        backgroundColor: 'white',
     },
     loadingContainer: {
         justifyContent: 'center',
@@ -1077,6 +1089,7 @@ const styles = StyleSheet.create({
         flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
+        minWidth: 0, // Allow flex child to shrink
     },
     headerAvatar: {
         width: 36,
@@ -1084,11 +1097,14 @@ const styles = StyleSheet.create({
         borderRadius: 18,
         marginRight: 12,
         backgroundColor: '#e5e7eb',
+        flexShrink: 0, // Prevent avatar from shrinking
     },
     headerName: {
         fontSize: 16,
         fontWeight: 'bold',
         color: '#111827',
+        flex: 1,
+        flexShrink: 1, // Allow text to shrink
     },
     menuButton: {
         padding: 4,
