@@ -6,7 +6,6 @@ import {
     TextInput,
     ScrollView,
     TouchableOpacity,
-    Image,
     SafeAreaView,
     KeyboardAvoidingView,
     Platform,
@@ -16,6 +15,7 @@ import {
     ActivityIndicator,
     Modal
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../lib/supabase';
@@ -271,7 +271,13 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
                             <View style={styles.imageSection}>
                                 <TouchableOpacity onPress={handleImageChange} style={styles.imagePickerContainer}>
                                     {image ? (
-                                        <Image source={{ uri: image }} style={styles.profileImage} />
+                                        <Image
+                                            source={{ uri: image }}
+                                            style={styles.profileImage}
+                                            contentFit="cover"
+                                            cachePolicy="memory-disk"
+                                            transition={200}
+                                        />
                                     ) : (
                                         <View style={styles.imagePlaceholder}>
                                             <Ionicons name="person" size={50} color="#9CA3AF" />

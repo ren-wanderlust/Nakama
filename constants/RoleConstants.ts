@@ -5,7 +5,7 @@
 
 // ロール定義（アイコン付き）
 export const ROLES = [
-    { id: 'エンジニア', icon: 'code-slash' },
+    { id: 'エンジニア', icon: 'laptop' },
     { id: 'デザイナー', icon: 'color-palette' },
     { id: 'マーケター', icon: 'megaphone' },
     { id: 'アイディアマン', icon: 'bulb' },
@@ -27,7 +27,7 @@ export const ROLE_COLORS: { [key: string]: { bg: string; icon: string; border: s
 
 // ロールに対応するIoniconsアイコン名
 export const ROLE_ICONS: { [key: string]: string } = {
-    'エンジニア': 'code-slash',
+    'エンジニア': 'laptop',
     'デザイナー': 'color-palette',
     'マーケター': 'megaphone',
     'アイディアマン': 'bulb',

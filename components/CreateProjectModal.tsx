@@ -17,6 +17,7 @@ import { supabase } from '../lib/supabase';
 import { Profile, Theme } from '../types';
 import { HapticTouchable, triggerHaptic } from './HapticButton';
 import { SHADOWS } from '../constants/DesignSystem';
+import { ROLES, ANYONE_ROLE } from '../constants/RoleConstants';
 
 interface CreateProjectModalProps {
     currentUser: Profile;
@@ -42,15 +43,6 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
 
     const [selectedRoles, setSelectedRoles] = useState<string[]>(project?.required_roles || []);
     const [selectedThemes, setSelectedThemes] = useState<string[]>(project?.tags || []);
-
-    const ROLES = [
-        { id: 'エンジニア', icon: 'code-slash' },
-        { id: 'デザイナー', icon: 'color-palette' },
-        { id: 'マーケター', icon: 'megaphone' },
-        { id: 'アイディアマン', icon: 'bulb' },
-    ];
-
-    const ANYONE_ROLE = { id: '誰でも', icon: 'people' };
 
     // Role to color mapping (matching UserProjectPage)
     const ROLE_COLORS: { [key: string]: { bg: string; icon: string } } = {

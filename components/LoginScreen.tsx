@@ -29,6 +29,7 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
   const rotateAnimation = useRef(new Animated.Value(0)).current;
   const particleAnimations = useRef(
     Array.from({ length: 20 }, () => ({
+      // 初期位置を0に設定（画面下部から開始）
       translateY: new Animated.Value(0),
       translateX: new Animated.Value(0),
       opacity: new Animated.Value(Math.random() * 0.6 + 0.4),
@@ -149,11 +150,18 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
     }
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
       if (error) throw error;
+
+      // デバッグ用：ログインしたユーザーIDを確認
+      console.log('=== Login successful ===');
+      console.log('Email:', email);
+      console.log('User ID:', data.user?.id);
+      console.log('Session:', data.session?.user.id);
+
       // ログイン成功時はAuthContextが状態変化を検知して自動的に画面遷移する
     } catch (error: any) {
       Alert.alert('ログインエラー', error.message || 'ログインに失敗しました');
@@ -190,24 +198,11 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
 
       {/* Background with Gradient and Network Pattern */}
       <View style={styles.backgroundContainer}>
-        {/* アニメーションする背景画像 */}
-        <Animated.Image
-          source={{ uri: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=1080&q=80&fm=jpg&crop=entropy&cs=tinysrgb' }}
-          style={[
-            styles.backgroundImage,
-            {
-              transform: [
-                { scale: scaleAnimation },
-                {
-                  rotate: rotateAnimation.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: ['0deg', '2deg'],
-                  }),
-                },
-              ],
-            },
-          ]}
-          resizeMode="cover"
+        {/* ベースグラデーション背景（リモート画像の代わり） */}
+        <LinearGradient
+          colors={['#0F172A', '#1E3A8A', '#0F172A']}
+          locations={[0, 0.5, 1]}
+          style={StyleSheet.absoluteFillObject}
         />
 
         {/* 動的グラデーションオーバーレイ1 */}
@@ -265,7 +260,7 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
                 styles.particle,
                 {
                   left: `${(index * 5) % 100}%`,
-                  top: height,
+                  top: height + 50,
                   transform: [
                     { translateY: particle.translateY },
                     { translateX: particle.translateX },

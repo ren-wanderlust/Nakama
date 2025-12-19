@@ -1,5 +1,6 @@
 import React, { useRef, useCallback, useState } from 'react';
-import { StyleSheet, Text, View, Image, TouchableOpacity, Dimensions, Animated } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, Dimensions, Animated } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { Profile } from '../types';
 import { AnimatedHeartButton } from './AnimatedLikeButton';
@@ -17,7 +18,7 @@ const ROLE_ID_TO_LABEL: { [key: string]: string } = {
 
 // Role to icon mapping (matching UserProjectPage)
 const ROLE_ICONS: { [key: string]: string } = {
-    'エンジニア': 'code-slash',
+    'エンジニア': 'laptop',
     'デザイナー': 'color-palette',
     'マーケター': 'megaphone',
     'アイディアマン': 'bulb',

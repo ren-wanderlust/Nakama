@@ -36,7 +36,7 @@ const { width } = Dimensions.get('window');
 
 // Role to icon mapping (matching UserProjectPage)
 const ROLE_ICONS: { [key: string]: string } = {
-    'エンジニア': 'code-slash',
+    'エンジニア': 'laptop',
     'デザイナー': 'color-palette',
     'マーケター': 'megaphone',
     'アイディアマン': 'bulb',
@@ -441,7 +441,7 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                 refreshControl={
                     <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#009688" />
                 }
-                ItemSeparatorComponent={() => <View style={{ height: 6 }} />}
+                ItemSeparatorComponent={() => <View style={{ height: 3 }} />}
                 ListEmptyComponent={
                     (activeTab === 'myProjects' ? !loadingProjects : !loadingParticipating) ? (
                         <View style={styles.emptyContainer}>
@@ -576,7 +576,7 @@ const styles = StyleSheet.create({
         paddingVertical: 20,
         paddingHorizontal: 16,
         marginHorizontal: 16,
-        marginBottom: 12,
+        marginBottom: 6,
         marginTop: 4, // move slightly upward on screen
         backgroundColor: '#FAFAFA',
         borderRadius: 16,
@@ -644,7 +644,7 @@ const styles = StyleSheet.create({
     tabsContainer: {
         flexDirection: 'row',
         marginHorizontal: 16,
-        marginBottom: 16,
+        marginBottom: 6,
         backgroundColor: '#F3F4F6',
         borderRadius: 12,
         padding: 4,

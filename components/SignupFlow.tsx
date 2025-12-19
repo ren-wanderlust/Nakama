@@ -12,10 +12,10 @@ import {
     TouchableWithoutFeedback,
     Keyboard,
     Alert,
-    Image,
     ActivityIndicator,
     Modal
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { Session } from '@supabase/supabase-js';
@@ -736,7 +736,13 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                     ]}
                 >
                     {imageUri ? (
-                        <Image source={{ uri: imageUri }} style={styles.profileImage} />
+                        <Image
+                            source={{ uri: imageUri }}
+                            style={styles.profileImage}
+                            contentFit="cover"
+                            cachePolicy="memory-disk"
+                            transition={200}
+                        />
                     ) : (
                         <View style={styles.imagePlaceholder}>
                             <Ionicons name="camera" size={40} color="#9ca3af" />

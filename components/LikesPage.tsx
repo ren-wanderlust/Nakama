@@ -29,9 +29,10 @@ interface LikesPageProps {
     onLike: (profileId: string) => void;
     onOpenNotifications?: () => void;
     unreadNotificationsCount?: number;
+    onApplicantStatusChange?: () => void;
 }
 
-export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLike, onOpenNotifications, unreadNotificationsCount = 0 }: LikesPageProps) {
+export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLike, onOpenNotifications, unreadNotificationsCount = 0, onApplicantStatusChange }: LikesPageProps) {
     const { session } = useAuth();
     const insets = useSafeAreaInsets();
 
@@ -245,10 +246,45 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
             queryClient.invalidateQueries({ queryKey: queryKeys.participatingProjects.detail(session.user.id) });
 
             Alert.alert('完了', `${userName}さんを${newStatus === 'approved' ? '承認' : '見送り'}しました`);
+
+            // Notify parent to update badge count
+            if (onApplicantStatusChange) {
+                onApplicantStatusChange();
+            }
         } catch (error) {
             console.error('Error updating applicant status:', error);
             Alert.alert('エラー', 'ステータスの更新に失敗しました');
         }
+    };
+
+    // 棄却確認用のアラート（2段階確認）
+    const handleRejectConfirmation = (applicationId: string, userName: string) => {
+        Alert.alert(
+            '⚠️ 棄却の確認',
+            `${userName}さんの申請を棄却しますか？\n\nこの操作は取り消すことができません。\n慎重にご判断ください。`,
+            [
+                { text: 'キャンセル', style: 'cancel' },
+                {
+                    text: '棄却する',
+                    style: 'destructive',
+                    onPress: () => {
+                        // 2段階目の確認
+                        Alert.alert(
+                            '最終確認',
+                            `本当に${userName}さんを棄却してよろしいですか？`,
+                            [
+                                { text: 'やめる', style: 'cancel' },
+                                {
+                                    text: '棄却する',
+                                    style: 'destructive',
+                                    onPress: () => updateApplicantStatus(applicationId, 'rejected', userName)
+                                }
+                            ]
+                        );
+                    }
+                }
+            ]
+        );
     };
 
     // Filter user profiles
@@ -277,7 +313,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
 
     // Role to icon mapping (matching UserProjectPage)
     const ROLE_ICONS: { [key: string]: string } = {
-        'エンジニア': 'code-slash',
+        'エンジニア': 'laptop',
         'デザイナー': 'color-palette',
         'マーケター': 'megaphone',
         'アイディアマン': 'bulb',
@@ -499,7 +535,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                     <View style={styles.recruitingActions}>
                         <TouchableOpacity
                             style={styles.rejectButton}
-                            onPress={() => updateApplicantStatus(item.id, 'rejected', user.name)}
+                            onPress={() => handleRejectConfirmation(item.id, user.name)}
                         >
                             <Ionicons name="close" size={18} color="#EF4444" />
                             <Text style={styles.rejectButtonText}>棄却</Text>

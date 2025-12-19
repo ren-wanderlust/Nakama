@@ -45,6 +45,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useProfilesList } from './data/hooks/useProfilesList';
 import { useUnreadCount } from './data/hooks/useUnreadCount';
 import { useMatches } from './data/hooks/useMatches';
+import { useReceivedLikes } from './data/hooks/useReceivedLikes';
+import { useProjectApplications } from './data/hooks/useProjectApplications';
 import { queryKeys } from './data/queryKeys';
 import { registerForPushNotificationsAsync, savePushToken, setupNotificationListeners, getUserPushTokens, sendPushNotification } from './lib/notifications';
 import { FullPageSkeleton, ProfileListSkeleton } from './components/Skeleton';
@@ -128,7 +130,6 @@ function AppContent() {
   const [matchedProfile, setMatchedProfile] = useState<Profile | null>(null);
   const [pendingMatches, setPendingMatches] = useState<Profile[]>([]); // Queue of unviewed matches
   const [pendingAppsCount, setPendingAppsCount] = useState(0);
-  const [unreadLikesCount, setUnreadLikesCount] = useState(0);
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
   const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false); // テスト用: falseで開始
@@ -138,6 +139,8 @@ function AppContent() {
   const profilesQuery = useProfilesList(sortOrder === 'newest' ? 'newest' : sortOrder === 'recommended' ? 'recommended' : 'deadline');
   const unreadCountQuery = useUnreadCount(session?.user?.id);
   const matchesQuery = useMatches(session?.user?.id);
+  const receivedLikesQuery = useReceivedLikes(session?.user?.id);
+  const projectApplicationsQuery = useProjectApplications(session?.user?.id);
   const unreadMessagesCount = unreadCountQuery.data ?? 0;
 
   // Matches data from React Query
@@ -147,6 +150,25 @@ function AppContent() {
   const likedProfiles: Set<string> = (matchesQuery.data?.myLikedIds instanceof Set)
     ? matchesQuery.data.myLikedIds
     : new Set();
+
+  // Calculate unread likes count from React Query data (same as LikesPage)
+  const unreadLikesCount = React.useMemo(() => {
+    const receivedLikesData = receivedLikesQuery.data;
+    const projectApplicationsData = projectApplicationsQuery.data;
+
+    if (!receivedLikesData || !projectApplicationsData) return 0;
+
+    // Unread interest count (未マッチの未読)
+    const unreadInterestCount = receivedLikesData.unreadInterestIds?.size || 0;
+
+    // Unread match count (マッチ済みの未読)
+    const unreadMatchCount = receivedLikesData.unreadMatchIds?.size || 0;
+
+    // Unread recruiting count (募集への応募の未読)
+    const unreadRecruitingCount = projectApplicationsData.unreadRecruitingIds?.size || 0;
+
+    return unreadInterestCount + unreadMatchCount + unreadRecruitingCount;
+  }, [receivedLikesQuery.data, projectApplicationsQuery.data]);
 
   // Initialize push notifications
   React.useEffect(() => {
@@ -258,33 +280,39 @@ function AppContent() {
     }
   };
 
-  // Fetch pending applications count
+  // Fetch pending applications count function (extracted for reuse)
+  const fetchPendingApps = React.useCallback(async () => {
+    if (!session?.user) return;
+
+    // Step 1: Get my project IDs
+    const { data: myProjects } = await supabase
+      .from('projects')
+      .select('id')
+      .eq('owner_id', session.user.id);
+
+    const projectIds = myProjects?.map((p: any) => p.id) || [];
+
+    if (projectIds.length === 0) {
+      setPendingAppsCount(0);
+      return;
+    }
+
+    // Step 2: Count pending applications for these projects
+    const { count } = await supabase
+      .from('project_applications')
+      .select('id', { count: 'exact', head: true })
+      .in('project_id', projectIds)
+      .eq('status', 'pending');
+
+    setPendingAppsCount(count || 0);
+  }, [session?.user]);
+
+  // Fetch pending applications count on mount and subscribe to changes
   React.useEffect(() => {
     if (!session?.user) return;
-    const fetchPendingApps = async () => {
-      // Step 1: Get my project IDs
-      const { data: myProjects } = await supabase
-        .from('projects')
-        .select('id')
-        .eq('owner_id', session.user.id);
 
-      const projectIds = myProjects?.map((p: any) => p.id) || [];
-
-      if (projectIds.length === 0) {
-        setPendingAppsCount(0);
-        return;
-      }
-
-      // Step 2: Count pending applications for these projects
-      const { count } = await supabase
-        .from('project_applications')
-        .select('id', { count: 'exact', head: true })
-        .in('project_id', projectIds)
-        .eq('status', 'pending');
-
-      setPendingAppsCount(count || 0);
-    };
     fetchPendingApps();
+
     // Subscribe to changes
     const channel = supabase.channel('pending_apps_count')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'project_applications' }, () => {
@@ -296,7 +324,7 @@ function AppContent() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [session?.user]);
+  }, [session?.user, fetchPendingApps]);
 
   // Realtime subscription for unread messages count and chat rooms list (invalidateQueries使用)
   React.useEffect(() => {
@@ -338,120 +366,28 @@ function AppContent() {
     };
   }, [session?.user, queryClient]);
 
-  // Fetch unread likes count ("興味あり" + "未確認マッチング" + "未読募集" badge)
+  // Realtime subscription for likes and applications (only invalidate queries)
   React.useEffect(() => {
     if (!session?.user) return;
 
-    const fetchUnreadLikes = async () => {
-      try {
-        // Get my likes (to determine matches)
-        const { data: myLikes } = await supabase
-          .from('likes')
-          .select('receiver_id')
-          .eq('sender_id', session.user.id);
-
-        const myLikedIds = new Set(myLikes?.map(l => l.receiver_id) || []);
-
-        // Get blocked users
-        const { data: blocks } = await supabase
-          .from('blocks')
-          .select('blocked_id')
-          .eq('blocker_id', session.user.id);
-
-        const blockedIds = new Set(blocks?.map(b => b.blocked_id) || []);
-
-        // Get all received likes with both read statuses
-        const { data: receivedLikes } = await supabase
-          .from('likes')
-          .select('sender_id, is_read, is_read_as_match')
-          .eq('receiver_id', session.user.id);
-
-        // Count unread likes:
-        // - 興味あり: is_read = false AND not matched (I haven't liked them back)
-        // - マッチング: is_read_as_match = false AND matched (I have liked them back)
-        const unreadLikesCount = receivedLikes?.filter(l => {
-          if (blockedIds.has(l.sender_id)) return false;
-
-          const isMatched = myLikedIds.has(l.sender_id);
-          if (isMatched) {
-            // Matched: count if is_read_as_match is false
-            return !l.is_read_as_match;
-          } else {
-            // Interest only: count if is_read is false
-            return !l.is_read;
-          }
-        }).length || 0;
-
-        // Count unread recruiting applications (自分のプロジェクトへの未読応募)
-        const { data: myProjects } = await supabase
-          .from('projects')
-          .select('id')
-          .eq('owner_id', session.user.id);
-
-        const myProjectIds = myProjects?.map(p => p.id) || [];
-        let unreadRecruitingCount = 0;
-
-        if (myProjectIds.length > 0) {
-          const { count } = await supabase
-            .from('project_applications')
-            .select('id', { count: 'exact', head: true })
-            .in('project_id', myProjectIds)
-            .eq('is_read', false);
-
-          unreadRecruitingCount = count || 0;
-        }
-
-        // Total: unread likes + unread recruiting
-        setUnreadLikesCount(unreadLikesCount + unreadRecruitingCount);
-      } catch (e) {
-        console.log('Error fetching unread likes:', e);
-      }
-    };
-
-    fetchUnreadLikes();
-
     // Subscribe to likes changes
-    const likesChannel = supabase.channel('unread_likes_count')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'likes' }, () => {
+    const likesChannel = supabase.channel('unread_likes_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'likes' }, () => {
         if (session?.user) {
           queryClient.invalidateQueries({ queryKey: queryKeys.matches.detail(session.user.id) });
           queryClient.invalidateQueries({ queryKey: queryKeys.receivedLikes.detail(session.user.id) });
         }
-        fetchUnreadLikes();
-      })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'likes' }, () => {
-        if (session?.user) {
-          queryClient.invalidateQueries({ queryKey: queryKeys.matches.detail(session.user.id) });
-          queryClient.invalidateQueries({ queryKey: queryKeys.receivedLikes.detail(session.user.id) });
-        }
-        fetchUnreadLikes();
-      })
-      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'likes' }, () => {
-        if (session?.user) {
-          queryClient.invalidateQueries({ queryKey: queryKeys.matches.detail(session.user.id) });
-          queryClient.invalidateQueries({ queryKey: queryKeys.receivedLikes.detail(session.user.id) });
-        }
-        fetchUnreadLikes();
       })
       .subscribe();
 
     // Subscribe to project_applications changes
-    const applicationsChannel = supabase.channel('unread_applications_count')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'project_applications' }, () => {
+    const applicationsChannel = supabase.channel('unread_applications_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'project_applications' }, () => {
         if (session?.user) {
           queryClient.invalidateQueries({ queryKey: queryKeys.projectApplications.recruiting(session.user.id) });
           queryClient.invalidateQueries({ queryKey: queryKeys.projectApplications.applied(session.user.id) });
           queryClient.invalidateQueries({ queryKey: queryKeys.myProjects.detail(session.user.id) });
         }
-        fetchUnreadLikes();
-      })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'project_applications' }, () => {
-        if (session?.user) {
-          queryClient.invalidateQueries({ queryKey: queryKeys.projectApplications.recruiting(session.user.id) });
-          queryClient.invalidateQueries({ queryKey: queryKeys.projectApplications.applied(session.user.id) });
-          queryClient.invalidateQueries({ queryKey: queryKeys.myProjects.detail(session.user.id) });
-        }
-        fetchUnreadLikes();
       })
       .subscribe();
 
@@ -459,7 +395,7 @@ function AppContent() {
       supabase.removeChannel(likesChannel);
       supabase.removeChannel(applicationsChannel);
     };
-  }, [session?.user]);
+  }, [session?.user, queryClient]);
 
   // Fetch unread notifications count (user-specific notifications only)
   const fetchUnreadNotifications = useCallback(async () => {
@@ -890,6 +826,7 @@ function AppContent() {
           await supabase.from('notifications').insert({
             user_id: profileId,
             sender_id: session.user.id,
+            related_user_id: session.user.id,  // いいねを送った人のID
             type: 'like',
             title: 'いいねが届きました！',
             content: `${currentUser.name}さんからいいねが届きました。`,
@@ -994,6 +931,7 @@ function AppContent() {
                   await supabase.from('notifications').insert({
                     user_id: profileId,
                     sender_id: session.user.id,
+                    related_user_id: session.user.id,  // マッチング相手のID
                     type: 'match',
                     title: 'マッチング成立！',
                     content: `${currentUserCopy.name}さんとマッチングしました！メッセージを送ってみましょう。`,
@@ -1004,6 +942,7 @@ function AppContent() {
                   await supabase.from('notifications').insert({
                     user_id: session.user.id,
                     sender_id: profileId,
+                    related_user_id: profileId,  // マッチング相手のID
                     type: 'match',
                     title: 'マッチング成立！',
                     content: `${matchedUserCopy.name}さんとマッチングしました！メッセージを送ってみましょう。`,
@@ -1336,6 +1275,7 @@ function AppContent() {
               onLike={handleLike}
               onOpenNotifications={() => setShowNotifications(true)}
               unreadNotificationsCount={unreadNotificationsCount}
+              onApplicantStatusChange={fetchPendingApps}
             />
           </FadeTabContent>
           <FadeTabContent activeTab={activeTab} tabId="talk">
@@ -1461,9 +1401,14 @@ function AppContent() {
               onCreated={() => {
                 setShowCreateProjectModal(false);
                 // Refresh projects list immediately
-                queryClient.invalidateQueries({ queryKey: queryKeys.projects.lists() });
-                queryClient.invalidateQueries({ queryKey: queryKeys.myProjects.detail(currentUser.id) });
-                setActiveTab('search');
+                queryClient.invalidateQueries({
+                  queryKey: queryKeys.projects.lists(),
+                  refetchType: 'all' // マウントされていなくても再取得
+                });
+                queryClient.invalidateQueries({
+                  queryKey: queryKeys.myProjects.detail(currentUser.id),
+                  refetchType: 'all' // マウントされていなくても再取得
+                });
               }}
             />
           )}
@@ -1613,6 +1558,43 @@ function AppContent() {
           <NotificationsPage
             onBack={() => setShowNotifications(false)}
             onNotificationsRead={fetchUnreadNotifications}
+            onViewProject={async (projectId) => {
+              setShowNotifications(false);
+              // Fetch project and show owner's profile
+              const { data: project, error } = await supabase
+                .from('projects')
+                .select('id, owner_id')
+                .eq('id', projectId)
+                .single();
+
+              if (project && !error) {
+                // Fetch owner profile
+                const { data: ownerProfile, error: profileError } = await supabase
+                  .from('profiles')
+                  .select('*')
+                  .eq('id', project.owner_id)
+                  .single();
+
+                if (ownerProfile && !profileError) {
+                  setSelectedProfile(ownerProfile);
+                  setActiveTab('search');
+                }
+              }
+            }}
+            onViewProfile={async (userId) => {
+              setShowNotifications(false);
+              // Fetch profile and show
+              const { data: profile, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', userId)
+                .single();
+
+              if (profile && !error) {
+                setSelectedProfile(profile);
+                setActiveTab('search');
+              }
+            }}
           />
         </SafeAreaProvider>
       </Modal>
@@ -2100,7 +2082,7 @@ export default function App() {
           maxAge: 30 * 60 * 1000, // 30分
         }}
       >
-        <AuthProvider>
+        <AuthProvider queryClient={queryClient}>
           <AppContent />
         </AuthProvider>
       </PersistQueryClientProvider>

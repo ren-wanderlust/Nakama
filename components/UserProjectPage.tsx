@@ -44,7 +44,7 @@ interface UserProjectPageProps {
 
 // Role to icon mapping (matching CreateProjectModal)
 const ROLE_ICONS: { [key: string]: string } = {
-    'エンジニア': 'code-slash',
+    'エンジニア': 'laptop',
     'デザイナー': 'color-palette',
     'マーケター': 'megaphone',
     'アイディアマン': 'bulb',

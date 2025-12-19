@@ -15,6 +15,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { HapticTouchable, triggerHaptic } from './HapticButton';
+import { getRoleColors, getRoleIcon } from '../constants/RoleConstants';
+import { translateTag } from '../constants/TagConstants';
 // import universitiesData from '../assets/japanese_universities.json';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -399,14 +401,24 @@ export function FilterModal({ visible, onClose, onApply, initialCriteria, mode =
                             <View style={styles.chipGrid}>
                                 {SEEKING_ROLE_OPTIONS.map((role) => {
                                     const isSelected = selectedSeekingRoles.includes(role.id);
+                                    const translatedRole = translateTag(role.label);
+                                    const roleIcon = getRoleIcon(translatedRole);
                                     return (
                                         <TouchableOpacity
                                             key={role.id}
-                                            style={[styles.chip, isSelected && styles.chipSelected]}
+                                            style={[
+                                                styles.chip,
+                                                isSelected && styles.chipSelected
+                                            ]}
                                             onPress={() => toggleSeekingRole(role.id)}
                                             activeOpacity={0.7}
                                         >
-                                            <Text style={styles.chipEmoji}>{role.icon}</Text>
+                                            <Ionicons
+                                                name={roleIcon as any}
+                                                size={16}
+                                                color={isSelected ? '#009688' : '#6B7280'}
+                                                style={{ marginRight: 4 }}
+                                            />
                                             <Text style={[styles.chipLabel, isSelected && styles.chipLabelSelected]}>
                                                 {role.label}
                                             </Text>
@@ -792,6 +804,28 @@ const styles = StyleSheet.create({
         backgroundColor: '#009688',
         alignItems: 'center',
         justifyContent: 'center',
+    },
+    roleTagNew: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 12,
+        borderWidth: 1.5,
+        gap: 8,
+        position: 'relative',
+        paddingRight: 32,
+    },
+    roleIconCircle: {
+        width: 28,
+        height: 28,
+        borderRadius: 8,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    roleTagNewText: {
+        fontSize: 13,
+        fontWeight: '600',
     },
     footer: {
         position: 'absolute',

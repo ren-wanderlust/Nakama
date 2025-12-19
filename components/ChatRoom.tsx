@@ -8,12 +8,12 @@ import {
     FlatList,
     KeyboardAvoidingView,
     Platform,
-    Image,
     SafeAreaView,
     Alert,
     ActivityIndicator,
     Modal
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../lib/supabase';
@@ -161,7 +161,12 @@ const MessageBubble = ({
                     {/* Partner/Member Avatar (LINE style) */}
                     {!isMe && avatarImage && (
                         <TouchableOpacity onPress={handleAvatarPress} style={styles.messageAvatarContainer}>
-                            <Image source={{ uri: avatarImage }} style={styles.messageAvatar} />
+                            <Image
+                                source={{ uri: avatarImage }}
+                                style={styles.messageAvatar}
+                                contentFit="cover"
+                                cachePolicy="memory-disk"
+                            />
                         </TouchableOpacity>
                     )}
 
@@ -184,7 +189,12 @@ const MessageBubble = ({
                                     {/* Image only - no bubble */}
                                     {message.image_url && !message.text && !message.replyTo && (
                                         <TouchableOpacity onPress={() => setImageModalVisible(true)} activeOpacity={0.9}>
-                                            <Image source={{ uri: message.image_url }} style={styles.messageImageMe} />
+                                            <Image
+                                                source={{ uri: message.image_url }}
+                                                style={styles.messageImageMe}
+                                                contentFit="cover"
+                                                cachePolicy="memory-disk"
+                                            />
                                         </TouchableOpacity>
                                     )}
                                     {/* Has text or reply - show bubble */}
@@ -206,7 +216,12 @@ const MessageBubble = ({
                                             )}
                                             {message.image_url && (
                                                 <TouchableOpacity onPress={() => setImageModalVisible(true)} activeOpacity={0.9}>
-                                                    <Image source={{ uri: message.image_url }} style={styles.messageImageMe} />
+                                                    <Image
+                                                        source={{ uri: message.image_url }}
+                                                        style={styles.messageImageMe}
+                                                        contentFit="cover"
+                                                        cachePolicy="memory-disk"
+                                                    />
                                                 </TouchableOpacity>
                                             )}
                                             {message.text ? <Text style={styles.messageTextMe}>{message.text}</Text> : null}
@@ -218,7 +233,12 @@ const MessageBubble = ({
                                     {/* Image only - no bubble */}
                                     {message.image_url && !message.text && !message.replyTo && (
                                         <TouchableOpacity onPress={() => setImageModalVisible(true)} activeOpacity={0.9}>
-                                            <Image source={{ uri: message.image_url }} style={styles.messageImageOther} />
+                                            <Image
+                                                source={{ uri: message.image_url }}
+                                                style={styles.messageImageOther}
+                                                contentFit="cover"
+                                                cachePolicy="memory-disk"
+                                            />
                                         </TouchableOpacity>
                                     )}
                                     {/* Has text or reply - show bubble */}
@@ -239,7 +259,12 @@ const MessageBubble = ({
                                                 )}
                                                 {message.image_url && (
                                                     <TouchableOpacity onPress={() => setImageModalVisible(true)} activeOpacity={0.9}>
-                                                        <Image source={{ uri: message.image_url }} style={styles.messageImageOther} />
+                                                        <Image
+                                                            source={{ uri: message.image_url }}
+                                                            style={styles.messageImageOther}
+                                                            contentFit="cover"
+                                                            cachePolicy="memory-disk"
+                                                        />
                                                     </TouchableOpacity>
                                                 )}
                                                 {message.text ? <Text style={styles.messageTextOther}>{message.text}</Text> : null}
@@ -264,7 +289,12 @@ const MessageBubble = ({
                     <TouchableOpacity style={styles.imageModalCloseButton} onPress={() => setImageModalVisible(false)}>
                         <Ionicons name="close" size={30} color="white" />
                     </TouchableOpacity>
-                    <Image source={{ uri: message.image_url }} style={styles.fullScreenImage} resizeMode="contain" />
+                    <Image
+                        source={{ uri: message.image_url }}
+                        style={styles.fullScreenImage}
+                        contentFit="contain"
+                        cachePolicy="memory-disk"
+                    />
                 </View>
             </Modal>
         </>
@@ -824,6 +854,8 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                         <Image
                             source={{ uri: partnerImage }}
                             style={styles.headerAvatar}
+                            contentFit="cover"
+                            cachePolicy="memory-disk"
                         />
                         <Text style={styles.headerName}>{partnerName}</Text>
                     </View>
@@ -872,7 +904,12 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                     {/* Image Preview */}
                     {selectedImage && (
                         <View style={styles.imagePreviewBar}>
-                            <Image source={{ uri: selectedImage }} style={styles.imagePreview} />
+                            <Image
+                                source={{ uri: selectedImage }}
+                                style={styles.imagePreview}
+                                contentFit="cover"
+                                cachePolicy="memory-disk"
+                            />
                             <TouchableOpacity onPress={() => setSelectedImage(null)} style={styles.closeImageButton}>
                                 <Ionicons name="close-circle" size={24} color="#ef4444" />
                             </TouchableOpacity>

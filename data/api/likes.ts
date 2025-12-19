@@ -21,6 +21,22 @@ export interface ReceivedLikesResult {
  * @returns プロフィール配列と未読IDセット
  */
 export async function fetchReceivedLikes(userId: string): Promise<ReceivedLikesResult> {
+  // Get my likes to determine matches
+  const { data: myLikes } = await supabase
+    .from('likes')
+    .select('receiver_id')
+    .eq('sender_id', userId);
+
+  const myLikedIds = new Set(myLikes?.map(l => l.receiver_id) || []);
+
+  // Get blocked users
+  const { data: blocks } = await supabase
+    .from('blocks')
+    .select('blocked_id')
+    .eq('blocker_id', userId);
+
+  const blockedIds = new Set(blocks?.map(b => b.blocked_id) || []);
+
   const { data: likes, error } = await supabase
     .from('likes')
     .select(`
@@ -56,18 +72,31 @@ export async function fetchReceivedLikes(userId: string): Promise<ReceivedLikesR
     };
   }
 
-  // Extract unread IDs
-  const unreadInterestIds = new Set<string>(
-    likes.filter(l => !l.is_read).map(l => l.sender_id)
-  );
+  // Extract unread IDs based on match status and excluding blocked users
+  const unreadInterestIds = new Set<string>();
+  const unreadMatchIds = new Set<string>();
 
-  const unreadMatchIds = new Set<string>(
-    likes.filter(l => !l.is_read_as_match).map(l => l.sender_id)
-  );
+  likes.forEach(l => {
+    // Skip blocked users
+    if (blockedIds.has(l.sender_id)) return;
 
-  // Map profiles directly from the joined data
+    const isMatched = myLikedIds.has(l.sender_id);
+    if (isMatched) {
+      // Matched: add to unreadMatchIds if is_read_as_match is false
+      if (!l.is_read_as_match) {
+        unreadMatchIds.add(l.sender_id);
+      }
+    } else {
+      // Interest only: add to unreadInterestIds if is_read is false
+      if (!l.is_read) {
+        unreadInterestIds.add(l.sender_id);
+      }
+    }
+  });
+
+  // Map profiles directly from the joined data, excluding blocked users
   const profiles: Profile[] = likes
-    .filter(like => like.sender)
+    .filter(like => like.sender && !blockedIds.has(like.sender_id))
     .map((like: any) => mapProfileRowToProfile(like.sender));
 
   return {

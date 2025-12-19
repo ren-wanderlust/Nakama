@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Image, Dimensions, Alert, ActivityIndicator, SafeAreaView, FlatList, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
 import { CreateProjectModal } from './CreateProjectModal';
 import { getUserPushTokens, sendPushNotification } from '../lib/notifications';
 import { getRoleColors, getRoleIcon } from '../constants/RoleConstants';
 import { getImageSource } from '../constants/DefaultImages';
-import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../data/queryKeys';
 
 interface Project {
@@ -194,6 +194,7 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                 .insert({
                     user_id: project.owner_id,
                     sender_id: currentUser.id,
+                    project_id: project.id,  // プロジェクトID
                     type: 'application',
                     title: 'プロジェクトへの応募',
                     content: `${currentUser.name}さんが「${project.title}」に応募しました！`,
@@ -228,6 +229,7 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
         }
     };
 
+
     const updateApplicantStatus = async (applicationId: string, newStatus: 'approved' | 'rejected', userName: string) => {
         try {
             const { error } = await supabase
@@ -245,6 +247,7 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                     .insert({
                         user_id: applicant.user_id,
                         sender_id: currentUser?.id,
+                        project_id: project.id,  // プロジェクトID
                         type: 'application_status',
                         title: newStatus === 'approved' ? 'プロジェクト参加承認' : 'プロジェクト参加見送り',
                         content: newStatus === 'approved'
@@ -315,6 +318,14 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                 }
             }
 
+            // Invalidate React Query caches to sync with LikesPage
+            if (currentUser?.id) {
+                queryClient.invalidateQueries({ queryKey: queryKeys.projectApplications.recruiting(currentUser.id) });
+                queryClient.invalidateQueries({ queryKey: queryKeys.projectApplications.applied(currentUser.id) });
+                queryClient.invalidateQueries({ queryKey: queryKeys.myProjects.detail(currentUser.id) });
+                queryClient.invalidateQueries({ queryKey: queryKeys.participatingProjects.detail(currentUser.id) });
+            }
+
             fetchApplicants();
 
             // Update the project list in MyPage to reflect pending count changes
@@ -325,17 +336,31 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
         }
     };
 
-    // 棄却確認用のアラート
+    // 棄却確認用のアラート（2段階確認）
     const handleRejectConfirmation = (applicationId: string, userName: string) => {
         Alert.alert(
-            '棄却の確認',
-            `本当に${userName}さんを棄却しますか？\nこの操作は取り消せません。`,
+            '⚠️ 棄却の確認',
+            `${userName}さんの申請を棄却しますか？\n\nこの操作は取り消すことができません。\n慎重にご判断ください。`,
             [
                 { text: 'キャンセル', style: 'cancel' },
                 {
                     text: '棄却する',
                     style: 'destructive',
-                    onPress: () => updateApplicantStatus(applicationId, 'rejected', userName)
+                    onPress: () => {
+                        // 2段階目の確認
+                        Alert.alert(
+                            '最終確認',
+                            `本当に${userName}さんを棄却してよろしいですか？`,
+                            [
+                                { text: 'やめる', style: 'cancel' },
+                                {
+                                    text: '棄却する',
+                                    style: 'destructive',
+                                    onPress: () => updateApplicantStatus(applicationId, 'rejected', userName)
+                                }
+                            ]
+                        );
+                    }
                 }
             ]
         );

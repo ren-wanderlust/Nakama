@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { QueryClient } from '@tanstack/react-query';
 
 type AuthContextType = {
     session: Session | null;
@@ -18,7 +19,7 @@ const AuthContext = createContext<AuthContextType>({
     refreshSession: async () => { },
 });
 
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+export const AuthProvider = ({ children, queryClient }: { children: React.ReactNode; queryClient: QueryClient }) => {
     const [session, setSession] = useState<Session | null>(null);
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
@@ -37,7 +38,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             }
 
             // 認証状態の変更を監視
-            const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+                console.log('=== Auth State Change ===');
+                console.log('Event:', event);
+                console.log('User ID:', session?.user.id);
+                console.log('Email:', session?.user.email);
+
                 setSession(session);
                 setUser(session?.user ?? null);
                 setLoading(false);
@@ -50,7 +56,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }, []);
 
     const signOut = async () => {
-        await supabase.auth.signOut();
+        try {
+            console.log('=== Signing out ===');
+            // Supabaseセッションをクリア
+            await supabase.auth.signOut();
+            // ローカル状態も明示的にクリア
+            setSession(null);
+            setUser(null);
+            // React Queryのキャッシュを完全にクリア
+            queryClient.clear();
+            console.log('Cache cleared successfully');
+        } catch (error) {
+            console.error('Error signing out:', error);
+        }
     };
 
     const refreshSession = async () => {

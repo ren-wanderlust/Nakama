@@ -2,21 +2,27 @@ import { supabase } from '../../lib/supabase';
 
 export interface Notification {
   id: string;
-  type: 'important' | 'update' | 'psychology' | 'other' | 'like' | 'match' | 'application_status';
+  type: 'important' | 'update' | 'psychology' | 'other' | 'like' | 'match' | 'application' | 'application_status';
   title: string;
   content?: string;
   image_url?: string;
   created_at: string;
+  project_id?: string;  // プロジェクト関連の通知用
+  related_user_id?: string;  // いいね・マッチングの相手ユーザー
+  sender_id?: string;  // 通知送信者
 }
 
 export interface FormattedNotification {
   id: string;
-  type: 'important' | 'update' | 'psychology' | 'other' | 'like' | 'match' | 'application_status';
+  type: 'important' | 'update' | 'psychology' | 'other' | 'like' | 'match' | 'application' | 'application_status';
   title: string;
   content?: string;
   date: string;
   imageUrl?: string;
   created_at: string;
+  projectId?: string;
+  relatedUserId?: string;
+  senderId?: string;
 }
 
 /**
@@ -27,7 +33,7 @@ export interface FormattedNotification {
 export async function fetchNotifications(userId: string | null): Promise<FormattedNotification[]> {
   let query = supabase
     .from('notifications')
-    .select('id, type, title, content, image_url, created_at')
+    .select('id, type, title, content, image_url, created_at, project_id, related_user_id, sender_id')
     .order('created_at', { ascending: false })
     .limit(50);
 
@@ -55,6 +61,9 @@ export async function fetchNotifications(userId: string | null): Promise<Formatt
     content: item.content,
     imageUrl: item.image_url,
     created_at: item.created_at,
+    projectId: item.project_id,
+    relatedUserId: item.related_user_id,
+    senderId: item.sender_id,
     date: new Date(item.created_at).toLocaleDateString('ja-JP', {
       month: 'numeric',
       day: 'numeric',

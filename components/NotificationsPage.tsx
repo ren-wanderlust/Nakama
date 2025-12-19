@@ -9,9 +9,11 @@ import { useAuth } from '../contexts/AuthContext';
 interface NotificationsPageProps {
     onBack: () => void;
     onNotificationsRead?: () => void;
+    onViewProject?: (projectId: string) => void;
+    onViewProfile?: (userId: string) => void;
 }
 
-export function NotificationsPage({ onBack, onNotificationsRead }: NotificationsPageProps) {
+export function NotificationsPage({ onBack, onNotificationsRead, onViewProject, onViewProfile }: NotificationsPageProps) {
     const { session } = useAuth();
     const userId = session?.user?.id;
     const [refreshing, setRefreshing] = useState(false);
@@ -20,6 +22,13 @@ export function NotificationsPage({ onBack, onNotificationsRead }: Notifications
     const notificationsQuery = useNotifications(userId);
     const notifications: Notification[] = notificationsQuery.data || [];
     const loading = notificationsQuery.isLoading;
+
+    // Force refresh on mount to ensure latest data
+    useEffect(() => {
+        if (userId) {
+            notificationsQuery.refetch();
+        }
+    }, []);
 
     // Mark user-specific notifications as read when page is opened
     useEffect(() => {
@@ -70,13 +79,47 @@ export function NotificationsPage({ onBack, onNotificationsRead }: Notifications
                 return { backgroundColor: '#FF7F11', text: 'いいね' };
             case 'match':
                 return { backgroundColor: '#009688', text: 'マッチング' };
+            case 'application':
+                return { backgroundColor: '#2196F3', text: 'プロジェクト応募' };
+            case 'application_status':
+                return { backgroundColor: '#4CAF50', text: '応募結果' };
             default:
                 return { backgroundColor: '#2196F3', text: 'お知らせ' };
         }
     };
 
     const handleNotificationPress = (item: Notification) => {
-        Alert.alert(item.title, item.content || "詳細情報はここに表示されます。");
+        console.log('Notification tapped:', {
+            title: item.title,
+            type: item.type,
+            projectId: item.projectId,
+            relatedUserId: item.relatedUserId,
+            senderId: item.senderId
+        });
+
+        // プロジェクト応募通知の場合は、応募者のプロフィールを表示
+        if (item.type === 'application' && item.senderId && onViewProfile) {
+            console.log('Navigating to applicant profile:', item.senderId);
+            onBack(); // 通知ページを閉じる
+            onViewProfile(item.senderId);
+        }
+        // その他のプロジェクト関連の通知（応募ステータス変更など）
+        else if (item.projectId && onViewProject) {
+            console.log('Navigating to project:', item.projectId);
+            onBack(); // 通知ページを閉じる
+            onViewProject(item.projectId);
+        }
+        // ユーザー関連の通知（いいね、マッチング）
+        else if (item.relatedUserId && onViewProfile) {
+            console.log('Navigating to profile:', item.relatedUserId);
+            onBack(); // 通知ページを閉じる
+            onViewProfile(item.relatedUserId);
+        }
+        // その他の通知
+        else {
+            console.log('No navigation data, showing alert');
+            Alert.alert(item.title, item.content || "詳細情報はここに表示されます。");
+        }
     };
 
     const renderItem = ({ item }: { item: Notification }) => {
@@ -86,18 +129,18 @@ export function NotificationsPage({ onBack, onNotificationsRead }: Notifications
             item.type === 'like' ||
             item.type === 'match' ||
             item.type === 'application_status';
-        
+
         return (
             <TouchableOpacity style={styles.itemContainer} onPress={() => handleNotificationPress(item)}>
                 {/* Icon/Image */}
                 <View style={styles.iconContainer}>
                     {item.imageUrl ? (
-                        <Image 
-                            source={{ uri: item.imageUrl }} 
+                        <Image
+                            source={{ uri: item.imageUrl }}
                             style={[
-                                styles.iconImage, 
+                                styles.iconImage,
                                 (isUserNotification || true) && styles.iconImageRound
-                            ]} 
+                            ]}
                         />
                     ) : (
                         <View style={[
