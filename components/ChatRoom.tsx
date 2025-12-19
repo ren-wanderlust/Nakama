@@ -12,7 +12,8 @@ import {
     SafeAreaView,
     Alert,
     ActivityIndicator,
-    Modal
+    Modal,
+    Dimensions
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -102,6 +103,25 @@ const MessageBubble = ({
     const isMe = message.sender === 'me';
     const swipeableRef = useRef<any>(null);
     const [imageModalVisible, setImageModalVisible] = useState(false);
+    
+    // For reply messages: track widths of each element to determine max width
+    const [replySenderWidth, setReplySenderWidth] = useState(0);
+    const [replyTextWidth, setReplyTextWidth] = useState(0);
+    const [mainMessageWidth, setMainMessageWidth] = useState(0);
+    
+    const screenWidth = Dimensions.get('window').width;
+    const defaultMaxWidth = screenWidth * 0.75; // 75% of screen width
+    
+    // Calculate max width from reply elements and main message
+    const maxReplyWidth = message.replyTo 
+        ? Math.max(replySenderWidth, replyTextWidth, mainMessageWidth)
+        : 0;
+    
+    // Dynamic maxWidth: use the larger of default or required width
+    const requiredWidth = maxReplyWidth > 0 ? maxReplyWidth + 32 : 0; // Add padding (16*2)
+    const dynamicMaxWidth = requiredWidth > 0 && requiredWidth > defaultMaxWidth
+        ? requiredWidth
+        : defaultMaxWidth;
 
     const renderLeftActions = (_progress: any, dragX: any) => {
         return (
@@ -165,7 +185,73 @@ const MessageBubble = ({
                         </TouchableOpacity>
                     )}
 
-                    <View style={[styles.messageContainer, isMe ? styles.messageContainerMe : styles.messageContainerOther]}>
+                    <View 
+                        style={[
+                            styles.messageContainer, 
+                            isMe ? styles.messageContainerMe : styles.messageContainerOther,
+                            { maxWidth: dynamicMaxWidth }
+                        ]}
+                    >
+                        {/* Measurement Text Components (hidden, off-screen) for width calculation */}
+                        {message.replyTo && (
+                            <>
+                                {/* Measure reply sender name width without constraints */}
+                                <Text
+                                    style={{
+                                        position: 'absolute',
+                                        left: -9999,
+                                        opacity: 0,
+                                        fontSize: 11, // replySenderMeと同じ
+                                        fontWeight: 'bold',
+                                    }}
+                                    onLayout={(e) => {
+                                        const width = e.nativeEvent?.layout?.width;
+                                        if (width && width > 0) {
+                                            setReplySenderWidth(width);
+                                        }
+                                    }}
+                                >
+                                    {message.replyTo.senderName}
+                                </Text>
+                                {/* Measure reply text width without constraints */}
+                                <Text
+                                    style={{
+                                        position: 'absolute',
+                                        left: -9999,
+                                        opacity: 0,
+                                        fontSize: 13, // replyTextMeと同じ
+                                    }}
+                                    onLayout={(e) => {
+                                        const width = e.nativeEvent?.layout?.width;
+                                        if (width && width > 0) {
+                                            setReplyTextWidth(width);
+                                        }
+                                    }}
+                                >
+                                    {message.replyTo.text}
+                                </Text>
+                            </>
+                        )}
+                        {/* Measure main message width without constraints */}
+                        {message.text && (
+                            <Text
+                                style={{
+                                    position: 'absolute',
+                                    left: -9999,
+                                    opacity: 0,
+                                    fontSize: 15, // messageTextMeと同じ
+                                }}
+                                onLayout={(e) => {
+                                    const width = e.nativeEvent?.layout?.width;
+                                    if (width && width > 0) {
+                                        setMainMessageWidth(width);
+                                    }
+                                }}
+                            >
+                                {message.text}
+                            </Text>
+                        )}
+                        
                         {/* Sender name for group chats */}
                         {!isMe && isGroup && message.senderName && (
                             <Text style={styles.senderName}>
@@ -193,7 +279,10 @@ const MessageBubble = ({
                                             colors={['#0d9488', '#2563eb']}
                                             start={{ x: 0, y: 0 }}
                                             end={{ x: 1, y: 0 }}
-                                            style={styles.bubbleGradient}
+                                            style={[
+                                                styles.bubbleGradient,
+                                                maxReplyWidth > 0 && { minWidth: maxReplyWidth + 32 } // Add padding (16*2)
+                                            ]}
                                         >
                                             {message.replyTo && (
                                                 <View style={styles.replyContainerMe}>
@@ -227,7 +316,12 @@ const MessageBubble = ({
                                             onLongPress={handleLongPress}
                                             activeOpacity={0.8}
                                         >
-                                            <View style={styles.bubbleOther}>
+                                            <View 
+                                                style={[
+                                                    styles.bubbleOther,
+                                                    maxReplyWidth > 0 && { minWidth: maxReplyWidth + 32 } // Add padding (16*2)
+                                                ]}
+                                            >
                                                 {message.replyTo && (
                                                     <View style={styles.replyContainerOther}>
                                                         <View style={styles.replyBarOther} />
