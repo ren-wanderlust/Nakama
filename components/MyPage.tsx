@@ -224,6 +224,14 @@ const ProjectCard = ({ project, ownerProfile, onPress }: { project: any; ownerPr
                         </View>
                     )}
                 </View>
+                {/* Pending notification badge */}
+                {!isClosed && project.pendingCount > 0 && (
+                    <View style={projectCardStyles.notificationBadge}>
+                        <Text style={projectCardStyles.notificationText}>
+                            {project.pendingCount}
+                        </Text>
+                    </View>
+                )}
             </View>
         </ModernCard>
     );
