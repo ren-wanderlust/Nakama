@@ -180,7 +180,7 @@ const ProjectCard = ({ project, ownerProfile, onPress }: { project: any; ownerPr
             style={[
                 projectCardStyles.card,
                 { marginTop: 2, marginBottom: 4 },
-                isClosed && { backgroundColor: '#F3F4F6' } // 停止中は少し暗くする
+                isClosed && { backgroundColor: '#F3F4F6' }
             ]}
             padding="none"
         >
@@ -190,32 +190,39 @@ const ProjectCard = ({ project, ownerProfile, onPress }: { project: any; ownerPr
                 </View>
             )}
 
-
             <View style={[projectCardStyles.cardInner, isClosed && { opacity: 0.7 }]}>
                 {/* Role Icons Container */}
                 {getIconLayout()}
                 <View style={projectCardStyles.cardContent}>
-                    <View style={projectCardStyles.cardHeader}>
-                        <Text style={projectCardStyles.cardTitle} numberOfLines={1}>{project.title}</Text>
-                        <View style={projectCardStyles.badgesRow}>
-                            {deadlineString && !isClosed ? (
-                                <View style={projectCardStyles.deadlineBadge}>
-                                    <Ionicons name="time-outline" size={14} color="#D32F2F" />
-                                    <Text style={projectCardStyles.deadlineText}>{deadlineString}</Text>
+                    {/* Title */}
+                    <Text style={projectCardStyles.cardTitle} numberOfLines={1}>{project.title}</Text>
+
+                    {/* Tagline */}
+                    {project.tagline && (
+                        <Text style={projectCardStyles.cardTagline} numberOfLines={1}>{project.tagline}</Text>
+                    )}
+
+                    {/* Tags - Theme + Content Tags */}
+                    {((project.tags && project.tags.length > 0) || (project.content_tags && project.content_tags.length > 0)) && (
+                        <View style={projectCardStyles.tagsRow}>
+                            {/* Theme Tag (大枠) */}
+                            {project.tags?.slice(0, 1).map((tag: string, index: number) => (
+                                <View key={`theme-${index}`} style={projectCardStyles.themeTag}>
+                                    <Text style={projectCardStyles.themeTagText}>{tag}</Text>
                                 </View>
-                            ) : null}
-                            {!isClosed && project.pendingCount > 0 && (
-                                <View style={projectCardStyles.inlineNotificationBadge}>
-                                    <Text style={projectCardStyles.notificationText}>
-                                        {project.pendingCount}
-                                    </Text>
+                            ))}
+                            {/* Content Tags - 最大4つまで */}
+                            {project.content_tags?.slice(0, 4).map((tag: string, index: number) => (
+                                <View key={`content-${index}`} style={projectCardStyles.tag}>
+                                    <Text style={projectCardStyles.tagText}>{tag}</Text>
                                 </View>
+                            ))}
+                            {/* 省略表示 */}
+                            {(project.content_tags?.length || 0) > 4 && (
+                                <Text style={projectCardStyles.moreTagsText}>...</Text>
                             )}
                         </View>
-                    </View>
-                    {createdDateString ? (
-                        <Text style={projectCardStyles.createdDateText}>{createdDateString}</Text>
-                    ) : null}
+                    )}
                 </View>
             </View>
         </ModernCard>
@@ -521,13 +528,38 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                 <View style={projectCardStyles.cardInner}>
                     {getIconLayout()}
                     <View style={projectCardStyles.cardContent}>
-                        <View style={projectCardStyles.cardHeader}>
-                            <Text style={projectCardStyles.cardTitle} numberOfLines={1}>{item.title}</Text>
-                        </View>
+                        {/* Title */}
+                        <Text style={projectCardStyles.cardTitle} numberOfLines={1}>{item.title}</Text>
+
+                        {/* Tagline */}
+                        {item.tagline && (
+                            <Text style={projectCardStyles.cardTagline} numberOfLines={1}>{item.tagline}</Text>
+                        )}
+
+                        {/* Tags - Theme + Content Tags */}
+                        {((item.tags && item.tags.length > 0) || (item.content_tags && item.content_tags.length > 0)) && (
+                            <View style={projectCardStyles.tagsRow}>
+                                {/* Theme Tag (大枠) */}
+                                {item.tags?.slice(0, 1).map((tag: string, index: number) => (
+                                    <View key={`theme-${index}`} style={projectCardStyles.themeTag}>
+                                        <Text style={projectCardStyles.themeTagText}>{tag}</Text>
+                                    </View>
+                                ))}
+                                {/* Content Tags - 最大4つまで */}
+                                {item.content_tags?.slice(0, 4).map((tag: string, index: number) => (
+                                    <View key={`content-${index}`} style={projectCardStyles.tag}>
+                                        <Text style={projectCardStyles.tagText}>{tag}</Text>
+                                    </View>
+                                ))}
+                                {/* 省略表示 */}
+                                {(item.content_tags?.length || 0) > 4 && (
+                                    <Text style={projectCardStyles.moreTagsText}>...</Text>
+                                )}
+                            </View>
+                        )}
+
+                        {/* Owner name */}
                         <Text style={projectCardStyles.ownerName}>{item.owner?.name || '不明'}</Text>
-                        {createdDateString ? (
-                            <Text style={projectCardStyles.createdDateText}>{createdDateString}</Text>
-                        ) : null}
                     </View>
                 </View>
             </ModernCard>
@@ -856,21 +888,26 @@ const styles = StyleSheet.create({
 const projectCardStyles = StyleSheet.create({
     card: {
         width: '100%',
-        backgroundColor: 'white',
-        borderRadius: 16,
-        ...SHADOWS.md,
+        height: 105,
+        borderRadius: 14,
+        overflow: 'hidden',
+        ...SHADOWS.lg,
     },
     cardInner: {
         flexDirection: 'row',
-        padding: 12,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
         alignItems: 'center',
+        borderRadius: 14,
+        backgroundColor: 'white',
+        height: '100%',
+        gap: 10,
     },
     iconsContainer: {
-        width: 70,
-        height: 70,
-        borderRadius: 12,
+        width: 60,
+        height: 60,
+        borderRadius: 10,
         backgroundColor: 'transparent',
-        marginRight: 14,
         flexDirection: 'row',
         flexWrap: 'wrap',
     },
@@ -905,16 +942,16 @@ const projectCardStyles = StyleSheet.create({
         justifyContent: 'center',
     },
     iconCircle: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
+        width: 28,
+        height: 28,
+        borderRadius: 14,
         alignItems: 'center',
         justifyContent: 'center',
     },
     iconCircleLarge: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -928,19 +965,19 @@ const projectCardStyles = StyleSheet.create({
     cardContent: {
         flex: 1,
         justifyContent: 'center',
+        gap: 2,
     },
     cardHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 4,
+        marginBottom: 6,
     },
     cardTitle: {
-        fontSize: 16,
+        fontSize: 17,
         fontFamily: FONTS.bold,
         color: '#111827',
-        flex: 1,
-        marginRight: 8,
+        lineHeight: 22,
     },
     deadlineBadge: {
         flexDirection: 'row',
@@ -966,7 +1003,6 @@ const projectCardStyles = StyleSheet.create({
         color: '#6B7280',
         marginTop: 4,
     },
-    // 応募したプロジェクト用の追加スタイル
     statusBadge: {
         paddingHorizontal: 8,
         paddingVertical: 4,
@@ -1048,7 +1084,7 @@ const projectCardStyles = StyleSheet.create({
         position: 'absolute',
         top: 8,
         right: 8,
-        backgroundColor: '#6B7280', // Gray
+        backgroundColor: '#6B7280',
         paddingHorizontal: 10,
         paddingVertical: 4,
         borderRadius: 12,
@@ -1059,4 +1095,47 @@ const projectCardStyles = StyleSheet.create({
         fontSize: 11,
         fontFamily: FONTS.bold,
     },
+    cardTagline: {
+        fontSize: 13,
+        fontFamily: FONTS.regular,
+        color: '#6B7280',
+        lineHeight: 18,
+        marginTop: 2,
+    },
+    tagsRow: {
+        flexDirection: 'row',
+        flexWrap: 'nowrap',
+        gap: 4,
+        marginTop: 4,
+        overflow: 'hidden',
+    },
+    themeTag: {
+        backgroundColor: '#3B82F6',
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 4,
+    },
+    themeTagText: {
+        fontSize: 10,
+        fontFamily: FONTS.semiBold,
+        color: '#FFFFFF',
+    },
+    tag: {
+        backgroundColor: '#F3F4F6',
+        paddingHorizontal: 6,
+        paddingVertical: 3,
+        borderRadius: 4,
+    },
+    tagText: {
+        fontSize: 10,
+        fontFamily: FONTS.medium,
+        color: '#6B7280',
+    },
+    moreTagsText: {
+        fontSize: 11,
+        fontFamily: FONTS.medium,
+        color: '#9CA3AF',
+        alignSelf: 'center',
+    },
 });
+
