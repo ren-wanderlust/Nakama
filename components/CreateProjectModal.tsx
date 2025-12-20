@@ -376,7 +376,7 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
                             {THEMES.map((theme) => {
                                 const isSelected = selectedThemes.includes(theme.title);
                                 return (
-                                    <HapticTouchable
+                                    <TouchableOpacity
                                         key={theme.id}
                                         style={[
                                             styles.chip,
@@ -385,14 +385,17 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
                                                 borderColor: theme.color
                                             }
                                         ]}
-                                        onPress={() => handleThemeSelect(theme.title)}
-                                        hapticType="selection"
+                                        onPress={() => {
+                                            triggerHaptic('selection');
+                                            handleThemeSelect(theme.title);
+                                        }}
+                                        activeOpacity={0.7}
                                     >
                                         <Ionicons
-                                            name="checkmark-circle"
+                                            name={isSelected ? "checkmark-circle" : "ellipse-outline"}
                                             size={16}
-                                            color={isSelected ? theme.color : 'transparent'}
-                                            style={{ marginRight: 4 }}
+                                            color={isSelected ? theme.color : '#D1D5DB'}
+                                            style={{ marginRight: 6 }}
                                         />
                                         <Text style={[
                                             styles.chipText,
@@ -401,7 +404,7 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
                                                 fontWeight: '600'
                                             }
                                         ]}>{theme.title}</Text>
-                                    </HapticTouchable>
+                                    </TouchableOpacity>
                                 );
                             })}
                         </View>
@@ -760,17 +763,19 @@ const styles = StyleSheet.create({
     chipContainer: {
         flexDirection: 'row',
         flexWrap: 'wrap',
+        alignItems: 'center', // 高さを揃える
         gap: 8,
     },
     chip: {
         flexDirection: 'row',
         alignItems: 'center',
+        alignSelf: 'center', // 親からの引き伸ばしを防ぐ
         justifyContent: 'center',
         paddingHorizontal: 16,
-        paddingVertical: 0, // 高さを固定するためパディングは削除
-        height: 48, // 固定高さ
-        minWidth: 80, // 最小幅を設定してバランスをとる
-        borderRadius: 24,
+        paddingVertical: 0,
+        height: 44, // 高さを少し小さくしてバランス調整
+        minWidth: 70,
+        borderRadius: 22,
         backgroundColor: '#F9FAFB',
         borderWidth: 1.5,
         borderColor: '#E5E7EB',
