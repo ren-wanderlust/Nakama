@@ -17,7 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { HapticTouchable, triggerHaptic } from './HapticButton';
 import { getRoleColors, getRoleIcon } from '../constants/RoleConstants';
 import { translateTag } from '../constants/TagConstants';
-// import universitiesData from '../assets/japanese_universities.json';
+import universitiesData from '../assets/japanese_universities.json';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -84,9 +84,12 @@ export function FilterModal({ visible, onClose, onApply, initialCriteria, mode =
 
     // Load universities
     useEffect(() => {
-        // Only load if mode is 'users' (logic simplified for now as we don't have dynamic import here)
-        // If universitiesData is needed, it should be passed as prop or imported conditionally
-    }, []);
+        // Load universities from JSON data
+        if (mode === 'users') {
+            const universities = universitiesData as string[];
+            setAllUniversities(universities);
+        }
+    }, [mode]);
 
     // Filter universities by search
     useEffect(() => {

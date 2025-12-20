@@ -31,6 +31,14 @@ export const AuthProvider = ({ children, queryClient }: { children: React.ReactN
                 const { data: { session } } = await supabase.auth.getSession();
                 setSession(session);
                 setUser(session?.user ?? null);
+
+                // セッションがある場合、last_active_atを更新
+                if (session?.user) {
+                    await supabase
+                        .from('profiles')
+                        .update({ last_active_at: new Date().toISOString() })
+                        .eq('id', session.user.id);
+                }
             } catch (error) {
                 console.error('Error fetching session:', error);
             } finally {
@@ -38,7 +46,7 @@ export const AuthProvider = ({ children, queryClient }: { children: React.ReactN
             }
 
             // 認証状態の変更を監視
-            const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
                 console.log('=== Auth State Change ===');
                 console.log('Event:', event);
                 console.log('User ID:', session?.user.id);
@@ -47,6 +55,19 @@ export const AuthProvider = ({ children, queryClient }: { children: React.ReactN
                 setSession(session);
                 setUser(session?.user ?? null);
                 setLoading(false);
+
+                // ログイン時にlast_active_atを更新
+                if (event === 'SIGNED_IN' && session?.user) {
+                    try {
+                        await supabase
+                            .from('profiles')
+                            .update({ last_active_at: new Date().toISOString() })
+                            .eq('id', session.user.id);
+                        console.log('Updated last_active_at for user:', session.user.id);
+                    } catch (error) {
+                        console.error('Error updating last_active_at:', error);
+                    }
+                }
             });
 
             return () => subscription.unsubscribe();

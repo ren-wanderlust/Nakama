@@ -1,5 +1,5 @@
-import React, { useRef, useCallback, useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Dimensions, Animated } from 'react-native';
+import React, { useRef, useCallback, useState, useEffect } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, Dimensions, Animated, Easing } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { Profile } from '../types';
@@ -44,6 +44,7 @@ interface ProfileCardProps {
     hideHeartButton?: boolean;
     isNewMatch?: boolean;
     animateOnLike?: boolean;
+    index?: number; // リスト内のインデックス（登場アニメーション用）
 }
 
 const { width } = Dimensions.get('window');
@@ -51,10 +52,36 @@ const GAP = 6;
 const PADDING = 16;
 const CARD_WIDTH = (width - (PADDING * 2) - GAP) / 2;
 
-export function ProfileCard({ profile, isLiked, onLike, onSelect, hideHeartButton, isNewMatch, animateOnLike }: ProfileCardProps) {
+export function ProfileCard({ profile, isLiked, onLike, onSelect, hideHeartButton, isNewMatch, animateOnLike, index = 0 }: ProfileCardProps) {
     const scaleAnim = useRef(new Animated.Value(1)).current;
     const opacityAnim = useRef(new Animated.Value(1)).current;
     const [tempLiked, setTempLiked] = useState(false); // Temporary liked state for animation
+
+    // 登場アニメーション用
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+    const slideAnim = useRef(new Animated.Value(20)).current;
+
+    useEffect(() => {
+        // インデックスに応じた遅延で登場アニメーション
+        const delay = Math.min(index * 50, 300); // 最大300msの遅延
+
+        Animated.parallel([
+            Animated.timing(fadeAnim, {
+                toValue: 1,
+                duration: 400,
+                delay,
+                easing: Easing.out(Easing.ease),
+                useNativeDriver: true,
+            }),
+            Animated.timing(slideAnim, {
+                toValue: 0,
+                duration: 400,
+                delay,
+                easing: Easing.out(Easing.back(1.5)),
+                useNativeDriver: true,
+            }),
+        ]).start();
+    }, [index]);
 
     const handleLikeWithAnimation = useCallback(() => {
         if (animateOnLike && !isLiked && !tempLiked) {
@@ -200,7 +227,13 @@ export function ProfileCard({ profile, isLiked, onLike, onSelect, hideHeartButto
     };
 
     return (
-        <Animated.View style={{ transform: [{ scale: scaleAnim }], opacity: opacityAnim }}>
+        <Animated.View style={{
+            transform: [
+                { scale: scaleAnim },
+                { translateY: slideAnim }
+            ],
+            opacity: Animated.multiply(opacityAnim, fadeAnim)
+        }}>
             <TouchableOpacity
                 style={styles.cardContainer}
                 onPress={onSelect}

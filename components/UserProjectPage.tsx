@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Dimensions, Image, Modal, Alert } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Dimensions, Image, Modal, Alert, Animated, Easing } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
@@ -20,6 +20,7 @@ import { getImageSource } from '../constants/DefaultImages';
 interface Project {
     id: string;
     title: string;
+    tagline?: string;
     description: string;
     image_url: string | null;
     owner_id: string;
@@ -27,6 +28,7 @@ interface Project {
     deadline?: string | null;
     required_roles?: string[];
     tags?: string[];
+    content_tags?: string[];
     owner?: {
         id: string;
         name: string;
@@ -60,7 +62,7 @@ const ROLE_COLORS: { [key: string]: { bg: string; icon: string } } = {
     '誰でも': { bg: '#E8F5E9', icon: '#388E3C' },        // Green
 };
 
-const ProjectCard = ({ project, onPress }: { project: Project; onPress: () => void }) => {
+const ProjectCard = ({ project, onPress, index = 0 }: { project: Project; onPress: () => void; index?: number }) => {
     const deadlineDate = project.deadline ? new Date(project.deadline) : null;
     const deadlineString = deadlineDate
         ? `${deadlineDate.getMonth() + 1}/${deadlineDate.getDate()}まで`
@@ -68,6 +70,32 @@ const ProjectCard = ({ project, onPress }: { project: Project; onPress: () => vo
     const createdDate = new Date(project.created_at);
     const daysAgo = Math.floor((Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
     const timeAgo = daysAgo === 0 ? '今日' : daysAgo === 1 ? '昨日' : `${daysAgo}日前`;
+
+    // 登場アニメーション用
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+    const slideAnim = useRef(new Animated.Value(20)).current;
+
+    useEffect(() => {
+        // インデックスに応じた遅延で登場アニメーション
+        const delay = Math.min(index * 80, 400); // 最大400msの遅延
+
+        Animated.parallel([
+            Animated.timing(fadeAnim, {
+                toValue: 1,
+                duration: 400,
+                delay,
+                easing: Easing.out(Easing.ease),
+                useNativeDriver: true,
+            }),
+            Animated.timing(slideAnim, {
+                toValue: 0,
+                duration: 400,
+                delay,
+                easing: Easing.out(Easing.back(1.2)),
+                useNativeDriver: true,
+            }),
+        ]).start();
+    }, [index]);
 
     // Get roles with icons and colors, limit to 4
     const rolesWithIcons = project.required_roles
@@ -177,39 +205,50 @@ const ProjectCard = ({ project, onPress }: { project: Project; onPress: () => vo
     };
 
     return (
-        <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.85}>
-            <View style={styles.cardInner}>
-                {/* Role Icons Container */}
-                {getIconLayout()}
+        <Animated.View style={{
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }]
+        }}>
+            <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.85}>
+                <View style={styles.cardInner}>
+                    {/* Role Icons Container */}
+                    {getIconLayout()}
 
-                {/* Card Content */}
-                <View style={styles.cardContent}>
-                    {/* Title */}
-                    <View style={styles.cardTitleContainer}>
-                        <Text style={styles.cardTitle} numberOfLines={2}>{project.title}</Text>
-                    </View>
+                    {/* Card Content */}
+                    <View style={styles.cardContent}>
+                        {/* Title */}
+                        <Text style={styles.cardTitle} numberOfLines={1}>{project.title}</Text>
 
-                    {/* Author Info */}
-                    <View style={styles.authorRow}>
-                        <Image
-                            source={getImageSource(project.owner?.image)}
-                            style={styles.authorIcon}
-                        />
-                        <Text style={styles.authorName} numberOfLines={1}>
-                            {project.owner?.name || '匿名'}
-                            {project.owner?.university ? ` (${project.owner.university})` : ''}
-                        </Text>
-                        <Text style={styles.timeAgo}>{timeAgo}</Text>
-                        {deadlineString ? (
-                            <View style={styles.deadlineBadge}>
-                                <Ionicons name="time-outline" size={12} color="#FF6B6B" />
-                                <Text style={styles.deadlineText}>{deadlineString}</Text>
+                        {/* Tagline */}
+                        {project.tagline && (
+                            <Text style={styles.cardTagline} numberOfLines={1}>{project.tagline}</Text>
+                        )}
+
+                        {/* Tags - Theme + Content Tags */}
+                        {((project.tags && project.tags.length > 0) || (project.content_tags && project.content_tags.length > 0)) && (
+                            <View style={styles.tagsRow}>
+                                {/* Theme Tag (大枠) */}
+                                {project.tags?.slice(0, 1).map((tag, index) => (
+                                    <View key={`theme-${index}`} style={styles.themeTag}>
+                                        <Text style={styles.themeTagText}>{tag}</Text>
+                                    </View>
+                                ))}
+                                {/* Content Tags - 最大4つまで */}
+                                {project.content_tags?.slice(0, 4).map((tag, index) => (
+                                    <View key={`content-${index}`} style={styles.tag}>
+                                        <Text style={styles.tagText}>{tag}</Text>
+                                    </View>
+                                ))}
+                                {/* 省略表示 */}
+                                {(project.content_tags?.length || 0) > 4 && (
+                                    <Text style={styles.moreTagsText}>...</Text>
+                                )}
                             </View>
-                        ) : null}
+                        )}
                     </View>
                 </View>
-            </View>
-        </TouchableOpacity>
+            </TouchableOpacity>
+        </Animated.View>
     );
 };
 
@@ -339,10 +378,11 @@ export function UserProjectPage({ currentUser, onChat, sortOrder = 'recommended'
                 <View style={styles.gridContainer}>
                     {filteredProjects.length > 0 ? (
                         <View style={styles.grid}>
-                            {filteredProjects.map((item) => (
+                            {filteredProjects.map((item, index) => (
                                 <ProjectCard
                                     key={item.id}
                                     project={item}
+                                    index={index}
                                     onPress={() => {
                                         setSelectedProject(item);
                                     }}
@@ -420,29 +460,30 @@ const styles = StyleSheet.create({
     },
     grid: {
         flexDirection: 'column',
-        gap: 6,
+        gap: 8,
     },
     card: {
         width: '100%',
-        height: 100, // Fixed height
-        borderRadius: 16,
+        height: 105, // 高さを少し減らす
+        borderRadius: 14,
         overflow: 'hidden',
         ...SHADOWS.lg,
     },
     cardInner: {
         flexDirection: 'row',
-        padding: 16,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
         alignItems: 'center',
-        borderRadius: 16,
+        borderRadius: 14,
         backgroundColor: 'white',
         height: '100%',
+        gap: 10, // アイコンとコンテンツの間隔を調整
     },
     iconsContainer: {
-        width: 70,
-        height: 70,
-        borderRadius: 12,
+        width: 60,
+        height: 60,
+        borderRadius: 10,
         backgroundColor: 'transparent',
-        marginRight: 14,
         flexDirection: 'row',
         flexWrap: 'wrap',
     },
@@ -477,23 +518,23 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     iconCircle: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
+        width: 28,
+        height: 28,
+        borderRadius: 14,
         alignItems: 'center',
         justifyContent: 'center',
     },
     iconCircleLarge: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
         alignItems: 'center',
         justifyContent: 'center',
     },
     cardContent: {
         flex: 1,
         justifyContent: 'center',
-        height: '100%',
+        gap: 2,
     },
     cardTitleContainer: {
         height: 44, // Fixed height for 2 lines (22 * 2)
@@ -507,10 +548,17 @@ const styles = StyleSheet.create({
         marginBottom: 6,
     },
     cardTitle: {
-        fontSize: 16,
+        fontSize: 17,
         fontFamily: FONTS.bold,
         color: '#111827',
         lineHeight: 22,
+    },
+    cardTagline: {
+        fontSize: 13,
+        fontFamily: FONTS.regular,
+        color: '#6B7280',
+        lineHeight: 18,
+        marginTop: 2,
     },
     deadlineBadge: {
         flexDirection: 'row',
@@ -537,6 +585,41 @@ const styles = StyleSheet.create({
         flexWrap: 'wrap',
         gap: 6,
         marginBottom: 10,
+    },
+    tagsRow: {
+        flexDirection: 'row',
+        flexWrap: 'nowrap', // 1行に収める
+        gap: 4,
+        marginTop: 4,
+        overflow: 'hidden',
+    },
+    tag: {
+        backgroundColor: '#F3F4F6',
+        paddingHorizontal: 6,
+        paddingVertical: 3,
+        borderRadius: 4,
+    },
+    tagText: {
+        fontSize: 10,
+        fontFamily: FONTS.medium,
+        color: '#6B7280',
+    },
+    moreTagsText: {
+        fontSize: 11,
+        fontFamily: FONTS.medium,
+        color: '#9CA3AF',
+        alignSelf: 'center',
+    },
+    themeTag: {
+        backgroundColor: '#3B82F6',
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 4,
+    },
+    themeTagText: {
+        fontSize: 10,
+        fontFamily: FONTS.semiBold,
+        color: '#FFFFFF',
     },
     miniRoleTag: {
         backgroundColor: 'rgba(0, 150, 136, 0.25)',

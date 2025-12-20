@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase';
 export interface Project {
   id: string;
   title: string;
+  tagline?: string;
   description: string;
   image_url: string | null;
   owner_id: string;
@@ -10,6 +11,7 @@ export interface Project {
   deadline?: string | null;
   required_roles?: string[];
   tags?: string[];
+  content_tags?: string[];
   status?: string;
   owner?: {
     id: string;

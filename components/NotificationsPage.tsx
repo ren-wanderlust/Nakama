@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { StyleSheet, Text, View, FlatList, TouchableOpacity, Image, SafeAreaView, Alert, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, FlatList, TouchableOpacity, SafeAreaView, Alert, ActivityIndicator } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useNotifications } from '../data/hooks/useNotifications';
 import { markNotificationsAsRead } from '../data/api/notifications';
@@ -141,6 +142,10 @@ export function NotificationsPage({ onBack, onNotificationsRead, onViewProject, 
                                 styles.iconImage,
                                 (isUserNotification || true) && styles.iconImageRound
                             ]}
+                            contentFit="cover"
+                            cachePolicy="memory-disk"
+                            transition={200}
+                            placeholder={require('../assets/default-avatar.png')}
                         />
                     ) : (
                         <View style={[

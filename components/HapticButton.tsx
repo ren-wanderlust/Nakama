@@ -1,5 +1,5 @@
-import React from 'react';
-import { TouchableOpacity, TouchableOpacityProps, StyleSheet, Text, ViewStyle, TextStyle, View } from 'react-native';
+import React, { useRef } from 'react';
+import { TouchableOpacity, TouchableOpacityProps, StyleSheet, Text, ViewStyle, TextStyle, View, Animated, Easing } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, RADIUS, SHADOWS } from '../constants/DesignSystem';
@@ -9,6 +9,7 @@ type HapticType = 'light' | 'medium' | 'heavy' | 'selection' | 'success' | 'warn
 interface HapticTouchableProps extends TouchableOpacityProps {
     hapticType?: HapticType;
     children: React.ReactNode;
+    scaleOnPress?: boolean; // スケールアニメーションを有効にするか
 }
 
 interface HapticButtonProps extends Omit<HapticTouchableProps, 'children'> {
@@ -50,27 +51,61 @@ const triggerHaptic = async (type: HapticType) => {
 
 /**
  * ハプティクス付きTouchableOpacity
- * 基本的なタップ可能コンポーネント
+ * スケールアニメーション付きの基本的なタップ可能コンポーネント
  */
 export function HapticTouchable({
     hapticType = 'light',
     onPress,
+    onPressIn,
+    onPressOut,
     children,
+    scaleOnPress = true,
+    style,
     ...props
 }: HapticTouchableProps) {
+    const scaleAnim = useRef(new Animated.Value(1)).current;
+
+    const handlePressIn = (event: any) => {
+        if (scaleOnPress) {
+            Animated.spring(scaleAnim, {
+                toValue: 0.95,
+                useNativeDriver: true,
+                speed: 50,
+                bounciness: 4,
+            }).start();
+        }
+        onPressIn?.(event);
+    };
+
+    const handlePressOut = (event: any) => {
+        if (scaleOnPress) {
+            Animated.spring(scaleAnim, {
+                toValue: 1,
+                useNativeDriver: true,
+                speed: 50,
+                bounciness: 8,
+            }).start();
+        }
+        onPressOut?.(event);
+    };
+
     const handlePress = async (event: any) => {
         await triggerHaptic(hapticType);
         onPress?.(event);
     };
 
     return (
-        <TouchableOpacity
-            onPress={handlePress}
-            activeOpacity={0.7}
-            {...props}
-        >
-            {children}
-        </TouchableOpacity>
+        <Animated.View style={[{ transform: [{ scale: scaleAnim }] }, style]}>
+            <TouchableOpacity
+                onPress={handlePress}
+                onPressIn={handlePressIn}
+                onPressOut={handlePressOut}
+                activeOpacity={0.9}
+                {...props}
+            >
+                {children}
+            </TouchableOpacity>
+        </Animated.View>
     );
 }
 

@@ -334,16 +334,6 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
         const project = item.project;
         if (!project) return null;
 
-        const deadlineDate = project.deadline ? new Date(project.deadline) : null;
-        const deadlineString = deadlineDate
-            ? `${deadlineDate.getMonth() + 1}/${deadlineDate.getDate()}まで`
-            : '';
-
-        const createdDate = project.created_at ? new Date(project.created_at) : new Date();
-        if (!project.created_at) return null; // created_atがない場合はスキップ
-        const daysAgo = Math.floor((Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
-        const timeAgo = daysAgo === 0 ? '今日' : daysAgo === 1 ? '昨日' : `${daysAgo}日前`;
-
         const getStatusInfo = () => {
             switch (item.status) {
                 case 'pending':
@@ -444,6 +434,12 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                 activeOpacity={0.85}
                 onPress={() => handleProjectSelect(project.id)}
             >
+                {/* Status Badge - Top Right */}
+                <View style={[styles.appliedStatusBadgeCorner, { backgroundColor: statusInfo.color + '20' }]}>
+                    <Ionicons name={statusInfo.icon as any} size={14} color={statusInfo.color} />
+                    <Text style={[styles.appliedStatusTextCorner, { color: statusInfo.color }]}>{statusInfo.text}</Text>
+                </View>
+
                 <View style={styles.appliedCardInner}>
                     {/* Role Icons Container */}
                     {getIconLayout()}
@@ -451,31 +447,34 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                     {/* Card Content */}
                     <View style={styles.appliedCardContent}>
                         {/* Title */}
-                        <View style={styles.appliedTitleContainer}>
-                            <Text style={styles.appliedCardTitle} numberOfLines={2}>{project.title}</Text>
-                        </View>
+                        <Text style={styles.appliedCardTitle} numberOfLines={1}>{project.title}</Text>
 
-                        {/* Author Info */}
-                        <View style={styles.appliedAuthorRow}>
-                            <Image
-                                source={getImageSource(project.owner?.image)}
-                                style={styles.appliedAuthorIcon}
-                            />
-                            <Text style={styles.appliedAuthorName} numberOfLines={1}>{project.owner?.name || '匿名'}</Text>
-                            <Text style={styles.appliedTimeAgo}>{timeAgo}</Text>
-                            {deadlineString ? (
-                                <View style={styles.appliedDeadlineBadge}>
-                                    <Ionicons name="time-outline" size={12} color="#FF6B6B" />
-                                    <Text style={styles.appliedDeadlineText}>{deadlineString}</Text>
-                                </View>
-                            ) : null}
-                        </View>
+                        {/* Tagline */}
+                        {project.tagline && (
+                            <Text style={styles.appliedCardTagline} numberOfLines={1}>{project.tagline}</Text>
+                        )}
 
-                        {/* Status Badge */}
-                        <View style={[styles.appliedStatusBadge, { backgroundColor: statusInfo.color + '20' }]}>
-                            <Ionicons name={statusInfo.icon as any} size={14} color={statusInfo.color} />
-                            <Text style={[styles.appliedStatusText, { color: statusInfo.color }]}>{statusInfo.text}</Text>
-                        </View>
+                        {/* Tags - Theme + Content Tags */}
+                        {((project.tags && project.tags.length > 0) || (project.content_tags && project.content_tags.length > 0)) && (
+                            <View style={styles.appliedTagsRow}>
+                                {/* Theme Tag (大枠) */}
+                                {project.tags?.slice(0, 1).map((tag: string, index: number) => (
+                                    <View key={`theme-${index}`} style={styles.appliedThemeTag}>
+                                        <Text style={styles.appliedThemeTagText}>{tag}</Text>
+                                    </View>
+                                ))}
+                                {/* Content Tags - 最大4つまで */}
+                                {project.content_tags?.slice(0, 4).map((tag: string, index: number) => (
+                                    <View key={`content-${index}`} style={styles.appliedContentTag}>
+                                        <Text style={styles.appliedContentTagText}>{tag}</Text>
+                                    </View>
+                                ))}
+                                {/* 省略表示 */}
+                                {(project.content_tags?.length || 0) > 4 && (
+                                    <Text style={styles.appliedMoreTagsText}>...</Text>
+                                )}
+                            </View>
+                        )}
                     </View>
                 </View>
             </TouchableOpacity>
@@ -1457,4 +1456,63 @@ const styles = StyleSheet.create({
         fontSize: 11,
         fontWeight: '600',
     },
+    appliedStatusBadgeCorner: {
+        position: 'absolute',
+        top: 8,
+        right: 8,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 10,
+        gap: 4,
+        zIndex: 10,
+    },
+    appliedStatusTextCorner: {
+        fontSize: 11,
+        fontWeight: '600',
+    },
+    appliedCardTagline: {
+        fontSize: 13,
+        fontFamily: FONTS.regular,
+        color: '#6B7280',
+        lineHeight: 18,
+        marginTop: 2,
+    },
+    appliedTagsRow: {
+        flexDirection: 'row',
+        flexWrap: 'nowrap',
+        gap: 4,
+        marginTop: 4,
+        overflow: 'hidden',
+    },
+    appliedThemeTag: {
+        backgroundColor: '#3B82F6',
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 4,
+    },
+    appliedThemeTagText: {
+        fontSize: 10,
+        fontFamily: FONTS.semiBold,
+        color: '#FFFFFF',
+    },
+    appliedContentTag: {
+        backgroundColor: '#F3F4F6',
+        paddingHorizontal: 6,
+        paddingVertical: 3,
+        borderRadius: 4,
+    },
+    appliedContentTagText: {
+        fontSize: 10,
+        fontFamily: FONTS.medium,
+        color: '#6B7280',
+    },
+    appliedMoreTagsText: {
+        fontSize: 11,
+        fontFamily: FONTS.medium,
+        color: '#9CA3AF',
+        alignSelf: 'center',
+    },
 });
+

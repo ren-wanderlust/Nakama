@@ -15,6 +15,7 @@ export interface Profile {
     statusTags?: string[];
     isStudent: boolean;
     createdAt: string;
+    lastActiveAt?: string;
 }
 
 export interface Theme {

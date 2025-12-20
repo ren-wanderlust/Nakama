@@ -753,9 +753,14 @@ function AppContent() {
   // Sorting logic
   const sortedProfiles = [...filteredProfiles].sort((a, b) => {
     if (sortOrder === 'newest') {
+      // 新着順: 登録日時でソート
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     }
-    return 0; // Recommended order (default)
+    // Recommended order: アクティブ度（最後にアクティブだったユーザーを優先）
+    // lastActiveAtがあればそれを使用、なければcreatedAtにフォールバック
+    const aActiveTime = a.lastActiveAt ? new Date(a.lastActiveAt).getTime() : new Date(a.createdAt).getTime();
+    const bActiveTime = b.lastActiveAt ? new Date(b.lastActiveAt).getTime() : new Date(b.createdAt).getTime();
+    return bActiveTime - aActiveTime;
   });
 
   const handleLike = async (profileId: string) => {
@@ -1211,7 +1216,7 @@ function AppContent() {
                   {item === 'users' ? (
                     <FlatList
                       data={sortedProfiles}
-                      renderItem={({ item }) => (
+                      renderItem={({ item, index }) => (
                         <View style={styles.gridItem}>
                           <ProfileCard
                             profile={item}
@@ -1219,6 +1224,7 @@ function AppContent() {
                             onLike={() => handleLike(item.id)}
                             onSelect={() => setSelectedProfile(item)}
                             animateOnLike={true}
+                            index={index}
                           />
                         </View>
                       )}
@@ -2065,7 +2071,27 @@ export default function App() {
     Inter_700Bold,
   });
 
-  if (!fontsLoaded) {
+  const [assetsLoaded, setAssetsLoaded] = useState(false);
+
+  // プリロードするアセット（ログイン画面で使用する画像）
+  useEffect(() => {
+    const loadAssets = async () => {
+      try {
+        const { Asset } = await import('expo-asset');
+        await Asset.loadAsync([
+          require('./assets/pogg_logo.png'),
+          require('./assets/network-pattern.png'),
+        ]);
+        setAssetsLoaded(true);
+      } catch (error) {
+        console.error('Error loading assets:', error);
+        setAssetsLoaded(true); // エラーでも続行
+      }
+    };
+    loadAssets();
+  }, []);
+
+  if (!fontsLoaded || !assetsLoaded) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF' }}>
         <ActivityIndicator size="large" color="#009688" />

@@ -14,12 +14,14 @@ export interface Application {
     id: string;
     title: string;
     description?: string;
+    tagline?: string;
     image_url?: string | null;
     owner_id?: string;
     created_at?: string;
     deadline?: string | null;
     required_roles?: string[];
     tags?: string[];
+    content_tags?: string[];
     owner?: {
       id: string;
       name: string;
@@ -118,12 +120,14 @@ export async function fetchProjectApplications(userId: string): Promise<ProjectA
         id,
         title,
         description,
+        tagline,
         image_url,
         owner_id,
         created_at,
         deadline,
         required_roles,
         tags,
+        content_tags,
         owner:profiles!owner_id (
           id,
           name,

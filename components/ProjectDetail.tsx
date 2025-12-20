@@ -13,6 +13,7 @@ import { queryKeys } from '../data/queryKeys';
 interface Project {
     id: string;
     title: string;
+    tagline?: string;
     description: string;
     image_url: string | null;
     owner_id: string;
@@ -20,6 +21,7 @@ interface Project {
     deadline?: string | null;
     required_roles?: string[];
     tags?: string[];
+    content_tags?: string[];
     status?: string; // 'recruiting' | 'closed'
     owner?: {
         id: string;
@@ -57,13 +59,24 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
     const [applicants, setApplicants] = useState<Applicant[]>([]);
     const [hasApplied, setHasApplied] = useState(false);
     const [applicationStatus, setApplicationStatus] = useState<string | null>(null);
-    const [currentStatus, setCurrentStatus] = useState<string>(project.status || 'recruiting');
+
+    // 募集状態を判定する関数
+    // statusは進捗状況（idea, planning, developing等）または募集状態（recruiting, closed）を含む可能性がある
+    // 'closed'のみを停止状態として扱い、それ以外は全て募集中とする
+    const getRecruitmentStatus = (status?: string): string => {
+        if (status === 'closed') {
+            return 'closed';
+        }
+        return 'recruiting'; // 進捗状況や未設定の場合は全て募集中として扱う
+    };
+
+    const [currentStatus, setCurrentStatus] = useState<string>(() => {
+        return getRecruitmentStatus(project.status);
+    });
 
     // プロジェクトのステータスがプロップス変更で更新された場合に備えて同期
     useEffect(() => {
-        if (project.status) {
-            setCurrentStatus(project.status);
-        }
+        setCurrentStatus(getRecruitmentStatus(project.status));
     }, [project.status]);
 
     const [showEditModal, setShowEditModal] = useState(false);
@@ -526,6 +539,11 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                 <View style={styles.infoContainer}>
                     <Text style={styles.title}>{project.title}</Text>
 
+                    {/* Tagline */}
+                    {project.tagline && (
+                        <Text style={styles.tagline}>{project.tagline}</Text>
+                    )}
+
                     <View style={styles.metaRow}>
                         <View style={styles.ownerRow}>
                             <Image
@@ -621,8 +639,8 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                     <View style={styles.divider} />
 
                     {/* Tags Section */}
-                    {((project.required_roles && project.required_roles.length > 0) || (project.tags && project.tags.length > 0)) && (
-                        <>
+                    {((project.required_roles && project.required_roles.length > 0) || (project.tags && project.tags.length > 0) || (project.content_tags && project.content_tags.length > 0)) && (
+                        <View>
                             <View style={styles.tagsSection}>
                                 {project.required_roles && project.required_roles.length > 0 && (
                                     <View style={styles.tagGroup}>
@@ -633,7 +651,7 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                                                 const roleIcon = getRoleIcon(role);
                                                 return (
                                                     <View
-                                                        key={index}
+                                                        key={`role-${index}`}
                                                         style={[
                                                             styles.roleTag,
                                                             { backgroundColor: roleColors.bg, borderColor: roleColors.border }
@@ -655,8 +673,21 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                                         <Text style={styles.tagLabel}>テーマ</Text>
                                         <View style={styles.tagContainer}>
                                             {project.tags.map((tag, index) => (
-                                                <View key={index} style={styles.themeTag}>
-                                                    <Text style={styles.themeTagText}>#{tag}</Text>
+                                                <View key={`theme-${index}`} style={styles.themeTag}>
+                                                    <Text style={styles.themeTagText}>{tag}</Text>
+                                                </View>
+                                            ))}
+                                        </View>
+                                    </View>
+                                )}
+
+                                {project.content_tags && project.content_tags.length > 0 && (
+                                    <View style={styles.tagGroup}>
+                                        <Text style={styles.tagLabel}>内容タグ</Text>
+                                        <View style={styles.tagContainer}>
+                                            {project.content_tags.map((tag, index) => (
+                                                <View key={`content-${index}`} style={styles.contentTag}>
+                                                    <Text style={styles.contentTagText}>{tag}</Text>
                                                 </View>
                                             ))}
                                         </View>
@@ -664,14 +695,14 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                                 )}
                             </View>
                             <View style={styles.divider} />
-                        </>
+                        </View>
                     )}
 
                     <Text style={styles.sectionTitle}>プロジェクト詳細</Text>
                     <Text style={styles.description}>{project.description}</Text>
                 </View>
                 <View style={{ height: 100 }} />
-            </ScrollView>
+            </ScrollView >
 
             <View style={styles.footer}>
                 <TouchableOpacity
@@ -769,8 +800,14 @@ const styles = StyleSheet.create({
         fontSize: 24,
         fontWeight: 'bold',
         color: '#111827',
-        marginBottom: 16,
+        marginBottom: 8,
         lineHeight: 32,
+    },
+    tagline: {
+        fontSize: 16,
+        color: '#6B7280',
+        lineHeight: 24,
+        marginBottom: 16,
     },
     metaRow: {
         flexDirection: 'row',
@@ -963,14 +1000,26 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     themeTag: {
-        backgroundColor: '#F3F4F6',
+        backgroundColor: '#3B82F6',
         paddingHorizontal: 12,
         paddingVertical: 6,
-        borderRadius: 16,
+        borderRadius: 8,
     },
     themeTagText: {
-        color: '#4B5563',
         fontSize: 13,
+        fontWeight: '600',
+        color: 'white',
+    },
+    contentTag: {
+        backgroundColor: '#F3F4F6',
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 6,
+    },
+    contentTagText: {
+        fontSize: 13,
+        color: '#4B5563',
+        fontWeight: '500',
     },
     sectionTitle: {
         fontSize: 18,

@@ -26,23 +26,47 @@ interface CreateProjectModalProps {
     project?: {
         id: string;
         title: string;
+        tagline?: string;
         description: string;
         image_url: string | null;
         deadline?: string | null;
         required_roles?: string[];
         tags?: string[];
+        content_tags?: string[];
+        status?: string;
     };
 }
 
 export function CreateProjectModal({ currentUser, onClose, onCreated, project }: CreateProjectModalProps) {
     const [title, setTitle] = useState(project?.title || '');
+    const [tagline, setTagline] = useState(project?.tagline || '');
     const [description, setDescription] = useState(project?.description || '');
     const [deadline, setDeadline] = useState<Date | null>(project?.deadline ? new Date(project.deadline) : null);
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [selectedStatus, setSelectedStatus] = useState<string>(project?.status || '');
 
     const [selectedRoles, setSelectedRoles] = useState<string[]>(project?.required_roles || []);
     const [selectedThemes, setSelectedThemes] = useState<string[]>(project?.tags || []);
+    const [selectedContentTags, setSelectedContentTags] = useState<string[]>(project?.content_tags || []);
+    const [customTagInput, setCustomTagInput] = useState('');
+
+    // 進捗状況の選択肢
+    const PROGRESS_STATUS = [
+        { id: 'idea', title: 'アイデア段階', icon: 'bulb-outline', color: '#F59E0B', bgColor: '#FFFBEB' },
+        { id: 'planning', title: '企画中', icon: 'clipboard-outline', color: '#8B5CF6', bgColor: '#F5F3FF' },
+        { id: 'developing', title: '開発中', icon: 'construct-outline', color: '#3B82F6', bgColor: '#EFF6FF' },
+        { id: 'beta', title: 'β版', icon: 'flask-outline', color: '#EC4899', bgColor: '#FDF2F8' },
+        { id: 'released', title: 'リリース済み', icon: 'rocket-outline', color: '#10B981', bgColor: '#ECFDF5' },
+    ];
+
+    // プリセット内容タグ
+    const CONTENT_TAGS = [
+        'AI開発', 'Webサービス', 'アプリ', '生成AI', 'iOS', 'Android',
+        '無料', 'ツール', '効率化', 'Flutter', 'React', 'Next.js',
+        'ゲーム', 'SNS', 'ヘルスケア', 'OSS', '英語学習', '音楽',
+        'カレンダー', '旅行', 'レシピ', 'タスク管理', 'MCP'
+    ];
 
     // Role to color mapping (matching UserProjectPage)
     const ROLE_COLORS: { [key: string]: { bg: string; icon: string } } = {
@@ -63,20 +87,11 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
     ];
 
     const toggleRole = (role: string) => {
-        if (role === '誰でも') {
-            // If "誰でも" is selected, clear all others and toggle "誰でも"
-            if (selectedRoles.includes('誰でも')) {
-                setSelectedRoles([]);
-            } else {
-                setSelectedRoles(['誰でも']);
-            }
+        // 単純なトグル: 全てのロールを自由に選択可能
+        if (selectedRoles.includes(role)) {
+            setSelectedRoles(selectedRoles.filter(r => r !== role));
         } else {
-            // If other role is selected, remove "誰でも" if present
-            if (selectedRoles.includes(role)) {
-                setSelectedRoles(selectedRoles.filter(r => r !== role));
-            } else {
-                setSelectedRoles([...selectedRoles.filter(r => r !== '誰でも'), role]);
-            }
+            setSelectedRoles([...selectedRoles, role]);
         }
     };
 
@@ -93,7 +108,31 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
 
     const handleSave = async () => {
         if (!title.trim()) {
-            Alert.alert('エラー', 'タイトルを入力してください');
+            Alert.alert('エラー', 'プロジェクト名を入力してください');
+            return;
+        }
+        if (!tagline.trim()) {
+            Alert.alert('エラー', 'タグラインを入力してください');
+            return;
+        }
+        if (selectedRoles.length === 0) {
+            Alert.alert('エラー', '募集するメンバーを選択してください');
+            return;
+        }
+        if (selectedThemes.length === 0) {
+            Alert.alert('エラー', 'プロジェクトのテーマを選択してください');
+            return;
+        }
+        if (!selectedStatus) {
+            Alert.alert('エラー', '進捗状況を選択してください');
+            return;
+        }
+        if (selectedContentTags.length === 0) {
+            Alert.alert('エラー', '内容タグを1つ以上選択してください');
+            return;
+        }
+        if (!description.trim()) {
+            Alert.alert('エラー', '詳細説明を入力してください');
             return;
         }
 
@@ -102,11 +141,14 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
             const projectData = {
                 owner_id: currentUser.id,
                 title: title.trim(),
+                tagline: tagline.trim(),
                 description: description.trim(),
                 image_url: null,
                 deadline: deadline ? deadline.toISOString() : null,
                 required_roles: selectedRoles,
                 tags: selectedThemes,
+                content_tags: selectedContentTags,
+                status: selectedStatus,
             };
 
             let error;
@@ -149,7 +191,14 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
         }
     };
 
-    const isFormValid = title.trim().length > 0;
+    // 必須項目がすべて入力されているかチェック
+    const isFormValid =
+        title.trim().length > 0 &&
+        tagline.trim().length > 0 &&
+        selectedRoles.length > 0 &&
+        selectedThemes.length > 0 &&
+        selectedContentTags.length > 0 &&
+        description.trim().length > 0;
 
     return (
         <View style={styles.container}>
@@ -214,6 +263,28 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
                         </View>
                     </View>
 
+                    {/* Tagline Section */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <View style={styles.sectionIconContainer}>
+                                <Ionicons name="text" size={18} color="#009688" />
+                            </View>
+                            <Text style={styles.sectionTitle}>タグライン</Text>
+                            <Text style={styles.requiredBadge}>必須</Text>
+                        </View>
+                        <View style={styles.inputWrapper}>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="プロジェクトを一言で説明"
+                                placeholderTextColor="#9CA3AF"
+                                value={tagline}
+                                onChangeText={setTagline}
+                                maxLength={60}
+                            />
+                            <Text style={styles.charCount}>{tagline.length}/60</Text>
+                        </View>
+                    </View>
+
                     {/* Roles Section */}
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
@@ -221,6 +292,7 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
                                 <Ionicons name="people" size={18} color="#009688" />
                             </View>
                             <Text style={styles.sectionTitle}>募集するメンバー</Text>
+                            <Text style={styles.requiredBadge}>必須</Text>
                         </View>
                         <View style={styles.rolesContainer}>
                             <View style={styles.rolesGrid}>
@@ -236,7 +308,6 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
                                             ]}
                                             onPress={() => toggleRole(role.id)}
                                             hapticType="selection"
-                                            disabled={isAnyoneSelected}
                                         >
                                             <View style={[
                                                 styles.roleIconContainer,
@@ -245,13 +316,12 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
                                                 <Ionicons
                                                     name={role.icon as any}
                                                     size={20}
-                                                    color={isSelected ? colors.icon : (isAnyoneSelected ? '#D1D5DB' : '#6B7280')}
+                                                    color={isSelected ? colors.icon : '#6B7280'}
                                                 />
                                             </View>
                                             <Text style={[
                                                 styles.roleText,
-                                                isSelected && { color: colors.icon, fontWeight: '600' },
-                                                isAnyoneSelected && !isSelected && { color: '#D1D5DB' }
+                                                isSelected && { color: colors.icon, fontWeight: '600' }
                                             ]}>{role.id}</Text>
                                             {isSelected && (
                                                 <View style={styles.checkBadge}>
@@ -261,11 +331,7 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
                                         </HapticTouchable>
                                     );
                                 })}
-                            </View>
-                            <View style={styles.orContainer}>
-                                <Text style={styles.orText}>or</Text>
-                            </View>
-                            <View style={styles.anyoneCardContainer}>
+                                {/* 誰でもを同じグリッドに追加 */}
                                 <HapticTouchable
                                     style={[
                                         styles.roleCard,
@@ -305,12 +371,13 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
                                 <Ionicons name="pricetag" size={18} color="#009688" />
                             </View>
                             <Text style={styles.sectionTitle}>プロジェクトのテーマ</Text>
+                            <Text style={styles.requiredBadge}>必須</Text>
                         </View>
                         <View style={styles.chipContainer}>
                             {THEMES.map((theme) => {
                                 const isSelected = selectedThemes.includes(theme.title);
                                 return (
-                                    <HapticTouchable
+                                    <TouchableOpacity
                                         key={theme.id}
                                         style={[
                                             styles.chip,
@@ -319,12 +386,18 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
                                                 borderColor: theme.color
                                             }
                                         ]}
-                                        onPress={() => handleThemeSelect(theme.title)}
-                                        hapticType="selection"
+                                        onPress={() => {
+                                            triggerHaptic('selection');
+                                            handleThemeSelect(theme.title);
+                                        }}
+                                        activeOpacity={0.7}
                                     >
-                                        {isSelected && (
-                                            <Ionicons name="checkmark-circle" size={16} color={theme.color} style={{ marginRight: 4 }} />
-                                        )}
+                                        <Ionicons
+                                            name={isSelected ? "checkmark-circle" : "ellipse-outline"}
+                                            size={16}
+                                            color={isSelected ? theme.color : '#D1D5DB'}
+                                            style={{ marginRight: 6 }}
+                                        />
                                         <Text style={[
                                             styles.chipText,
                                             isSelected && {
@@ -332,9 +405,135 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
                                                 fontWeight: '600'
                                             }
                                         ]}>{theme.title}</Text>
-                                    </HapticTouchable>
+                                    </TouchableOpacity>
                                 );
                             })}
+                        </View>
+                    </View>
+
+                    {/* Progress Status Section */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <View style={styles.sectionIconContainer}>
+                                <Ionicons name="trending-up" size={18} color="#009688" />
+                            </View>
+                            <Text style={styles.sectionTitle}>進捗状況</Text>
+                            <Text style={styles.requiredBadge}>必須</Text>
+                        </View>
+                        <View style={styles.chipContainer}>
+                            {PROGRESS_STATUS.map((status) => {
+                                const isSelected = selectedStatus === status.id;
+                                return (
+                                    <TouchableOpacity
+                                        key={status.id}
+                                        style={[
+                                            styles.chip,
+                                            isSelected && {
+                                                backgroundColor: status.bgColor,
+                                                borderColor: status.color
+                                            }
+                                        ]}
+                                        onPress={() => {
+                                            triggerHaptic('selection');
+                                            setSelectedStatus(status.id);
+                                        }}
+                                        activeOpacity={0.7}
+                                    >
+                                        <Ionicons
+                                            name={status.icon as any}
+                                            size={16}
+                                            color={isSelected ? status.color : '#9CA3AF'}
+                                            style={{ marginRight: 6 }}
+                                        />
+                                        <Text style={[
+                                            styles.chipText,
+                                            isSelected && {
+                                                color: status.color,
+                                                fontWeight: '600'
+                                            }
+                                        ]}>{status.title}</Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
+                    </View>
+
+                    {/* Content Tags Section */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <View style={styles.sectionIconContainer}>
+                                <Ionicons name="pricetags" size={18} color="#009688" />
+                            </View>
+                            <Text style={styles.sectionTitle}>内容タグ</Text>
+                            <Text style={styles.requiredBadge}>必須</Text>
+                        </View>
+
+                        {/* Selected Tags Display */}
+                        {selectedContentTags.length > 0 && (
+                            <View style={styles.selectedTagsContainer}>
+                                {selectedContentTags.map((tag, index) => (
+                                    <TouchableOpacity
+                                        key={index}
+                                        style={styles.selectedTag}
+                                        onPress={() => setSelectedContentTags(selectedContentTags.filter(t => t !== tag))}
+                                    >
+                                        <Text style={styles.selectedTagText}>{tag}</Text>
+                                        <Ionicons name="close-circle" size={16} color="#6B7280" />
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        )}
+
+                        {/* Preset Tags */}
+                        <View style={styles.chipContainer}>
+                            {CONTENT_TAGS.filter(tag => !selectedContentTags.includes(tag)).slice(0, 12).map((tag) => (
+                                <HapticTouchable
+                                    key={tag}
+                                    style={styles.contentTagChip}
+                                    onPress={() => {
+                                        if (!selectedContentTags.includes(tag)) {
+                                            setSelectedContentTags([...selectedContentTags, tag]);
+                                        }
+                                    }}
+                                    hapticType="selection"
+                                >
+                                    <Text style={styles.contentTagText}>{tag}</Text>
+                                </HapticTouchable>
+                            ))}
+                        </View>
+
+                        {/* Custom Tag Input */}
+                        <View style={styles.customTagInputContainer}>
+                            <TextInput
+                                style={styles.customTagInput}
+                                placeholder="新しいタグを入力してEnterで追加"
+                                placeholderTextColor="#9CA3AF"
+                                value={customTagInput}
+                                onChangeText={setCustomTagInput}
+                                onSubmitEditing={() => {
+                                    const trimmed = customTagInput.trim();
+                                    if (trimmed && !selectedContentTags.includes(trimmed)) {
+                                        setSelectedContentTags([...selectedContentTags, trimmed]);
+                                        setCustomTagInput('');
+                                    }
+                                }}
+                                returnKeyType="done"
+                                maxLength={20}
+                            />
+                            {customTagInput.trim() && (
+                                <TouchableOpacity
+                                    style={styles.addTagButton}
+                                    onPress={() => {
+                                        const trimmed = customTagInput.trim();
+                                        if (trimmed && !selectedContentTags.includes(trimmed)) {
+                                            setSelectedContentTags([...selectedContentTags, trimmed]);
+                                            setCustomTagInput('');
+                                        }
+                                    }}
+                                >
+                                    <Ionicons name="add-circle" size={24} color="#009688" />
+                                </TouchableOpacity>
+                            )}
                         </View>
                     </View>
 
@@ -396,6 +595,7 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
                                 <Ionicons name="document-text" size={18} color="#009688" />
                             </View>
                             <Text style={styles.sectionTitle}>詳細説明</Text>
+                            <Text style={styles.requiredBadge}>必須</Text>
                         </View>
                         <View style={styles.textAreaWrapper}>
                             <TextInput
@@ -526,6 +726,7 @@ const styles = StyleSheet.create({
         borderColor: '#E5E7EB',
         borderRadius: 12,
         padding: 14,
+        paddingRight: 50, // カウンターとの重なりを防ぐ
         fontSize: 16,
         color: '#111827',
     },
@@ -610,14 +811,19 @@ const styles = StyleSheet.create({
     chipContainer: {
         flexDirection: 'row',
         flexWrap: 'wrap',
+        alignItems: 'center', // 高さを揃える
         gap: 8,
     },
     chip: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 14,
-        paddingVertical: 10,
-        borderRadius: 20,
+        alignSelf: 'center', // 親からの引き伸ばしを防ぐ
+        justifyContent: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 0,
+        height: 44, // 高さを少し小さくしてバランス調整
+        minWidth: 70,
+        borderRadius: 22,
         backgroundColor: '#F9FAFB',
         borderWidth: 1.5,
         borderColor: '#E5E7EB',
@@ -630,6 +836,7 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#374151',
         fontWeight: '500',
+        lineHeight: 20,
     },
     chipTextActive: {
         color: '#009688',
@@ -681,5 +888,61 @@ const styles = StyleSheet.create({
         color: '#111827',
         minHeight: 180,
         lineHeight: 22,
+    },
+    // Content Tags Styles
+    selectedTagsContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+        marginBottom: 12,
+    },
+    selectedTag: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#E0F2F1',
+        borderRadius: 16,
+        paddingVertical: 6,
+        paddingLeft: 12,
+        paddingRight: 8,
+        gap: 4,
+    },
+    selectedTagText: {
+        fontSize: 13,
+        color: '#009688',
+        fontWeight: '600',
+    },
+    contentTagChip: {
+        height: 40, // 内容タグは少し小さめ
+        justifyContent: 'center',
+        paddingHorizontal: 14,
+        paddingVertical: 0,
+        backgroundColor: '#F3F4F6',
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+    },
+    contentTagText: {
+        fontSize: 13,
+        color: '#4B5563',
+        fontWeight: '500',
+    },
+    customTagInputContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 12,
+        backgroundColor: '#F9FAFB',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        paddingHorizontal: 12,
+    },
+    customTagInput: {
+        flex: 1,
+        paddingVertical: 12,
+        fontSize: 14,
+        color: '#111827',
+    },
+    addTagButton: {
+        padding: 4,
     },
 });
