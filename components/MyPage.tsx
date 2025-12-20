@@ -353,7 +353,7 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
     );
 
     const renderProfileCard = () => (
-        <ModernCard style={styles.profileCard} padding="medium">
+        <View style={styles.profileCard}>
             <View style={styles.profileRow}>
                 <Image
                     source={{ uri: profile.image }}
@@ -362,27 +362,24 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                 <View style={styles.profileTextColumn}>
                     <Text style={styles.profileName}>{profile.name}</Text>
                     <View style={styles.universityContainer}>
-                        <Ionicons name="school-outline" size={16} color="#6B7280" style={{ marginRight: 4 }} />
+                        <Ionicons name="school-outline" size={14} color="#9CA3AF" style={{ marginRight: 6 }} />
                         <Text style={styles.profileUniversity}>
                             {profile.university}
                             {profile.grade ? ` / ${profile.grade}` : ''}
                         </Text>
                     </View>
                     <View style={styles.editRow}>
-                        <ModernButton
-                            title="プロフィールを編集"
-                            onPress={() => onEditProfile && onEditProfile()}
-                            variant="secondary"
-                            size="small"
-                            icon="pencil-outline"
-                        />
+                        <TouchableOpacity style={styles.editProfileButton} onPress={() => onEditProfile && onEditProfile()}>
+                            <Ionicons name="pencil" size={14} color="#009688" />
+                            <Text style={styles.editProfileButtonText}>プロフィールを編集</Text>
+                        </TouchableOpacity>
                         <TouchableOpacity style={styles.settingsButton} onPress={() => setIsMenuVisible(true)}>
-                            <Ionicons name="settings-outline" size={18} color="#374151" />
+                            <Ionicons name="settings-outline" size={20} color="#6B7280" />
                         </TouchableOpacity>
                     </View>
                 </View>
             </View>
-        </ModernCard>
+        </View>
     );
 
     const renderTabs = () => (
@@ -722,47 +719,71 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     profileCard: {
-        paddingVertical: 20,
-        paddingHorizontal: 16,
+        paddingVertical: 24,
+        paddingHorizontal: 20,
         marginHorizontal: 16,
-        marginBottom: 6,
-        marginTop: 4, // move slightly upward on screen
-        backgroundColor: '#FAFAFA',
-        borderRadius: 16,
+        marginBottom: 12,
+        marginTop: 8,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        elevation: 3,
     },
     profileRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12,
+        gap: 16,
     },
     profileImage: {
-        width: 90,
-        height: 90,
-        borderRadius: 45,
-        // 枠線なし
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        borderWidth: 3,
+        borderColor: '#F3F4F6',
     },
     profileTextColumn: {
         flex: 1,
-        gap: 6,
+        gap: 8,
     },
     profileName: {
-        fontSize: 20,
+        fontSize: 22,
         fontFamily: FONTS.bold,
-        color: '#1F2937',
+        color: '#111827',
+        letterSpacing: -0.5,
     },
     universityContainer: {
         flexDirection: 'row',
         alignItems: 'center',
     },
     profileUniversity: {
-        fontSize: 14,
+        fontSize: 13,
         color: '#6B7280',
+        fontFamily: FONTS.regular,
     },
     editRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
-        marginTop: 4,
+        gap: 10,
+        marginTop: 8,
+    },
+    editProfileButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#F0FDF9',
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        borderRadius: 24,
+        borderWidth: 1.5,
+        borderColor: '#009688',
+        gap: 6,
+    },
+    editProfileButtonText: {
+        fontSize: 13,
+        fontFamily: FONTS.semiBold,
+        color: '#009688',
     },
     editButton: {
         flexDirection: 'row',
@@ -781,11 +802,11 @@ const styles = StyleSheet.create({
         color: '#009688',
     },
     settingsButton: {
-        paddingVertical: 6,
-        paddingHorizontal: 12,
-        borderRadius: 18, // やや楕円形（横長）
-        borderWidth: 1,
-        borderColor: '#111827', // 少し濃い目の枠線
+        width: 42,
+        height: 42,
+        borderRadius: 21,
+        borderWidth: 1.5,
+        borderColor: '#E5E7EB',
         backgroundColor: '#FFFFFF',
         alignItems: 'center',
         justifyContent: 'center',
@@ -793,36 +814,36 @@ const styles = StyleSheet.create({
     tabsContainer: {
         flexDirection: 'row',
         marginHorizontal: 16,
-        marginBottom: 6,
+        marginBottom: 12,
         backgroundColor: '#F3F4F6',
-        borderRadius: 12,
-        padding: 4,
+        borderRadius: 14,
+        padding: 5,
     },
     tabItem: {
         flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 10,
-        borderRadius: 10,
-        gap: 6,
+        paddingVertical: 12,
+        borderRadius: 11,
+        gap: 8,
     },
     activeTab: {
         backgroundColor: 'white',
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-        elevation: 2,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+        elevation: 3,
     },
     tabLabel: {
         fontSize: 14,
-        color: '#999',
-        fontWeight: '500',
+        color: '#9CA3AF',
+        fontFamily: FONTS.medium,
     },
     tabLabelActive: {
         color: '#009688',
-        fontWeight: '600',
+        fontFamily: FONTS.semiBold,
     },
     projectListContent: {
         paddingHorizontal: 16,
