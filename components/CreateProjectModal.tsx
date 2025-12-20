@@ -33,6 +33,7 @@ interface CreateProjectModalProps {
         required_roles?: string[];
         tags?: string[];
         content_tags?: string[];
+        status?: string;
     };
 }
 
@@ -43,11 +44,21 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
     const [deadline, setDeadline] = useState<Date | null>(project?.deadline ? new Date(project.deadline) : null);
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [selectedStatus, setSelectedStatus] = useState<string>(project?.status || '');
 
     const [selectedRoles, setSelectedRoles] = useState<string[]>(project?.required_roles || []);
     const [selectedThemes, setSelectedThemes] = useState<string[]>(project?.tags || []);
     const [selectedContentTags, setSelectedContentTags] = useState<string[]>(project?.content_tags || []);
     const [customTagInput, setCustomTagInput] = useState('');
+
+    // 進捗状況の選択肢
+    const PROGRESS_STATUS = [
+        { id: 'idea', title: 'アイデア段階', icon: 'bulb-outline', color: '#F59E0B', bgColor: '#FFFBEB' },
+        { id: 'planning', title: '企画中', icon: 'clipboard-outline', color: '#8B5CF6', bgColor: '#F5F3FF' },
+        { id: 'developing', title: '開発中', icon: 'construct-outline', color: '#3B82F6', bgColor: '#EFF6FF' },
+        { id: 'beta', title: 'β版', icon: 'flask-outline', color: '#EC4899', bgColor: '#FDF2F8' },
+        { id: 'released', title: 'リリース済み', icon: 'rocket-outline', color: '#10B981', bgColor: '#ECFDF5' },
+    ];
 
     // プリセット内容タグ
     const CONTENT_TAGS = [
@@ -121,6 +132,10 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
             Alert.alert('エラー', 'プロジェクトのテーマを選択してください');
             return;
         }
+        if (!selectedStatus) {
+            Alert.alert('エラー', '進捗状況を選択してください');
+            return;
+        }
         if (selectedContentTags.length === 0) {
             Alert.alert('エラー', '内容タグを1つ以上選択してください');
             return;
@@ -142,6 +157,7 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
                 required_roles: selectedRoles,
                 tags: selectedThemes,
                 content_tags: selectedContentTags,
+                status: selectedStatus,
             };
 
             let error;
@@ -404,6 +420,53 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
                                                 fontWeight: '600'
                                             }
                                         ]}>{theme.title}</Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
+                    </View>
+
+                    {/* Progress Status Section */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <View style={styles.sectionIconContainer}>
+                                <Ionicons name="trending-up" size={18} color="#009688" />
+                            </View>
+                            <Text style={styles.sectionTitle}>進捗状況</Text>
+                            <Text style={styles.requiredBadge}>必須</Text>
+                        </View>
+                        <View style={styles.chipContainer}>
+                            {PROGRESS_STATUS.map((status) => {
+                                const isSelected = selectedStatus === status.id;
+                                return (
+                                    <TouchableOpacity
+                                        key={status.id}
+                                        style={[
+                                            styles.chip,
+                                            isSelected && {
+                                                backgroundColor: status.bgColor,
+                                                borderColor: status.color
+                                            }
+                                        ]}
+                                        onPress={() => {
+                                            triggerHaptic('selection');
+                                            setSelectedStatus(status.id);
+                                        }}
+                                        activeOpacity={0.7}
+                                    >
+                                        <Ionicons
+                                            name={status.icon as any}
+                                            size={16}
+                                            color={isSelected ? status.color : '#9CA3AF'}
+                                            style={{ marginRight: 6 }}
+                                        />
+                                        <Text style={[
+                                            styles.chipText,
+                                            isSelected && {
+                                                color: status.color,
+                                                fontWeight: '600'
+                                            }
+                                        ]}>{status.title}</Text>
                                     </TouchableOpacity>
                                 );
                             })}
