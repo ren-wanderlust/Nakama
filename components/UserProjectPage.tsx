@@ -20,6 +20,7 @@ import { getImageSource } from '../constants/DefaultImages';
 interface Project {
     id: string;
     title: string;
+    tagline?: string;
     description: string;
     image_url: string | null;
     owner_id: string;
@@ -27,6 +28,7 @@ interface Project {
     deadline?: string | null;
     required_roles?: string[];
     tags?: string[];
+    content_tags?: string[];
     owner?: {
         id: string;
         name: string;
@@ -215,28 +217,34 @@ const ProjectCard = ({ project, onPress, index = 0 }: { project: Project; onPres
                     {/* Card Content */}
                     <View style={styles.cardContent}>
                         {/* Title */}
-                        <View style={styles.cardTitleContainer}>
-                            <Text style={styles.cardTitle} numberOfLines={2}>{project.title}</Text>
-                        </View>
+                        <Text style={styles.cardTitle} numberOfLines={1}>{project.title}</Text>
 
-                        {/* Author Info */}
-                        <View style={styles.authorRow}>
-                            <Image
-                                source={getImageSource(project.owner?.image)}
-                                style={styles.authorIcon}
-                            />
-                            <Text style={styles.authorName} numberOfLines={1}>
-                                {project.owner?.name || '匿名'}
-                                {project.owner?.university ? ` (${project.owner.university})` : ''}
-                            </Text>
-                            <Text style={styles.timeAgo}>{timeAgo}</Text>
-                            {deadlineString ? (
-                                <View style={styles.deadlineBadge}>
-                                    <Ionicons name="time-outline" size={12} color="#FF6B6B" />
-                                    <Text style={styles.deadlineText}>{deadlineString}</Text>
-                                </View>
-                            ) : null}
-                        </View>
+                        {/* Tagline */}
+                        {project.tagline && (
+                            <Text style={styles.cardTagline} numberOfLines={1}>{project.tagline}</Text>
+                        )}
+
+                        {/* Tags - Theme + Content Tags */}
+                        {((project.tags && project.tags.length > 0) || (project.content_tags && project.content_tags.length > 0)) && (
+                            <View style={styles.tagsRow}>
+                                {/* Theme Tag (大枠) */}
+                                {project.tags?.slice(0, 1).map((tag, index) => (
+                                    <View key={`theme-${index}`} style={styles.themeTag}>
+                                        <Text style={styles.themeTagText}>{tag}</Text>
+                                    </View>
+                                ))}
+                                {/* Content Tags - 最大3つまで */}
+                                {project.content_tags?.slice(0, 3).map((tag, index) => (
+                                    <View key={`content-${index}`} style={styles.tag}>
+                                        <Text style={styles.tagText}>{tag}</Text>
+                                    </View>
+                                ))}
+                                {/* 省略表示 */}
+                                {(project.content_tags?.length || 0) > 3 && (
+                                    <Text style={styles.moreTagsText}>...</Text>
+                                )}
+                            </View>
+                        )}
                     </View>
                 </View>
             </TouchableOpacity>
@@ -452,29 +460,30 @@ const styles = StyleSheet.create({
     },
     grid: {
         flexDirection: 'column',
-        gap: 6,
+        gap: 8,
     },
     card: {
         width: '100%',
-        height: 100, // Fixed height
+        height: 120, // 固定高さを増加
         borderRadius: 16,
         overflow: 'hidden',
         ...SHADOWS.lg,
     },
     cardInner: {
         flexDirection: 'row',
-        padding: 16,
-        alignItems: 'center',
+        padding: 14,
+        paddingVertical: 12,
+        alignItems: 'center', // 中央揃えに戻す
         borderRadius: 16,
         backgroundColor: 'white',
         height: '100%',
+        gap: 12, // アイコンとコンテンツの間隔
     },
     iconsContainer: {
         width: 70,
         height: 70,
         borderRadius: 12,
         backgroundColor: 'transparent',
-        marginRight: 14,
         flexDirection: 'row',
         flexWrap: 'wrap',
     },
@@ -525,7 +534,7 @@ const styles = StyleSheet.create({
     cardContent: {
         flex: 1,
         justifyContent: 'center',
-        height: '100%',
+        gap: 2,
     },
     cardTitleContainer: {
         height: 44, // Fixed height for 2 lines (22 * 2)
@@ -543,6 +552,13 @@ const styles = StyleSheet.create({
         fontFamily: FONTS.bold,
         color: '#111827',
         lineHeight: 22,
+    },
+    cardTagline: {
+        fontSize: 12,
+        fontFamily: FONTS.regular,
+        color: '#6B7280',
+        lineHeight: 16,
+        marginTop: 2,
     },
     deadlineBadge: {
         flexDirection: 'row',
@@ -569,6 +585,41 @@ const styles = StyleSheet.create({
         flexWrap: 'wrap',
         gap: 6,
         marginBottom: 10,
+    },
+    tagsRow: {
+        flexDirection: 'row',
+        flexWrap: 'nowrap', // 1行に収める
+        gap: 4,
+        marginTop: 4,
+        overflow: 'hidden',
+    },
+    tag: {
+        backgroundColor: '#F3F4F6',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 6,
+    },
+    tagText: {
+        fontSize: 11,
+        fontFamily: FONTS.medium,
+        color: '#6B7280',
+    },
+    moreTagsText: {
+        fontSize: 11,
+        fontFamily: FONTS.medium,
+        color: '#9CA3AF',
+        alignSelf: 'center',
+    },
+    themeTag: {
+        backgroundColor: '#3B82F6',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 6,
+    },
+    themeTagText: {
+        fontSize: 11,
+        fontFamily: FONTS.semiBold,
+        color: '#FFFFFF',
     },
     miniRoleTag: {
         backgroundColor: 'rgba(0, 150, 136, 0.25)',
