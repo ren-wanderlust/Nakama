@@ -399,28 +399,140 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
         />
     );
 
-    const renderParticipatingProjectItem = ({ item }: { item: any }) => (
-        <TouchableOpacity style={projectCardStyles.card} onPress={() => setSelectedProject(item)} activeOpacity={0.7}>
-            <View style={projectCardStyles.participatingBadge}>
-                <Text style={projectCardStyles.participatingBadgeText}>参加中</Text>
-            </View>
-            <View style={projectCardStyles.cardInner}>
-                <Image
-                    source={getImageSource(item.owner?.image)}
-                    style={projectCardStyles.authorIcon}
-                />
-                <View style={projectCardStyles.cardContent}>
-                    <View style={projectCardStyles.cardHeader}>
-                        <Text style={projectCardStyles.cardTitle} numberOfLines={1}>{item.title}</Text>
+    const renderParticipatingProjectItem = ({ item }: { item: any }) => {
+        // Get roles with icons and colors, limit to 4
+        const rolesWithIcons = item.required_roles
+            ?.slice(0, 4)
+            .map((role: string) => ({
+                role,
+                icon: ROLE_ICONS[role] || 'help-circle-outline',
+                colors: ROLE_COLORS[role] || { bg: '#F3F4F6', icon: '#6B7280' }
+            })) || [];
+
+        const iconCount = rolesWithIcons.length;
+
+        // Same icon layout logic as ProjectCard
+        const getIconLayout = () => {
+            if (iconCount === 0) {
+                return null;
+            } else if (iconCount === 1) {
+                return (
+                    <View style={projectCardStyles.iconsContainer}>
+                        <View style={projectCardStyles.iconSlotCenter}>
+                            <View style={[projectCardStyles.iconCircleLarge, { backgroundColor: rolesWithIcons[0].colors.bg }]}>
+                                <Ionicons
+                                    name={rolesWithIcons[0].icon as any}
+                                    size={30}
+                                    color={rolesWithIcons[0].colors.icon}
+                                />
+                            </View>
+                        </View>
                     </View>
-                    <Text style={projectCardStyles.cardDescription} numberOfLines={2}>{item.description}</Text>
-                    <View style={projectCardStyles.ownerInfo}>
+                );
+            } else if (iconCount === 2) {
+                return (
+                    <View style={projectCardStyles.iconsContainer}>
+                        <View style={projectCardStyles.iconSlotTwo}>
+                            <View style={[projectCardStyles.iconCircle, { backgroundColor: rolesWithIcons[0].colors.bg }]}>
+                                <Ionicons
+                                    name={rolesWithIcons[0].icon as any}
+                                    size={20}
+                                    color={rolesWithIcons[0].colors.icon}
+                                />
+                            </View>
+                        </View>
+                        <View style={projectCardStyles.iconSlotTwo}>
+                            <View style={[projectCardStyles.iconCircle, { backgroundColor: rolesWithIcons[1].colors.bg }]}>
+                                <Ionicons
+                                    name={rolesWithIcons[1].icon as any}
+                                    size={20}
+                                    color={rolesWithIcons[1].colors.icon}
+                                />
+                            </View>
+                        </View>
+                    </View>
+                );
+            } else if (iconCount === 3) {
+                return (
+                    <View style={projectCardStyles.iconsContainer}>
+                        <View style={projectCardStyles.iconSlotTop}>
+                            <View style={[projectCardStyles.iconCircle, { backgroundColor: rolesWithIcons[0].colors.bg }]}>
+                                <Ionicons
+                                    name={rolesWithIcons[0].icon as any}
+                                    size={20}
+                                    color={rolesWithIcons[0].colors.icon}
+                                />
+                            </View>
+                        </View>
+                        <View style={projectCardStyles.iconSlotTop}>
+                            <View style={[projectCardStyles.iconCircle, { backgroundColor: rolesWithIcons[1].colors.bg }]}>
+                                <Ionicons
+                                    name={rolesWithIcons[1].icon as any}
+                                    size={20}
+                                    color={rolesWithIcons[1].colors.icon}
+                                />
+                            </View>
+                        </View>
+                        <View style={projectCardStyles.iconSlotBottomCenter}>
+                            <View style={[projectCardStyles.iconCircle, { backgroundColor: rolesWithIcons[2].colors.bg }]}>
+                                <Ionicons
+                                    name={rolesWithIcons[2].icon as any}
+                                    size={20}
+                                    color={rolesWithIcons[2].colors.icon}
+                                />
+                            </View>
+                        </View>
+                    </View>
+                );
+            } else {
+                return (
+                    <View style={projectCardStyles.iconsContainer}>
+                        {rolesWithIcons.map((roleItem: { role: string; icon: string; colors: { bg: string; icon: string } }, i: number) => (
+                            <View key={`icon-${i}`} style={projectCardStyles.iconSlotGrid}>
+                                <View style={[projectCardStyles.iconCircle, { backgroundColor: roleItem.colors.bg }]}>
+                                    <Ionicons
+                                        name={roleItem.icon as any}
+                                        size={20}
+                                        color={roleItem.colors.icon}
+                                    />
+                                </View>
+                            </View>
+                        ))}
+                    </View>
+                );
+            }
+        };
+
+        // 作成日を取得
+        const createdDate = item.created_at ? new Date(item.created_at) : null;
+        const createdDateString = createdDate
+            ? `${createdDate.getFullYear()}/${createdDate.getMonth() + 1}/${createdDate.getDate()}`
+            : '';
+
+        return (
+            <ModernCard
+                onPress={() => setSelectedProject(item)}
+                style={[projectCardStyles.card, { marginTop: 2, marginBottom: 4 }]}
+                padding="none"
+            >
+                <View style={projectCardStyles.participatingBadge}>
+                    <Text style={projectCardStyles.participatingBadgeText}>参加中</Text>
+                </View>
+                <View style={projectCardStyles.cardInner}>
+                    {getIconLayout()}
+                    <View style={projectCardStyles.cardContent}>
+                        <View style={projectCardStyles.cardHeader}>
+                            <Text style={projectCardStyles.cardTitle} numberOfLines={1}>{item.title}</Text>
+                        </View>
                         <Text style={projectCardStyles.ownerName}>{item.owner?.name || '不明'}</Text>
+                        {createdDateString ? (
+                            <Text style={projectCardStyles.createdDateText}>{createdDateString}</Text>
+                        ) : null}
                     </View>
                 </View>
-            </View>
-        </TouchableOpacity>
-    );
+            </ModernCard>
+        );
+    };
 
     return (
         <SafeAreaView style={styles.container}>
