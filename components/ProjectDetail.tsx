@@ -59,13 +59,24 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
     const [applicants, setApplicants] = useState<Applicant[]>([]);
     const [hasApplied, setHasApplied] = useState(false);
     const [applicationStatus, setApplicationStatus] = useState<string | null>(null);
-    const [currentStatus, setCurrentStatus] = useState<string>(project.status || 'recruiting');
+
+    // 募集状態を判定する関数
+    // statusは進捗状況（idea, planning, developing等）または募集状態（recruiting, closed）を含む可能性がある
+    // 'closed'のみを停止状態として扱い、それ以外は全て募集中とする
+    const getRecruitmentStatus = (status?: string): string => {
+        if (status === 'closed') {
+            return 'closed';
+        }
+        return 'recruiting'; // 進捗状況や未設定の場合は全て募集中として扱う
+    };
+
+    const [currentStatus, setCurrentStatus] = useState<string>(() => {
+        return getRecruitmentStatus(project.status);
+    });
 
     // プロジェクトのステータスがプロップス変更で更新された場合に備えて同期
     useEffect(() => {
-        if (project.status) {
-            setCurrentStatus(project.status);
-        }
+        setCurrentStatus(getRecruitmentStatus(project.status));
     }, [project.status]);
 
     const [showEditModal, setShowEditModal] = useState(false);
