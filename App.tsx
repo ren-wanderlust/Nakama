@@ -753,9 +753,14 @@ function AppContent() {
   // Sorting logic
   const sortedProfiles = [...filteredProfiles].sort((a, b) => {
     if (sortOrder === 'newest') {
+      // 新着順: 登録日時でソート
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     }
-    return 0; // Recommended order (default)
+    // Recommended order: アクティブ度（最後にアクティブだったユーザーを優先）
+    // lastActiveAtがあればそれを使用、なければcreatedAtにフォールバック
+    const aActiveTime = a.lastActiveAt ? new Date(a.lastActiveAt).getTime() : new Date(a.createdAt).getTime();
+    const bActiveTime = b.lastActiveAt ? new Date(b.lastActiveAt).getTime() : new Date(b.createdAt).getTime();
+    return bActiveTime - aActiveTime;
   });
 
   const handleLike = async (profileId: string) => {
