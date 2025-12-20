@@ -557,9 +557,6 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                                 )}
                             </View>
                         )}
-
-                        {/* Owner name */}
-                        <Text style={projectCardStyles.ownerName}>{item.owner?.name || '不明'}</Text>
                     </View>
                 </View>
             </ModernCard>
