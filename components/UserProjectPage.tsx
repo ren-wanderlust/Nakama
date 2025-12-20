@@ -233,14 +233,14 @@ const ProjectCard = ({ project, onPress, index = 0 }: { project: Project; onPres
                                         <Text style={styles.themeTagText}>{tag}</Text>
                                     </View>
                                 ))}
-                                {/* Content Tags - 最大3つまで */}
-                                {project.content_tags?.slice(0, 3).map((tag, index) => (
+                                {/* Content Tags - 最大4つまで */}
+                                {project.content_tags?.slice(0, 4).map((tag, index) => (
                                     <View key={`content-${index}`} style={styles.tag}>
                                         <Text style={styles.tagText}>{tag}</Text>
                                     </View>
                                 ))}
                                 {/* 省略表示 */}
-                                {(project.content_tags?.length || 0) > 3 && (
+                                {(project.content_tags?.length || 0) > 4 && (
                                     <Text style={styles.moreTagsText}>...</Text>
                                 )}
                             </View>
@@ -595,12 +595,12 @@ const styles = StyleSheet.create({
     },
     tag: {
         backgroundColor: '#F3F4F6',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 6,
+        paddingHorizontal: 6,
+        paddingVertical: 3,
+        borderRadius: 4,
     },
     tagText: {
-        fontSize: 11,
+        fontSize: 10,
         fontFamily: FONTS.medium,
         color: '#6B7280',
     },
@@ -612,12 +612,12 @@ const styles = StyleSheet.create({
     },
     themeTag: {
         backgroundColor: '#3B82F6',
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 6,
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 4,
     },
     themeTagText: {
-        fontSize: 11,
+        fontSize: 10,
         fontFamily: FONTS.semiBold,
         color: '#FFFFFF',
     },
