@@ -548,16 +548,16 @@ const styles = StyleSheet.create({
         marginBottom: 6,
     },
     cardTitle: {
-        fontSize: 16,
+        fontSize: 17,
         fontFamily: FONTS.bold,
         color: '#111827',
         lineHeight: 22,
     },
     cardTagline: {
-        fontSize: 12,
+        fontSize: 13,
         fontFamily: FONTS.regular,
         color: '#6B7280',
-        lineHeight: 16,
+        lineHeight: 18,
         marginTop: 2,
     },
     deadlineBadge: {
