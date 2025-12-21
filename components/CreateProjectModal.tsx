@@ -62,10 +62,17 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
 
     // プリセット内容タグ
     const CONTENT_TAGS = [
-        'AI開発', 'Webサービス', 'アプリ', '生成AI', 'iOS', 'Android',
-        '無料', 'ツール', '効率化', 'Flutter', 'React', 'Next.js',
-        'ゲーム', 'SNS', 'ヘルスケア', 'OSS', '英語学習', '音楽',
-        'カレンダー', '旅行', 'レシピ', 'タスク管理', 'MCP'
+        // 開発形態
+        '個人開発', 'WEBサービス', 'AI開発', 'アプリ', '生成AI', 'iOS', 'Android',
+        // ユーティリティ
+        '無料', 'ツール', '効率化', 'タスク管理', 'カレンダー', '自動化',
+        // 分野
+        'ゲーム', 'SNS', '教育', '英語学習', 'ヘルスケア', '音楽', '旅行', 'レシピ',
+        '金融', 'マッチング', 'コミュニティサイト',
+        // フレームワーク・技術
+        'Next.js', 'Flutter', 'React', 'Swift',
+        // その他
+        'OSS', 'MCP', 'ハッカソン', 'MVP', 'コンテスト向け',
     ];
 
     // Role to color mapping (matching UserProjectPage)
@@ -486,7 +493,7 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
 
                         {/* Preset Tags */}
                         <View style={styles.chipContainer}>
-                            {CONTENT_TAGS.filter(tag => !selectedContentTags.includes(tag)).slice(0, 12).map((tag) => (
+                            {CONTENT_TAGS.filter(tag => !selectedContentTags.includes(tag)).map((tag) => (
                                 <HapticTouchable
                                     key={tag}
                                     style={styles.contentTagChip}
