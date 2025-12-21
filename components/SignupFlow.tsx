@@ -964,8 +964,9 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
     const renderStep4 = () => {
         const roleOptions = [
             { id: 'エンジニア', label: 'エンジニア' },
-            { id: 'アイディアマン', label: 'アイディアマン' },
+            { id: 'デザイナー', label: 'デザイナー' },
             { id: 'マーケター', label: 'マーケター' },
+            { id: 'アイディアマン', label: 'アイディアマン' },
             { id: 'クリエイター', label: 'クリエイター' },
             { id: 'その他', label: 'その他' },
         ];
@@ -1053,6 +1054,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
             { id: 'エンジニア', label: 'エンジニア' },
             { id: 'デザイナー', label: 'デザイナー' },
             { id: 'マーケター', label: 'マーケター' },
+            { id: 'アイディアマン', label: 'アイディアマン' },
             { id: 'クリエイター', label: 'クリエイター' },
             { id: 'その他', label: 'その他' },
         ];
