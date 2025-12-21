@@ -394,6 +394,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 6,
+        height: 22, // テキストの高さに合わせて固定（未読アイコンの有無に関わらず一定）
     },
     tabBadge: {
         backgroundColor: '#FF7F11',
