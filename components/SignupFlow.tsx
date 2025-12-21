@@ -1175,7 +1175,10 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                         </Text>
                     </View>
                     <Text style={styles.optionalText}>
-                        ※記入は任意です。後から設定することもできます。
+                        ※ 記入は任意です。後から設定することもできます。
+                    </Text>
+                    <Text style={styles.optionalText}>
+                        💡 GitHubアカウントはプロフィール編集から追加できます
                     </Text>
                 </View>
 
