@@ -21,6 +21,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { getUserPushTokens, sendPushNotification } from '../lib/notifications';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../data/queryKeys';
@@ -530,11 +531,23 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
         const result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
             allowsEditing: true,
-            quality: 0.7,
+            quality: 1, // 最初は高品質で取得、後でリサイズ
         });
 
         if (!result.canceled) {
-            setSelectedImage(result.assets[0].uri);
+            try {
+                // 画像をリサイズ・圧縮（最大幅1200px、JPEG 70%品質）
+                const manipulated = await ImageManipulator.manipulateAsync(
+                    result.assets[0].uri,
+                    [{ resize: { width: 1200 } }],
+                    { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+                );
+                setSelectedImage(manipulated.uri);
+            } catch (error) {
+                console.error('Image resize error:', error);
+                // リサイズに失敗した場合は元の画像を使用
+                setSelectedImage(result.assets[0].uri);
+            }
         }
     };
 

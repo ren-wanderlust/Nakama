@@ -18,6 +18,7 @@ import {
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { Session } from '@supabase/supabase-js';
 import * as SecureStore from 'expo-secure-store';
 import { supabase } from '../lib/supabase';
@@ -171,11 +172,22 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
             allowsEditing: true,
             aspect: [1, 1],
-            quality: 0.8,
+            quality: 1, // 最初は高品質で取得、後でリサイズ
         });
 
         if (!result.canceled) {
-            setImageUri(result.assets[0].uri);
+            try {
+                // プロフィール画像は800x800にリサイズ（アバター用に最適化）
+                const manipulated = await ImageManipulator.manipulateAsync(
+                    result.assets[0].uri,
+                    [{ resize: { width: 800, height: 800 } }],
+                    { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
+                );
+                setImageUri(manipulated.uri);
+            } catch (error) {
+                console.error('Image resize error:', error);
+                setImageUri(result.assets[0].uri);
+            }
             if (errors.image) setErrors({ ...errors, image: false });
         }
     };

@@ -18,6 +18,7 @@ import {
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
 import { SHADOWS } from '../constants/DesignSystem';
@@ -113,11 +114,22 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
             allowsEditing: true,
             aspect: [1, 1],
-            quality: 0.8,
+            quality: 1, // 最初は高品質で取得、後でリサイズ
         });
 
         if (!result.canceled) {
-            setImage(result.assets[0].uri);
+            try {
+                // プロフィール画像は800x800にリサイズ（アバター用に最適化）
+                const manipulated = await ImageManipulator.manipulateAsync(
+                    result.assets[0].uri,
+                    [{ resize: { width: 800, height: 800 } }],
+                    { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
+                );
+                setImage(manipulated.uri);
+            } catch (error) {
+                console.error('Image resize error:', error);
+                setImage(result.assets[0].uri);
+            }
         }
     };
 
