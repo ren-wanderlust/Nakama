@@ -11,7 +11,8 @@ import {
     SafeAreaView,
     Alert,
     ActivityIndicator,
-    Modal
+    Modal,
+    Dimensions
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,23 +27,8 @@ import { getUserPushTokens, sendPushNotification } from '../lib/notifications';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../data/queryKeys';
 
-interface Message {
-    id: string;
-    text: string;
-    image_url?: string;
-    sender: 'me' | 'other';
-    senderId?: string;     // Sender's user ID
-    senderName?: string;   // Sender's name
-    senderImage?: string;  // Sender's avatar image
-    timestamp: string;
-    date: string; // ISO date string for grouping (YYYY-MM-DD)
-    created_at: string;
-    replyTo?: {
-        id: string;
-        text: string;
-        senderName: string;
-    };
-}
+import { useMessagesInfinite } from '../data/hooks/useMessagesInfinite';
+import { Message } from '../data/api/messages';
 
 interface MessageItem {
     type: 'date' | 'message';
@@ -103,6 +89,36 @@ const MessageBubble = ({
     const isMe = message.sender === 'me';
     const swipeableRef = useRef<any>(null);
     const [imageModalVisible, setImageModalVisible] = useState(false);
+
+    // For reply messages: track widths of each element to determine max width
+    const [replySenderWidth, setReplySenderWidth] = useState(0);
+    const [replyTextWidth, setReplyTextWidth] = useState(0);
+    const [mainMessageWidth, setMainMessageWidth] = useState(0);
+
+    const screenWidth = Dimensions.get('window').width;
+    const defaultMaxWidth = screenWidth * 0.75; // 75% of screen width
+
+    // Helper to format reply text (force wrap every 20 chars)
+    const formatReplyText = (text: string) => {
+        if (!text) return '';
+        const chunks = text.match(/.{1,20}/g);
+        return chunks ? chunks.join('\n') : text;
+    };
+
+    const replyText = message.replyTo ? formatReplyText(message.replyTo.text) : '';
+
+    // Calculate max width from reply elements and main message
+    // replyContainerOverhead = Padding(8*2) + Bar(3) + Margin(8) = 27
+    const replyContainerOverhead = 27;
+    // Add buffer (+4) to prevent unnatural line breaks due to rendering differences
+    const replyContentWidth = Math.max(replySenderWidth, replyTextWidth) + 4;
+    const totalReplyWidth = message.replyTo ? replyContentWidth + replyContainerOverhead : 0;
+
+    // Dynamic maxWidth: use the larger of default or required width
+    const requiredWidth = totalReplyWidth > 0 ? Math.max(totalReplyWidth, mainMessageWidth) + 32 : 0; // Add bubble padding (16*2)
+    const dynamicMaxWidth = requiredWidth > 0 && requiredWidth > defaultMaxWidth
+        ? requiredWidth
+        : defaultMaxWidth;
 
     const renderLeftActions = (_progress: any, dragX: any) => {
         return (
@@ -171,7 +187,74 @@ const MessageBubble = ({
                         </TouchableOpacity>
                     )}
 
-                    <View style={[styles.messageContainer, isMe ? styles.messageContainerMe : styles.messageContainerOther]}>
+                    {/* Measurement Text Components (hidden, off-screen) for width calculation - Moved outside messageContainer */}
+                    {message.replyTo && (
+                        <>
+                            {/* Measure reply sender name width without constraints */}
+                            <Text
+                                style={{
+                                    position: 'absolute',
+                                    left: -9999,
+                                    opacity: 0,
+                                    fontSize: 11, // replySenderMeと同じ
+                                    fontWeight: 'bold',
+                                }}
+                                onLayout={(e) => {
+                                    const width = e.nativeEvent?.layout?.width;
+                                    if (width && width > 0) {
+                                        setReplySenderWidth(width);
+                                    }
+                                }}
+                            >
+                                {message.replyTo.senderName}
+                            </Text>
+                            {/* Measure reply text width without constraints */}
+                            <Text
+                                style={{
+                                    position: 'absolute',
+                                    left: -9999,
+                                    opacity: 0,
+                                    fontSize: 13, // replyTextMeと同じ
+                                }}
+                                onLayout={(e) => {
+                                    const width = e.nativeEvent?.layout?.width;
+                                    if (width && width > 0) {
+                                        setReplyTextWidth(width);
+                                    }
+                                }}
+                            >
+                                {replyText}
+                            </Text>
+                        </>
+                    )}
+                    {/* Measure main message width without constraints */}
+                    {message.text && (
+                        <Text
+                            style={{
+                                position: 'absolute',
+                                left: -9999,
+                                opacity: 0,
+                                fontSize: 15, // messageTextMeと同じ
+                            }}
+                            onLayout={(e) => {
+                                const width = e.nativeEvent?.layout?.width;
+                                if (width && width > 0) {
+                                    setMainMessageWidth(width);
+                                }
+                            }}
+                        >
+                            {message.text}
+                        </Text>
+                    )}
+
+                    <View
+                        style={[
+                            styles.messageContainer,
+                            isMe ? styles.messageContainerMe : styles.messageContainerOther,
+                            { maxWidth: dynamicMaxWidth }
+                        ]}
+                    >
+
                         {/* Sender name for group chats */}
                         {!isMe && isGroup && message.senderName && (
                             <Text style={styles.senderName}>
@@ -204,14 +287,17 @@ const MessageBubble = ({
                                             colors={['#0d9488', '#2563eb']}
                                             start={{ x: 0, y: 0 }}
                                             end={{ x: 1, y: 0 }}
-                                            style={styles.bubbleGradient}
+                                            style={[
+                                                styles.bubbleGradient,
+                                                totalReplyWidth > 0 && { minWidth: totalReplyWidth + 32 } // Add padding (16*2)
+                                            ]}
                                         >
                                             {message.replyTo && (
                                                 <View style={styles.replyContainerMe}>
                                                     <View style={styles.replyBarMe} />
                                                     <View style={styles.replyContent}>
                                                         <Text style={styles.replySenderMe}>{message.replyTo.senderName}</Text>
-                                                        <Text style={styles.replyTextMe} numberOfLines={1}>{message.replyTo.text}</Text>
+                                                        <Text style={styles.replyTextMe}>{replyText}</Text>
                                                     </View>
                                                 </View>
                                             )}
@@ -248,13 +334,18 @@ const MessageBubble = ({
                                             onLongPress={handleLongPress}
                                             activeOpacity={0.8}
                                         >
-                                            <View style={styles.bubbleOther}>
+                                            <View
+                                                style={[
+                                                    styles.bubbleOther,
+                                                    totalReplyWidth > 0 && { minWidth: totalReplyWidth + 32 } // Add padding (16*2)
+                                                ]}
+                                            >
                                                 {message.replyTo && (
                                                     <View style={styles.replyContainerOther}>
                                                         <View style={styles.replyBarOther} />
                                                         <View style={styles.replyContent}>
                                                             <Text style={styles.replySenderOther}>{message.replyTo.senderName}</Text>
-                                                            <Text style={styles.replyTextOther} numberOfLines={1}>{message.replyTo.text}</Text>
+                                                            <Text style={styles.replyTextOther}>{replyText}</Text>
                                                         </View>
                                                     </View>
                                                 )}
@@ -297,16 +388,14 @@ const MessageBubble = ({
                         cachePolicy="memory-disk"
                     />
                 </View>
-            </Modal>
+            </Modal >
         </>
     );
 };
 
 export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartnerProfilePress, onMemberProfilePress, isGroup = false, onBlock }: ChatRoomProps) {
     const queryClient = useQueryClient();
-    const [messages, setMessages] = useState<Message[]>([]);
     const [inputText, setInputText] = useState('');
-    const [loading, setLoading] = useState(true);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const [replyingTo, setReplyingTo] = useState<Message | null>(null);
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -314,17 +403,36 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
     const flatListRef = useRef<FlatList>(null);
     const inputRef = useRef<TextInput>(null);
 
+    // Get current user ID first
     useEffect(() => {
-        const initializeChat = async () => {
+        const getUserId = async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
                 setCurrentUserId(user.id);
-                await fetchMessages(user.id);
-                subscribeToMessages(user.id);
             }
-            setLoading(false);
         };
+        getUserId();
+    }, []);
 
+    // Use Infinite Query hook
+    const {
+        data,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
+        isLoading: isMessagesLoading
+    } = useMessagesInfinite({
+        roomId: partnerId,
+        userId: currentUserId || '',
+        isGroup,
+        enabled: !!currentUserId,
+    });
+
+    const messages = useMemo(() => {
+        return data?.pages.flatMap(page => page.data) || [];
+    }, [data]);
+
+    useEffect(() => {
         const markAsRead = async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
@@ -359,169 +467,36 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
             }
         };
 
-        initializeChat();
         markAsRead();
-
-        return () => {
-            supabase.channel('public:messages').unsubscribe();
-        };
     }, [partnerId, isGroup]);
 
-    const fetchMessages = async (userId: string) => {
-        try {
-            let query = supabase
-                .from('messages')
-                .select('id, content, image_url, sender_id, receiver_id, chat_room_id, created_at, reply_to')
-                .order('created_at', { ascending: true });
 
-            if (isGroup) {
-                query = query.eq('chat_room_id', partnerId);
-            } else {
-                query = query.or(`and(sender_id.eq.${userId},receiver_id.eq.${partnerId}),and(sender_id.eq.${partnerId},receiver_id.eq.${userId})`);
-            }
-
-            const { data, error } = await query;
-
-            if (error) throw error;
-
-            if (data) {
-                // Manually fetch sender profiles to avoid join issues
-                const senderIds = Array.from(new Set(data.map((m: any) => m.sender_id)));
-                let profileMap = new Map<string, { name: string; image: string }>();
-
-                if (senderIds.length > 0) {
-                    const { data: profiles } = await supabase
-                        .from('profiles')
-                        .select('id, name, image')
-                        .in('id', senderIds);
-
-                    profiles?.forEach((p: any) => {
-                        profileMap.set(p.id, { name: p.name, image: p.image });
-                    });
-                }
-
-                const formattedMessages: Message[] = data.map((msg: any) => ({
-                    id: msg.id,
-                    text: msg.content,
-                    image_url: msg.image_url,
-                    sender: msg.sender_id === userId ? 'me' : 'other',
-                    senderId: msg.sender_id,
-                    senderName: profileMap.get(msg.sender_id)?.name,
-                    senderImage: profileMap.get(msg.sender_id)?.image,
-                    timestamp: new Date(msg.created_at).toLocaleTimeString('ja-JP', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                    }),
-                    date: new Date(msg.created_at).toISOString().split('T')[0],
-                    created_at: msg.created_at,
-                    replyTo: msg.reply_to,
-                }));
-                setMessages(formattedMessages);
-            }
-        } catch (error: any) {
-            console.error('Error fetching messages:', error);
-            Alert.alert('エラー', `メッセージの取得に失敗しました: ${error.message || error}`);
-        }
-    };
-
-    const subscribeToMessages = (userId: string) => {
-        const filter = isGroup
-            ? `chat_room_id=eq.${partnerId}`
-            : `receiver_id=eq.${userId}`;
-
-        supabase
-            .channel('public:messages')
-            .on(
-                'postgres_changes',
-                {
-                    event: 'INSERT',
-                    schema: 'public',
-                    table: 'messages',
-                    filter: filter,
-                },
-                async (payload) => {
-                    const isRelevant = isGroup
-                        ? (payload.new.chat_room_id === partnerId && payload.new.sender_id !== userId)
-                        : (payload.new.sender_id === partnerId);
-
-                    if (isRelevant) {
-                        // 新しいメッセージを受信したら即座に既読化
-                        if (!isGroup) {
-                            // 個人チャット: 受信したメッセージを既読にする
-                            await supabase
-                                .from('messages')
-                                .update({ is_read: true })
-                                .eq('id', payload.new.id)
-                                .eq('receiver_id', userId)
-                                .eq('is_read', false);
-                        } else {
-                            // グループチャット: last_read_atを更新
-                            await supabase
-                                .from('chat_room_read_status')
-                                .upsert({
-                                    user_id: userId,
-                                    chat_room_id: partnerId,
-                                    last_read_at: new Date().toISOString(),
-                                }, {
-                                    onConflict: 'user_id,chat_room_id'
-                                });
-                        }
-
-                        // チャット一覧の未読数を更新
-                        queryClient.invalidateQueries({
-                            queryKey: queryKeys.chatRooms.list(userId),
-                            refetchType: 'active',
-                        });
-
-                        let senderName = '';
-                        if (isGroup) {
-                            const { data } = await supabase.from('profiles').select('name').eq('id', payload.new.sender_id).single();
-                            senderName = data?.name || '';
-                        }
-
-                        const newMessage: Message = {
-                            id: payload.new.id,
-                            text: payload.new.content,
-                            image_url: payload.new.image_url,
-                            sender: 'other',
-                            senderName: senderName,
-                            timestamp: new Date(payload.new.created_at).toLocaleTimeString('ja-JP', {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                            }),
-                            date: new Date(payload.new.created_at).toISOString().split('T')[0],
-                            created_at: payload.new.created_at,
-                            replyTo: payload.new.reply_to,
-                        };
-                        setMessages((prev) => [...prev, newMessage]);
-                    }
-                }
-            )
-            .subscribe();
-    };
 
     // Create message list with date separators
+    // Create message list with date separators (for Inverted List)
     const messageListWithDates = useMemo(() => {
         const items: MessageItem[] = [];
-        let lastDate: string | null = null;
 
-        messages.forEach((message) => {
-            // Add date separator if date changed
-            if (message.date !== lastDate) {
-                items.push({
-                    type: 'date',
-                    id: `date-${message.date}`,
-                    dateLabel: getDateLabel(message.date),
-                });
-                lastDate = message.date;
-            }
-
+        // messages is [Newest, ..., Oldest]
+        messages.forEach((message, index) => {
             // Add message
             items.push({
                 type: 'message',
                 id: message.id,
                 message,
             });
+
+            // Check if next message (older) has different date
+            const nextMessage = messages[index + 1];
+            if (!nextMessage || nextMessage.date !== message.date) {
+                // Date changed or end of list (oldest message)
+                // Insert separator for THIS message's date
+                items.push({
+                    type: 'date',
+                    id: `date-${message.date}`,
+                    dateLabel: getDateLabel(message.date),
+                });
+            }
         });
 
         return items;
@@ -608,6 +583,49 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                 senderName: replyingTo.sender === 'me' ? '自分' : partnerName
             } : null;
 
+            // Optimistic Update
+            const tempId = `temp-${Date.now()}`;
+            const optimisticMessage: Message = {
+                id: tempId,
+                text: content,
+                image_url: uploadedImageUrl || undefined, // Use uploaded URL if available, or local if we had it (but here we are after upload)
+                sender: 'me',
+                senderId: currentUserId,
+                senderName: '自分',
+                timestamp: new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }),
+                date: new Date().toISOString().split('T')[0],
+                created_at: new Date().toISOString(),
+                replyTo: replyData || undefined,
+            };
+
+            const queryKey = queryKeys.messages.list(partnerId);
+
+            queryClient.setQueryData(queryKey, (oldData: any) => {
+                if (!oldData || !oldData.pages) {
+                    return {
+                        pages: [{
+                            data: [optimisticMessage],
+                            nextCursor: null
+                        }],
+                        pageParams: [undefined]
+                    };
+                }
+
+                const firstPage = oldData.pages[0];
+                return {
+                    ...oldData,
+                    pages: [{
+                        ...firstPage,
+                        data: [optimisticMessage, ...firstPage.data]
+                    }, ...oldData.pages.slice(1)]
+                };
+            });
+
+            // Scroll to bottom
+            setTimeout(() => {
+                flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+            }, 100);
+
             const { data, error } = await supabase
                 .from('messages')
                 .insert({
@@ -623,14 +641,33 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                 .select()
                 .single();
 
-            if (error) throw error;
+            if (error) {
+                // Rollback on error
+                queryClient.setQueryData(queryKey, (oldData: any) => {
+                    if (!oldData || !oldData.pages) return oldData;
 
+                    const newPages = oldData.pages.map((page: any) => ({
+                        ...page,
+                        data: page.data.filter((msg: Message) => msg.id !== tempId)
+                    }));
+
+                    return {
+                        ...oldData,
+                        pages: newPages
+                    };
+                });
+                throw error;
+            }
+
+            // Success: Replace temp message with real one
             if (data) {
-                const newMessage: Message = {
+                const realMessage: Message = {
                     id: data.id,
                     text: data.content,
                     image_url: data.image_url,
                     sender: 'me',
+                    senderId: currentUserId,
+                    senderName: '自分',
                     timestamp: new Date(data.created_at).toLocaleTimeString('ja-JP', {
                         hour: '2-digit',
                         minute: '2-digit',
@@ -639,10 +676,29 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                     created_at: data.created_at,
                     replyTo: replyData || undefined,
                 };
-                setMessages((prev) => [...prev, newMessage]);
+
+                queryClient.setQueryData(queryKey, (oldData: any) => {
+                    if (!oldData || !oldData.pages) return oldData;
+
+                    const newPages = oldData.pages.map((page: any) => ({
+                        ...page,
+                        data: page.data.map((msg: Message) =>
+                            msg.id === tempId ? realMessage : msg
+                        )
+                    }));
+
+                    return {
+                        ...oldData,
+                        pages: newPages
+                    };
+                });
+            }
+
+            if (data) {
 
                 setTimeout(() => {
-                    flatListRef.current?.scrollToEnd({ animated: true });
+                    // Scroll to bottom (which is top in inverted list)
+                    flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
                 }, 100);
 
                 // Invalidate chat rooms query to update chat list in TalkPage immediately
@@ -846,7 +902,7 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
         );
     };
 
-    if (loading) {
+    if (isMessagesLoading && !data) {
         return (
             <View style={[styles.container, styles.loadingContainer]}>
                 <ActivityIndicator size="large" color="#009688" />
@@ -870,7 +926,7 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                             contentFit="cover"
                             cachePolicy="memory-disk"
                         />
-                        <Text style={styles.headerName}>{partnerName}</Text>
+                        <Text style={styles.headerName} numberOfLines={2} ellipsizeMode="tail">{partnerName}</Text>
                     </View>
 
                     <TouchableOpacity onPress={handleMenuPress} style={styles.menuButton}>
@@ -879,14 +935,19 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                 </View>
 
                 {/* Messages List */}
+                {/* Messages List */}
                 <FlatList
                     ref={flatListRef}
                     data={messageListWithDates}
                     renderItem={renderItem}
                     keyExtractor={(item) => item.id}
                     contentContainerStyle={styles.listContent}
-                    onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
-                    onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
+                    inverted={true}
+                    onEndReached={() => {
+                        if (hasNextPage) fetchNextPage();
+                    }}
+                    onEndReachedThreshold={0.5}
+                    ListFooterComponent={isFetchingNextPage ? <ActivityIndicator size="small" color="#009688" /> : null}
                 />
 
                 {/* Input Area */}
@@ -973,7 +1034,7 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f9fafb',
+        backgroundColor: 'white',
     },
     loadingContainer: {
         justifyContent: 'center',
@@ -996,6 +1057,7 @@ const styles = StyleSheet.create({
         flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
+        minWidth: 0, // Allow flex child to shrink
     },
     headerAvatar: {
         width: 36,
@@ -1003,11 +1065,14 @@ const styles = StyleSheet.create({
         borderRadius: 18,
         marginRight: 12,
         backgroundColor: '#e5e7eb',
+        flexShrink: 0, // Prevent avatar from shrinking
     },
     headerName: {
         fontSize: 16,
         fontWeight: 'bold',
         color: '#111827',
+        flex: 1,
+        flexShrink: 1, // Allow text to shrink
     },
     menuButton: {
         padding: 4,

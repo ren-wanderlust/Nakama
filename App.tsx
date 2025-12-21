@@ -37,6 +37,7 @@ import { Profile } from './types';
 import { mapProfileRowToProfile } from './utils/profileMapper';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { supabase } from './lib/supabase';
+import { Message, fetchMessagesPage } from './data/api/messages';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { queryClient, asyncStoragePersister } from './lib/queryClient';
 import { Alert } from 'react-native';
@@ -336,9 +337,94 @@ function AppContent() {
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'messages' },
-        (payload) => {
+        async (payload) => {
+          const newMessage = payload.new;
 
-          // (1) Realtimeイベント受信 - ログ出力済み
+          // Determine the chat room ID (query key)
+          let roomId: string | null = null;
+          if (newMessage.chat_room_id) {
+            roomId = newMessage.chat_room_id;
+          } else if (newMessage.receiver_id === session.user.id) {
+            roomId = newMessage.sender_id;
+          } else if (newMessage.sender_id === session.user.id) {
+            roomId = newMessage.receiver_id;
+          }
+
+          if (roomId) {
+            // Fetch sender profile for name/image
+            let senderName = '';
+            let senderImage = '';
+
+            if (newMessage.sender_id === session.user.id) {
+              senderName = '自分';
+            } else {
+              // Try to get from cache first if possible, or fetch
+              // For simplicity in App.tsx, we fetch. 
+              // Optimization: Could check queryClient.getQueryData(['profile', newMessage.sender_id])
+              const { data } = await supabase
+                .from('profiles')
+                .select('name, image')
+                .eq('id', newMessage.sender_id)
+                .single();
+              senderName = data?.name || '';
+              senderImage = data?.image || '';
+            }
+
+            const formattedMessage: Message = {
+              id: newMessage.id,
+              text: newMessage.content,
+              image_url: newMessage.image_url,
+              sender: newMessage.sender_id === session.user.id ? 'me' : 'other',
+              senderId: newMessage.sender_id,
+              senderName: senderName,
+              senderImage: senderImage,
+              timestamp: new Date(newMessage.created_at).toLocaleTimeString('ja-JP', {
+                hour: '2-digit',
+                minute: '2-digit',
+              }),
+              date: new Date(newMessage.created_at).toISOString().split('T')[0],
+              created_at: newMessage.created_at,
+              replyTo: newMessage.reply_to,
+            };
+
+            // Update Cache
+            const queryKey = queryKeys.messages.list(roomId);
+            queryClient.setQueryData(queryKey, (oldData: any) => {
+              if (!oldData || !oldData.pages) {
+                // If no cache exists, we might not want to create it from scratch with just one message
+                // because we'd miss history. 
+                // However, for "offline first", having the new message is better than nothing.
+                // But if we create a page with 1 message, next fetch might be weird?
+                // useInfiniteQuery handles pages. 
+                // If we initialize it, we should set nextCursor to null? No, that implies no more messages.
+                // Safer to ONLY update if cache exists. If not, let the component fetch when opened.
+                return oldData;
+              }
+
+              // Check if message already exists (e.g. optimistic update)
+              const firstPage = oldData.pages[0];
+              const exists = firstPage.data.some((m: Message) => m.id === formattedMessage.id);
+              if (exists) return oldData;
+
+              // Replace optimistic message if it exists (by matching content/timestamp? ID is different)
+              // Optimistic update usually handles replacement via its own logic in ChatRoom.
+              // Here we just prepend if not present.
+              // Note: ChatRoom's optimistic update uses a temp ID. 
+              // If we receive the real message here, we might duplicate if we don't clean up temp.
+              // But ChatRoom handles the "success" of its own insert.
+              // This global listener catches messages from *other* devices or *partners*.
+              // For my own messages sent from *this* device, ChatRoom handles it.
+              // For my messages sent from *other* devices, this listener handles it.
+
+              return {
+                ...oldData,
+                pages: [{
+                  ...firstPage,
+                  data: [formattedMessage, ...firstPage.data]
+                }, ...oldData.pages.slice(1)]
+              };
+            });
+          }
 
           // (2) invalidate / refetch 実行
           queryClient.invalidateQueries({ queryKey: queryKeys.unreadCount.detail(session.user.id) });
@@ -599,6 +685,69 @@ function AppContent() {
         setActiveTab('search');
         setSearchTab('projects');
       }
+
+      // [Offline-First] Launch Sync: Background Refetch of Active Chats
+      // We refetch the chat list first, then potentially refetch messages for top chats?
+      // Actually, just invalidating chat list is enough to update the "list".
+      // To update the "messages" inside rooms, we would need to know WHICH rooms to fetch.
+      // A simple approach is to let the user open the room.
+      // But user asked for "Save on launch".
+      // So we iterate over recent chat rooms and prefetch/refetch their messages.
+      const syncMessages = async () => {
+        try {
+          // Fetch recent chat rooms (limit to top 10 for performance)
+          const { data: rooms } = await supabase
+            .from('chat_rooms')
+            .select('id, project_id, type')
+            .order('updated_at', { ascending: false })
+            .limit(10); // Sync top 10 rooms
+
+          // Also fetch recent DMs (from messages table grouping? Hard in Supabase)
+          // Easier to rely on `useChatRooms` query if we had it.
+          // For now, let's just trigger a refetch of the chat list, 
+          // and maybe prefetch the *most recent* room if we can identify it.
+          // Given the complexity of identifying all DM partners without a dedicated table/query here,
+          // we will stick to invalidating the list, which is the prerequisite.
+          // If we want to be aggressive, we can prefetch messages for the active chat room if it exists.
+
+          // Ideally, we should iterate over the cached chat rooms list if available.
+          let roomsToSync: any[] = [];
+          const chatRoomsData = queryClient.getQueryData(queryKeys.chatRooms.list(session.user.id));
+
+          if (chatRoomsData && Array.isArray(chatRoomsData)) {
+            roomsToSync = chatRoomsData;
+          } else if (rooms && rooms.length > 0) {
+            // If cache is empty, use the fetched rooms
+            roomsToSync = rooms;
+          }
+
+          roomsToSync.forEach((room) => {
+            const roomId = room.partnerId || room.id;
+            // For group chats, room.type is 'group'. For DMs, we need to know if it's group.
+            // The 'rooms' fetched from DB has 'type'.
+            // The 'chatRoomsData' from cache has 'isGroup'.
+            const isGroup = room.type === 'group' || room.isGroup;
+
+            if (roomId) {
+              queryClient.prefetchInfiniteQuery({
+                queryKey: queryKeys.messages.list(roomId),
+                queryFn: ({ pageParam }) => fetchMessagesPage({
+                  roomId,
+                  userId: session.user.id,
+                  limit: 20, // Fetch smaller batch for sync
+                  cursor: pageParam as string | undefined,
+                  isGroup,
+                }),
+                initialPageParam: undefined,
+                staleTime: 0, // Force fetch for sync
+              });
+            }
+          });
+        } catch (e) {
+          console.log('Sync error:', e);
+        }
+      };
+      syncMessages();
     }
     prevSession.current = session;
   }, [session]);

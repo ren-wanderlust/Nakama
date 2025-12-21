@@ -19,6 +19,13 @@ export const queryKeys = {
     list: (userId: string) => [...queryKeys.chatRooms.lists(), userId] as const,
   },
 
+  // メッセージ一覧（ルーム単位）
+  messages: {
+    all: ['messages'] as const,
+    lists: () => [...queryKeys.messages.all, 'list'] as const,
+    list: (roomId: string) => [...queryKeys.messages.lists(), roomId] as const,
+  },
+
   // 未読メッセージ数（ユーザー単位）
   unreadCount: {
     all: ['unreadCount'] as const,

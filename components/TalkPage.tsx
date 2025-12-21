@@ -6,7 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../lib/supabase';
 import { ChatListSkeleton } from './Skeleton';
 import { SimpleRefreshControl } from './CustomRefreshControl';
-import { RADIUS, COLORS, SPACING, AVATAR, FONTS } from '../constants/DesignSystem';
+import { RADIUS, COLORS, SPACING, AVATAR, FONTS, SHADOWS } from '../constants/DesignSystem';
 import { ChatEmptyState, EmptyState } from './EmptyState';
 import { useQueryClient } from '@tanstack/react-query';
 import { useChatRooms } from '../data/hooks/useChatRooms';
@@ -110,50 +110,52 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
                     keyExtractor={(item) => item.id}
                     renderItem={({ item }) => (
                         <TouchableOpacity
-                            style={styles.roomItem}
+                            style={styles.card}
                             onPress={() => onOpenChat?.(item)}
-                            activeOpacity={0.7}
+                            activeOpacity={0.85}
                         >
-                            {/* Avatar - Tappable for profile */}
-                            <TouchableOpacity
-                                style={styles.avatarContainer}
-                                onPress={() => onViewProfile?.(item.partnerId)}
-                                activeOpacity={0.7}
-                            >
-                                <Image
-                                    source={getImageSource(item.partnerImage)}
-                                    style={styles.avatar}
-                                />
-                            </TouchableOpacity>
+                            <View style={styles.cardInner}>
+                                {/* Avatar - Tappable for profile */}
+                                <TouchableOpacity
+                                    style={styles.avatarContainer}
+                                    onPress={() => onViewProfile?.(item.partnerId)}
+                                    activeOpacity={0.7}
+                                >
+                                    <Image
+                                        source={getImageSource(item.partnerImage)}
+                                        style={styles.avatar}
+                                    />
+                                </TouchableOpacity>
 
-                            {/* Content */}
-                            <View style={styles.content}>
-                                <View style={styles.topRow}>
-                                    <View style={styles.nameContainer}>
-                                        <Text style={styles.name}>{item.partnerName}</Text>
+                                {/* Content */}
+                                <View style={styles.content}>
+                                    <View style={styles.topRow}>
+                                        <View style={styles.nameContainer}>
+                                            <Text style={styles.name}>{item.partnerName}</Text>
+                                        </View>
+                                        <Text style={styles.timestamp}>{item.timestamp}</Text>
                                     </View>
-                                    <Text style={styles.timestamp}>{item.timestamp}</Text>
+
+                                    <View style={styles.messageRow}>
+                                        <Text style={styles.lastMessage} numberOfLines={1}>
+                                            {item.lastMessage}
+                                        </Text>
+                                    </View>
                                 </View>
 
-                                <View style={styles.messageRow}>
-                                    <Text style={styles.lastMessage} numberOfLines={1}>
-                                        {item.lastMessage}
-                                    </Text>
-                                </View>
+                                {item.unreadCount > 0 ? (
+                                    <View style={styles.unreadBadge}>
+                                        <Text style={styles.unreadText}>{item.unreadCount}</Text>
+                                    </View>
+                                ) : (
+                                    <Ionicons
+                                        name="chevron-forward"
+                                        size={20}
+                                        color="#9ca3af"
+                                        style={styles.chevronIcon}
+                                    />
+                                )}
                             </View>
-
-                            {item.unreadCount > 0 ? (
-                                <View style={styles.unreadBadge}>
-                                    <Text style={styles.unreadText}>{item.unreadCount}</Text>
-                                </View>
-                            ) : (
-                                <Ionicons
-                                    name="chevron-forward"
-                                    size={20}
-                                    color="#9ca3af"
-                                    style={styles.chevronIcon}
-                                />
-                            )}
                         </TouchableOpacity>
                     )}
                     contentContainerStyle={styles.listContent}
@@ -177,48 +179,50 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
                     keyExtractor={(item) => item.id}
                     renderItem={({ item }) => (
                         <TouchableOpacity
-                            style={styles.roomItem}
+                            style={styles.card}
                             onPress={() => onOpenChat?.(item)}
-                            activeOpacity={0.7}
+                            activeOpacity={0.85}
                         >
-                            {/* Avatar - Tappable for project detail */}
-                            <TouchableOpacity
-                                style={styles.avatarContainer}
-                                onPress={() => item.projectId && onViewProject?.(item.projectId)}
-                                activeOpacity={0.7}
-                            >
-                                <Image
-                                    source={getImageSource(item.partnerImage)}
-                                    style={styles.avatar}
-                                />
-                                <View style={styles.groupBadgeOverlay}>
-                                    <Ionicons name="people" size={12} color="white" />
-                                </View>
-                            </TouchableOpacity>
-
-                            {/* Content */}
-                            <View style={styles.content}>
-                                <View style={styles.topRow}>
-                                    <View style={styles.nameContainer}>
-                                        <Text style={styles.name}>{item.partnerName}</Text>
+                            <View style={styles.cardInner}>
+                                {/* Avatar - Tappable for project detail */}
+                                <TouchableOpacity
+                                    style={styles.avatarContainer}
+                                    onPress={() => item.projectId && onViewProject?.(item.projectId)}
+                                    activeOpacity={0.7}
+                                >
+                                    <Image
+                                        source={getImageSource(item.partnerImage)}
+                                        style={styles.avatar}
+                                    />
+                                    <View style={styles.groupBadgeOverlay}>
+                                        <Ionicons name="people" size={12} color="white" />
                                     </View>
-                                    <Text style={styles.timestamp}>{item.timestamp}</Text>
+                                </TouchableOpacity>
+
+                                {/* Content */}
+                                <View style={styles.content}>
+                                    <View style={styles.topRow}>
+                                        <View style={styles.nameContainer}>
+                                            <Text style={styles.name}>{item.partnerName}</Text>
+                                        </View>
+                                        <Text style={styles.timestamp}>{item.timestamp}</Text>
+                                    </View>
+
+                                    <View style={styles.messageRow}>
+                                        <Text style={styles.lastMessage} numberOfLines={1}>
+                                            {item.lastMessage}
+                                        </Text>
+                                    </View>
                                 </View>
 
-                                <View style={styles.messageRow}>
-                                    <Text style={styles.lastMessage} numberOfLines={1}>
-                                        {item.lastMessage}
-                                    </Text>
-                                </View>
+                                {item.unreadCount > 0 ? (
+                                    <View style={styles.unreadBadge}>
+                                        <Text style={styles.unreadText}>{item.unreadCount}</Text>
+                                    </View>
+                                ) : (
+                                    <Ionicons name="chevron-forward" size={20} color="#9ca3af" style={styles.chevronIcon} />
+                                )}
                             </View>
-
-                            {item.unreadCount > 0 ? (
-                                <View style={styles.unreadBadge}>
-                                    <Text style={styles.unreadText}>{item.unreadCount}</Text>
-                                </View>
-                            ) : (
-                                <Ionicons name="chevron-forward" size={20} color="#9ca3af" style={styles.chevronIcon} />
-                            )}
                         </TouchableOpacity>
                     )}
                     contentContainerStyle={styles.listContent}
@@ -390,6 +394,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 6,
+        height: 22, // テキストの高さに合わせて固定（未読アイコンの有無に関わらず一定）
     },
     tabBadge: {
         backgroundColor: '#FF7F11',
@@ -406,16 +411,23 @@ const styles = StyleSheet.create({
         fontFamily: FONTS.bold,
     },
     listContent: {
+        padding: 16,
         paddingTop: 8,
         paddingBottom: 20,
+        gap: 6,
     },
-    roomItem: {
+    card: {
+        width: '100%',
+        borderRadius: 16,
+        overflow: 'hidden',
+        ...SHADOWS.lg,
+    },
+    cardInner: {
         flexDirection: 'row',
         alignItems: 'center',
         padding: 16,
         backgroundColor: 'white',
-        borderBottomWidth: 1,
-        borderBottomColor: '#f3f4f6',
+        borderRadius: 16,
     },
     avatarContainer: {
         position: 'relative',
@@ -500,12 +512,10 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         paddingHorizontal: 6,
-        alignSelf: 'flex-end',
-        marginBottom: 4,
+        marginLeft: 8,
     },
     chevronIcon: {
-        alignSelf: 'flex-end',
-        marginBottom: 4,
+        marginLeft: 8,
     },
     unreadText: {
         color: 'white',
