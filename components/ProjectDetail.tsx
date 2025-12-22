@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
 import { CreateProjectModal } from './CreateProjectModal';
+import { ProfileDetail } from './ProfileDetail';
 import { getUserPushTokens, sendPushNotification } from '../lib/notifications';
 import { getRoleColors, getRoleIcon } from '../constants/RoleConstants';
 import { getImageSource } from '../constants/DefaultImages';
@@ -80,6 +81,9 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
     }, [project.status]);
 
     const [showEditModal, setShowEditModal] = useState(false);
+    const [showProfileModal, setShowProfileModal] = useState(false);
+    const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
+    const [loadingProfile, setLoadingProfile] = useState<string | null>(null); // ローディング中のユーザーIDを保持
 
     useEffect(() => {
         if (!owner) {
@@ -102,6 +106,51 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
             console.error('Error fetching owner:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchMemberProfile = async (userId: string) => {
+        // 既にローディング中なら何もしない
+        if (loadingProfile) return;
+
+        setLoadingProfile(userId);
+        try {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('id, name, age, university, company, grade, image, bio, skills, seeking_for, seeking_roles, status_tags, is_student, created_at, github_url')
+                .eq('id', userId)
+                .single();
+
+            if (error) throw error;
+
+            if (data) {
+                const mappedProfile: Profile = {
+                    id: data.id,
+                    name: data.name,
+                    age: data.age || 0,
+                    university: data.university,
+                    company: data.company,
+                    grade: data.grade,
+                    image: data.image,
+                    challengeTheme: '',
+                    theme: '',
+                    bio: data.bio || '',
+                    skills: data.skills || [],
+                    seekingFor: data.seeking_for || [],
+                    seekingRoles: data.seeking_roles || [],
+                    statusTags: data.status_tags || [],
+                    isStudent: data.is_student || false,
+                    createdAt: data.created_at,
+                    githubUrl: data.github_url,
+                };
+                setSelectedProfile(mappedProfile);
+                setShowProfileModal(true);
+            }
+        } catch (error) {
+            console.error('Error fetching member profile:', error);
+            Alert.alert('エラー', 'プロフィールの取得に失敗しました');
+        } finally {
+            setLoadingProfile(null);
         }
     };
 
@@ -545,16 +594,26 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                     )}
 
                     <View style={styles.metaRow}>
-                        <View style={styles.ownerRow}>
+                        <TouchableOpacity
+                            style={styles.ownerRow}
+                            onPress={() => fetchMemberProfile(project.owner_id)}
+                            activeOpacity={0.7}
+                            disabled={loadingProfile === project.owner_id}
+                        >
                             <Image
                                 source={getImageSource(owner?.image)}
                                 style={styles.ownerImage}
                             />
-                            <View>
+                            <View style={styles.ownerInfo}>
                                 <Text style={styles.ownerLabel}>発起人</Text>
                                 <Text style={styles.ownerName}>{owner?.name} ({owner?.university})</Text>
                             </View>
-                        </View>
+                            {loadingProfile === project.owner_id ? (
+                                <ActivityIndicator size="small" color="#009688" />
+                            ) : (
+                                <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
+                            )}
+                        </TouchableOpacity>
 
                         <View style={styles.deadlineBadge}>
                             <Ionicons name="time-outline" size={16} color="#B91C1C" />
@@ -571,15 +630,27 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                         {applicants.filter(a => a.status === 'approved').length > 0 ? (
                             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.applicantsList}>
                                 {applicants.filter(a => a.status === 'approved').map((applicant) => (
-                                    <View key={applicant.id} style={styles.applicantItem}>
-                                        <Image
-                                            source={getImageSource(applicant.user.image)}
-                                            style={styles.applicantImage}
-                                        />
+                                    <TouchableOpacity
+                                        key={applicant.id}
+                                        style={styles.applicantItem}
+                                        onPress={() => fetchMemberProfile(applicant.user_id)}
+                                        activeOpacity={0.7}
+                                        disabled={loadingProfile === applicant.user_id}
+                                    >
+                                        {loadingProfile === applicant.user_id ? (
+                                            <View style={[styles.applicantImage, styles.applicantImageLoading]}>
+                                                <ActivityIndicator size="small" color="#009688" />
+                                            </View>
+                                        ) : (
+                                            <Image
+                                                source={getImageSource(applicant.user.image)}
+                                                style={styles.applicantImage}
+                                            />
+                                        )}
                                         <Text style={styles.applicantName} numberOfLines={1}>
                                             {applicant.user.name}
                                         </Text>
-                                    </View>
+                                    </TouchableOpacity>
                                 ))}
                             </ScrollView>
                         ) : (
@@ -733,6 +804,30 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                     )}
                 </TouchableOpacity>
             </View>
+
+            {/* Member Profile Modal */}
+            <Modal
+                visible={showProfileModal}
+                animationType="slide"
+                presentationStyle="pageSheet"
+                onRequestClose={() => setShowProfileModal(false)}
+            >
+                {selectedProfile && (
+                    <ProfileDetail
+                        profile={selectedProfile}
+                        onBack={() => setShowProfileModal(false)}
+                        onLike={() => { }}
+                        onChat={() => {
+                            setShowProfileModal(false);
+                            if (selectedProfile) {
+                                onChat(selectedProfile.id, selectedProfile.name, selectedProfile.image);
+                            }
+                        }}
+                        isLiked={false}
+                        isMatched={currentUser?.id !== selectedProfile.id}
+                    />
+                )}
+            </Modal>
         </SafeAreaView >
     );
 }
@@ -836,6 +931,9 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: '#374151',
     },
+    ownerInfo: {
+        flex: 1,
+    },
     deadlineBadge: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -869,6 +967,11 @@ const styles = StyleSheet.create({
         marginBottom: 4,
         borderWidth: 2,
         borderColor: '#E5E7EB',
+    },
+    applicantImageLoading: {
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#F3F4F6',
     },
     applicantName: {
         fontSize: 12,

@@ -18,7 +18,7 @@ const ROLE_ID_TO_LABEL: { [key: string]: string } = {
 
 // Role to icon mapping (matching UserProjectPage)
 const ROLE_ICONS: { [key: string]: string } = {
-    'エンジニア': 'laptop',
+    'エンジニア': 'code-slash',
     'デザイナー': 'color-palette',
     'マーケター': 'megaphone',
     'アイディアマン': 'bulb',
