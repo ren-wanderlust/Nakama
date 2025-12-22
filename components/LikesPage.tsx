@@ -1340,7 +1340,7 @@ const styles = StyleSheet.create({
         width: 70,
         height: 70,
         borderRadius: 12,
-        backgroundColor: '#F3F4F6',
+        backgroundColor: 'transparent',
         marginRight: 14,
         flexDirection: 'row',
         flexWrap: 'wrap',

@@ -14,7 +14,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.pogg.app",
+      "bundleIdentifier": "com.nakama.app",
       "buildNumber": "3",
       "infoPlist": {
         "UIBackgroundModes": [
