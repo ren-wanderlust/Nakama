@@ -7,6 +7,8 @@ import { HapticTouchable } from './HapticButton';
 import { TAG_COLORS, translateTag, getStatusTagStyle as getTagStyle } from '../constants/TagConstants';
 import { supabase } from '../lib/supabase';
 import { getRoleColors, getRoleIcon } from '../constants/RoleConstants';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '../data/queryKeys';
 
 
 interface ProfileDetailProps {
@@ -33,6 +35,7 @@ export function ProfileDetail({ profile, onBack, onLike, onChat, isLiked, onBloc
     const seekingFor = profile.seekingFor || [];
     const skills = profile.skills || [];
     const seekingRoles = profile.seekingRoles || [];
+    const queryClient = useQueryClient();
 
     const [isBlocking, setIsBlocking] = useState(false);
     const [showReportModal, setShowReportModal] = useState(false);
@@ -68,6 +71,12 @@ export function ProfileDetail({ profile, onBack, onLike, onChat, isLiked, onBloc
                     throw error;
                 }
             } else {
+                // ブロック成功: 関連するキャッシュを無効化して自動更新
+                queryClient.invalidateQueries({ queryKey: queryKeys.profiles.all });
+                queryClient.invalidateQueries({ queryKey: queryKeys.projects.all });
+                queryClient.invalidateQueries({ queryKey: queryKeys.chatRooms.all });
+                queryClient.invalidateQueries({ queryKey: queryKeys.receivedLikes.all });
+
                 Alert.alert(
                     '完了',
                     `${profile.name}さんをブロックしました`,

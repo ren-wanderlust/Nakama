@@ -867,6 +867,12 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                         // Ignore duplicate key error
                         if (error && error.code !== '23505') throw error;
 
+                        // ブロック成功: 関連するキャッシュを無効化して自動更新
+                        queryClient.invalidateQueries({ queryKey: queryKeys.profiles.all });
+                        queryClient.invalidateQueries({ queryKey: queryKeys.projects.all });
+                        queryClient.invalidateQueries({ queryKey: queryKeys.chatRooms.all });
+                        queryClient.invalidateQueries({ queryKey: queryKeys.receivedLikes.all });
+
                         Alert.alert('完了', 'ユーザーをブロックしました');
                         onBlock?.();
                         onBack();
