@@ -330,11 +330,6 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
                                                 styles.roleText,
                                                 isSelected && { color: colors.icon, fontWeight: '600' }
                                             ]}>{role.id}</Text>
-                                            {isSelected && (
-                                                <View style={styles.checkBadge}>
-                                                    <Ionicons name="checkmark" size={12} color="white" />
-                                                </View>
-                                            )}
                                         </HapticTouchable>
                                     );
                                 })}
@@ -361,11 +356,6 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
                                         styles.roleText,
                                         isAnyoneSelected && { color: ROLE_COLORS['誰でも'].icon, fontWeight: '600' }
                                     ]}>{ANYONE_ROLE.id}</Text>
-                                    {isAnyoneSelected && (
-                                        <View style={styles.checkBadge}>
-                                            <Ionicons name="checkmark" size={12} color="white" />
-                                        </View>
-                                    )}
                                 </HapticTouchable>
                             </View>
                         </View>

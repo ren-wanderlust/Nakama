@@ -64,6 +64,7 @@ export function HapticTouchable({
     ...props
 }: HapticTouchableProps) {
     const scaleAnim = useRef(new Animated.Value(1)).current;
+    const AnimatedTouchableOpacity = useRef(Animated.createAnimatedComponent(TouchableOpacity)).current;
 
     const handlePressIn = (event: any) => {
         if (scaleOnPress) {
@@ -95,17 +96,16 @@ export function HapticTouchable({
     };
 
     return (
-        <Animated.View style={[{ transform: [{ scale: scaleAnim }] }, style]}>
-            <TouchableOpacity
-                onPress={handlePress}
-                onPressIn={handlePressIn}
-                onPressOut={handlePressOut}
-                activeOpacity={0.9}
-                {...props}
-            >
-                {children}
-            </TouchableOpacity>
-        </Animated.View>
+        <AnimatedTouchableOpacity
+            onPress={handlePress}
+            onPressIn={handlePressIn}
+            onPressOut={handlePressOut}
+            activeOpacity={0.9}
+            style={[style as any, { transform: [{ scale: scaleAnim }] }]}
+            {...props}
+        >
+            {children}
+        </AnimatedTouchableOpacity>
     );
 }
 
