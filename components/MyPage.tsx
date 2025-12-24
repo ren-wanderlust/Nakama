@@ -848,6 +848,7 @@ const styles = StyleSheet.create({
     projectListContent: {
         paddingHorizontal: 16,
         paddingBottom: 20,
+        flexGrow: 1,
     },
     emptyContainer: {
         alignItems: 'center',
