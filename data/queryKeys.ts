@@ -61,8 +61,15 @@ export const queryKeys = {
   // プロジェクト応募一覧（ユーザー単位）
   projectApplications: {
     all: ['projectApplications'] as const,
-    recruiting: (userId: string) => [...queryKeys.projectApplications.all, 'recruiting', userId] as const,
-    applied: (userId: string) => [...queryKeys.projectApplications.all, 'applied', userId] as const,
+    /**
+     * NOTE:
+     * 現状の fetchProjectApplications は「募集(recruiting) + 応募(applied)」を1回の取得で返すため、
+     * recruiting/applied を別キーにすると invalidate が片方しか効かない問題が起きやすい。
+     * そこで userId 単位の単一キーに統一し、recruiting/applied は互換のため同一キーを返す。
+     */
+    detail: (userId: string) => [...queryKeys.projectApplications.all, userId] as const,
+    recruiting: (userId: string) => queryKeys.projectApplications.detail(userId),
+    applied: (userId: string) => queryKeys.projectApplications.detail(userId),
   },
 
   // マッチ一覧（ユーザー単位）
