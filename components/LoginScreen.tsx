@@ -302,10 +302,10 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
           {/* Main Message - Centered */}
           <View style={styles.messageContainer}>
             <Text style={styles.title}>
-              未来を創る仲間に出会う
+              挑戦する仲間と、出会う
             </Text>
             <Text style={styles.subtitle}>
-              プロジェクト・起業・ビジコン・学生団体{'\n'}挑戦する学生のつながり
+              個人開発・サービスローンチ・アプリ制作{'\n'}ビジョンを形にする仲間と出会う
             </Text>
           </View>
 
