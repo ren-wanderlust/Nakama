@@ -160,13 +160,23 @@ function AppContent() {
     if (!receivedLikesData || !projectApplicationsData) return 0;
 
     // Unread interest count (未マッチの未読)
-    const unreadInterestCount = receivedLikesData.unreadInterestIds?.size || 0;
+    // AsyncStorage永続化復元時に Set がプレーンオブジェクト化する可能性があるため、instanceofで防御
+    const unreadInterestIds: Set<string> = (receivedLikesData.unreadInterestIds instanceof Set)
+      ? receivedLikesData.unreadInterestIds
+      : new Set();
+    const unreadInterestCount = unreadInterestIds.size || 0;
 
     // Unread match count (マッチ済みの未読)
-    const unreadMatchCount = receivedLikesData.unreadMatchIds?.size || 0;
+    const unreadMatchIds: Set<string> = (receivedLikesData.unreadMatchIds instanceof Set)
+      ? receivedLikesData.unreadMatchIds
+      : new Set();
+    const unreadMatchCount = unreadMatchIds.size || 0;
 
     // Unread recruiting count (募集への応募の未読)
-    const unreadRecruitingCount = projectApplicationsData.unreadRecruitingIds?.size || 0;
+    const unreadRecruitingIds: Set<string> = (projectApplicationsData.unreadRecruitingIds instanceof Set)
+      ? projectApplicationsData.unreadRecruitingIds
+      : new Set();
+    const unreadRecruitingCount = unreadRecruitingIds.size || 0;
 
     return unreadInterestCount + unreadMatchCount + unreadRecruitingCount;
   }, [receivedLikesQuery.data, projectApplicationsQuery.data]);
@@ -470,8 +480,8 @@ function AppContent() {
     const applicationsChannel = supabase.channel('unread_applications_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'project_applications' }, (payload) => {
         if (session?.user) {
-          queryClient.invalidateQueries({ queryKey: queryKeys.projectApplications.recruiting(session.user.id) });
-          queryClient.invalidateQueries({ queryKey: queryKeys.projectApplications.applied(session.user.id) });
+          // ハート(いいね)バッジ更新のため、表示中（active）は即再取得まで行う
+          queryClient.invalidateQueries({ queryKey: queryKeys.projectApplications.detail(session.user.id), refetchType: 'active' });
           queryClient.invalidateQueries({ queryKey: queryKeys.myProjects.detail(session.user.id) });
         }
 
@@ -528,8 +538,26 @@ function AppContent() {
 
     // Subscribe to notifications changes
     const channel = supabase.channel('unread_notifications_count')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, () => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, (payload) => {
         fetchUnreadNotifications();
+
+        // Push通知は届くのにハート(いいね)バッジが増えないケースの対策:
+        // 応募通知(= application) が INSERT されたら、応募一覧(projectApplications) を即時再取得して未読バッジを更新する。
+        // NOTE: project_applications のRealtimeが無効/不安定でも、notifications のRealtimeが動いていればUIは追従できる。
+        try {
+          const newRow: any = (payload as any)?.new;
+          const type: string | undefined = newRow?.type;
+          const targetUserId: string | undefined = newRow?.user_id;
+
+          if (type === 'application' && targetUserId && targetUserId === session.user.id) {
+            queryClient.invalidateQueries({
+              queryKey: queryKeys.projectApplications.detail(session.user.id),
+              refetchType: 'active',
+            });
+          }
+        } catch (e) {
+          console.log('[realtime] notifications payload parse error:', e);
+        }
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications' }, () => {
         fetchUnreadNotifications();

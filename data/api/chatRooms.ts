@@ -186,13 +186,26 @@ export async function fetchChatRooms(userId: string): Promise<ChatRoom[]> {
         timestamp = `${lastMsgDate.getMonth() + 1}/${lastMsgDate.getDate()}`;
       }
 
+      // 画像メッセージの場合のテキスト生成
+      let lastMessage = room.last_message_content || 'チームチャットが作成されました';
+      const isImageMessage = !!room.last_message_image_url && (!room.last_message_content || room.last_message_content.trim() === '');
+      if (isImageMessage) {
+        const isSentByMe = room.last_message_sender_id === userId;
+        if (isSentByMe) {
+          lastMessage = '写真を送信しました';
+        } else {
+          const senderName = room.last_message_sender_name || 'Unknown';
+          lastMessage = `${senderName}が写真を送信しました`;
+        }
+      }
+
       return {
         id: room.chat_room_id,
         partnerId: room.chat_room_id,
         partnerName: room.project_title || 'Team Chat',
         partnerAge: 0,
         partnerImage: room.owner_image || room.project_image_url || '',
-        lastMessage: room.last_message_content || 'チームチャットが作成されました',
+        lastMessage: lastMessage,
         unreadCount: Number(room.unread_count) || 0,
         timestamp: timestamp,
         rawTimestamp: room.last_message_created_at || room.room_created_at || '1970-01-01T00:00:00.000Z',

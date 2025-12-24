@@ -110,8 +110,9 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                 queryClient.invalidateQueries({ queryKey: queryKeys.receivedLikes.detail(session.user.id) });
             })
             .on('postgres_changes', { event: '*', schema: 'public', table: 'project_applications' }, () => {
-                queryClient.invalidateQueries({ queryKey: queryKeys.projectApplications.recruiting(session.user.id) });
-                queryClient.invalidateQueries({ queryKey: queryKeys.projectApplications.applied(session.user.id) });
+                // チャットと同じ思想: 表示中（active）なら即再取得してUIをすぐ更新する
+                queryClient.invalidateQueries({ queryKey: queryKeys.projectApplications.recruiting(session.user.id), refetchType: 'active' });
+                queryClient.invalidateQueries({ queryKey: queryKeys.projectApplications.applied(session.user.id), refetchType: 'active' });
             })
             .subscribe();
 
@@ -330,10 +331,10 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
             }
 
             // Invalidate queries to refresh data
-            queryClient.invalidateQueries({ queryKey: queryKeys.projectApplications.recruiting(session.user.id) });
-            queryClient.invalidateQueries({ queryKey: queryKeys.projectApplications.applied(session.user.id) });
-            queryClient.invalidateQueries({ queryKey: queryKeys.myProjects.detail(session.user.id) });
-            queryClient.invalidateQueries({ queryKey: queryKeys.participatingProjects.detail(session.user.id) });
+            queryClient.invalidateQueries({ queryKey: queryKeys.projectApplications.recruiting(session.user.id), refetchType: 'active' });
+            queryClient.invalidateQueries({ queryKey: queryKeys.projectApplications.applied(session.user.id), refetchType: 'active' });
+            queryClient.invalidateQueries({ queryKey: queryKeys.myProjects.detail(session.user.id), refetchType: 'active' });
+            queryClient.invalidateQueries({ queryKey: queryKeys.participatingProjects.detail(session.user.id), refetchType: 'active' });
 
             if (newStatus === 'rejected') {
                 // Show alert for rejection

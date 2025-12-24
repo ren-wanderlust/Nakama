@@ -24,6 +24,9 @@ returns table (
   room_created_at timestamp with time zone,
   last_message_content text,
   last_message_created_at timestamp with time zone,
+  last_message_image_url text,
+  last_message_sender_id uuid,
+  last_message_sender_name text,
   unread_count bigint
 )
 language plpgsql
@@ -66,9 +69,13 @@ begin
     select distinct on (m.chat_room_id)
       m.chat_room_id,
       m.content as last_message_content,
-      m.created_at as last_message_created_at
+      m.created_at as last_message_created_at,
+      m.image_url as last_message_image_url,
+      m.sender_id as last_message_sender_id,
+      sender_profile.name as last_message_sender_name
     from public.messages m
     join accessible_rooms ar on m.chat_room_id = ar.chat_room_id
+    left join public.profiles sender_profile on m.sender_id = sender_profile.id
     order by m.chat_room_id, m.created_at desc
   ),
   -- 4. 各ルームの既読状態を取得
@@ -101,6 +108,9 @@ begin
     ar.room_created_at,
     coalesce(lm.last_message_content, 'チームチャットが作成されました') as last_message_content,
     coalesce(lm.last_message_created_at, ar.room_created_at) as last_message_created_at,
+    lm.last_message_image_url,
+    lm.last_message_sender_id,
+    lm.last_message_sender_name,
     coalesce(uc.unread_count, 0) as unread_count
   from accessible_rooms ar
   left join latest_messages lm on ar.chat_room_id = lm.chat_room_id
@@ -108,6 +118,7 @@ begin
   order by coalesce(lm.last_message_created_at, ar.room_created_at) desc;
 end;
 $$;
+
 
 -- 権限を付与
 grant execute on function public.get_team_chat_rooms(uuid) to authenticated;

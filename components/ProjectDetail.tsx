@@ -345,7 +345,7 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
             Alert.alert('完了', '応募が完了しました！オーナーからの連絡をお待ちください。');
             setHasApplied(true);
             // 応募直後に「応募」一覧（LikesPage等）を即時更新
-            queryClient.invalidateQueries({ queryKey: queryKeys.projectApplications.applied(currentUser.id) });
+            queryClient.invalidateQueries({ queryKey: queryKeys.projectApplications.applied(currentUser.id), refetchType: 'active' });
             fetchApplicants(); // Refresh list
         } catch (error) {
             console.error('Error applying:', error);
@@ -406,13 +406,13 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
 
             // 承認/棄却直後に、対象ユーザー側の「応募」一覧を最新化（画面非表示でも次回表示で古いキャッシュが残らない）
             if (applicant?.user_id) {
-                queryClient.invalidateQueries({ queryKey: queryKeys.projectApplications.applied(applicant.user_id) });
+                queryClient.invalidateQueries({ queryKey: queryKeys.projectApplications.applied(applicant.user_id), refetchType: 'active' });
             }
 
             if (newStatus === 'approved') {
                 // 承認されたユーザーの「参加中」を即時更新（実行者ではなく対象ユーザー）
                 if (applicant?.user_id) {
-                    queryClient.invalidateQueries({ queryKey: queryKeys.participatingProjects.detail(applicant.user_id) });
+                    queryClient.invalidateQueries({ queryKey: queryKeys.participatingProjects.detail(applicant.user_id), refetchType: 'active' });
                 }
 
                 // Check if total members >= 2 (Owner + at least 1 approved applicant)
