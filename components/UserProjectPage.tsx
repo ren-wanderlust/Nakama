@@ -341,7 +341,6 @@ export function UserProjectPage({ currentUser, onChat, sortOrder = 'recommended'
                 'marketer': 'マーケター',
                 'ideaman': 'アイディアマン',
                 'creator': 'クリエイター',
-                'kabeuchi': '壁打ち相手',
                 'other': 'その他'
             };
 

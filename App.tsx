@@ -993,16 +993,22 @@ function AppContent() {
           // Send push notification for like
           try {
             const tokens = await getUserPushTokens(profileId);
+            console.log(`[Like Push] Sending to user ${profileId}, found ${tokens.length} token(s):`, tokens);
+            if (tokens.length === 0) {
+              console.log('[Like Push] No push tokens found for user - notification not sent');
+            }
             for (const token of tokens) {
-              await sendPushNotification(
+              console.log('[Like Push] Sending notification to token:', token.substring(0, 20) + '...');
+              const result = await sendPushNotification(
                 token,
                 'いいねが届きました！',
                 `${currentUser.name}さんからいいねが届きました。`,
                 { type: 'like', senderId: session.user.id }
               );
+              console.log('[Like Push] Send result:', result);
             }
           } catch (pushError) {
-            console.log('Push notification error:', pushError);
+            console.log('[Like Push] Error:', pushError);
           }
         }
 

@@ -46,7 +46,6 @@ const SEEKING_ROLE_OPTIONS = [
     { id: 'marketer', label: 'マーケター', icon: '📣' },
     { id: 'ideaman', label: 'アイディアマン', icon: '💡' },
     { id: 'creator', label: 'クリエイター', icon: '🎥' },
-    { id: 'kabeuchi', label: '壁打ち相手', icon: '🤝' },
     { id: 'other', label: 'その他', icon: '✨' },
 ];
 
