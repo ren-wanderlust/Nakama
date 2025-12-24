@@ -18,7 +18,7 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../lib/supabase';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { GestureHandlerRootView, PanGestureHandler, State } from 'react-native-gesture-handler';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
@@ -979,151 +979,171 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
         );
     }
 
+    // Handle swipe back gesture (like LINE)
+    const handleSwipeBack = (event: any) => {
+        const { nativeEvent } = event;
+        if (nativeEvent.state === State.END) {
+            // If swiped right more than 80px with sufficient velocity
+            if (nativeEvent.translationX > 80) {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                onBack();
+            }
+        }
+    };
+
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
-            <SafeAreaView style={styles.container}>
-                {/* Header */}
-                <View style={styles.header}>
-                    <TouchableOpacity onPress={onBack} style={styles.backButton}>
-                        <Ionicons name="chevron-back" size={28} color="#374151" />
-                    </TouchableOpacity>
+            <PanGestureHandler
+                onHandlerStateChange={handleSwipeBack}
+                activeOffsetX={[-1000, 20]} // Activate when moved 20px right
+                failOffsetY={[-15, 15]} // Fail for vertical swipes
+            >
+                <View style={{ flex: 1 }}>
+                    <SafeAreaView style={styles.container}>
+                        {/* Header */}
+                        <View style={styles.header}>
+                            <TouchableOpacity onPress={onBack} style={styles.backButton}>
+                                <Ionicons name="chevron-back" size={28} color="#374151" />
+                            </TouchableOpacity>
 
-                    {/* Header Info - Tappable for group chats to view project detail */}
-                    {isGroup && projectId && onViewProjectDetail ? (
-                        <TouchableOpacity
-                            style={styles.headerInfo}
-                            onPress={() => onViewProjectDetail(projectId)}
-                            activeOpacity={0.7}
-                        >
-                            <Image
-                                source={{ uri: partnerImage }}
-                                style={styles.headerAvatar}
-                                contentFit="cover"
-                                cachePolicy="memory-disk"
-                            />
-                            <Text style={styles.headerName} numberOfLines={2} ellipsizeMode="tail">{partnerName}</Text>
-                            <Ionicons name="chevron-forward" size={18} color="#9CA3AF" style={{ marginLeft: 4 }} />
-                        </TouchableOpacity>
-                    ) : (
-                        <View style={styles.headerInfo}>
-                            <Image
-                                source={{ uri: partnerImage }}
-                                style={styles.headerAvatar}
-                                contentFit="cover"
-                                cachePolicy="memory-disk"
-                            />
-                            <Text style={styles.headerName} numberOfLines={2} ellipsizeMode="tail">{partnerName}</Text>
-                        </View>
-                    )}
-
-                    <TouchableOpacity onPress={handleMenuPress} style={styles.menuButton}>
-                        <Ionicons name="ellipsis-horizontal" size={24} color="#374151" />
-                    </TouchableOpacity>
-                </View>
-
-                {/* Messages List */}
-                {/* Messages List */}
-                <FlatList
-                    ref={flatListRef}
-                    data={messageListWithDates}
-                    renderItem={renderItem}
-                    keyExtractor={(item) => item.id}
-                    contentContainerStyle={styles.listContent}
-                    inverted={true}
-                    onEndReached={() => {
-                        if (hasNextPage) fetchNextPage();
-                    }}
-                    onEndReachedThreshold={0.5}
-                    ListFooterComponent={isFetchingNextPage ? <ActivityIndicator size="small" color="#009688" /> : null}
-                    onScrollToIndexFailed={(info) => {
-                        // If scroll fails, wait and retry
-                        setTimeout(() => {
-                            flatListRef.current?.scrollToIndex({
-                                index: info.index,
-                                animated: true,
-                                viewPosition: 0.5
-                            });
-                        }, 100);
-                    }}
-                />
-
-                {/* Input Area */}
-                <KeyboardAvoidingView
-                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                    keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-                >
-                    {/* Reply Preview */}
-                    {replyingTo && (
-                        <View style={styles.replyPreviewBar}>
-                            <View style={styles.replyPreviewContent}>
-                                <View style={styles.replyPreviewLine} />
-                                <View>
-                                    <Text style={styles.replyPreviewSender}>
-                                        {replyingTo.sender === 'me' ? '自分' : partnerName}への返信
-                                    </Text>
-                                    <Text style={styles.replyPreviewText} numberOfLines={1}>
-                                        {replyingTo.text || '画像'}
-                                    </Text>
+                            {/* Header Info - Tappable for group chats to view project detail */}
+                            {isGroup && projectId && onViewProjectDetail ? (
+                                <TouchableOpacity
+                                    style={styles.headerInfo}
+                                    onPress={() => onViewProjectDetail(projectId)}
+                                    activeOpacity={0.7}
+                                >
+                                    <Image
+                                        source={{ uri: partnerImage }}
+                                        style={styles.headerAvatar}
+                                        contentFit="cover"
+                                        cachePolicy="memory-disk"
+                                    />
+                                    <Text style={styles.headerName} numberOfLines={2} ellipsizeMode="tail">{partnerName}</Text>
+                                    <Ionicons name="chevron-forward" size={18} color="#9CA3AF" style={{ marginLeft: 4 }} />
+                                </TouchableOpacity>
+                            ) : (
+                                <View style={styles.headerInfo}>
+                                    <Image
+                                        source={{ uri: partnerImage }}
+                                        style={styles.headerAvatar}
+                                        contentFit="cover"
+                                        cachePolicy="memory-disk"
+                                    />
+                                    <Text style={styles.headerName} numberOfLines={2} ellipsizeMode="tail">{partnerName}</Text>
                                 </View>
-                            </View>
-                            <TouchableOpacity onPress={() => setReplyingTo(null)} style={styles.closeReplyButton}>
-                                <Ionicons name="close" size={20} color="#6B7280" />
+                            )}
+
+                            <TouchableOpacity onPress={handleMenuPress} style={styles.menuButton}>
+                                <Ionicons name="ellipsis-horizontal" size={24} color="#374151" />
                             </TouchableOpacity>
                         </View>
-                    )}
 
-                    {/* Image Preview */}
-                    {selectedImage && (
-                        <View style={styles.imagePreviewBar}>
-                            <Image
-                                source={{ uri: selectedImage }}
-                                style={styles.imagePreview}
-                                contentFit="cover"
-                                cachePolicy="memory-disk"
-                            />
-                            <TouchableOpacity onPress={() => setSelectedImage(null)} style={styles.closeImageButton}>
-                                <Ionicons name="close-circle" size={24} color="#ef4444" />
-                            </TouchableOpacity>
-                        </View>
-                    )}
-
-                    <View style={styles.inputContainer}>
-                        <TouchableOpacity style={styles.attachButton} onPress={handlePickImage} disabled={isSending}>
-                            <Ionicons name="image-outline" size={24} color="#9ca3af" />
-                        </TouchableOpacity>
-
-                        <TextInput
-                            ref={inputRef}
-                            style={styles.input}
-                            placeholder="メッセージを入力..."
-                            value={inputText}
-                            onChangeText={setInputText}
-                            multiline
-                            maxLength={1000}
-                            editable={!isSending}
+                        {/* Messages List */}
+                        {/* Messages List */}
+                        <FlatList
+                            ref={flatListRef}
+                            data={messageListWithDates}
+                            renderItem={renderItem}
+                            keyExtractor={(item) => item.id}
+                            contentContainerStyle={styles.listContent}
+                            inverted={true}
+                            onEndReached={() => {
+                                if (hasNextPage) fetchNextPage();
+                            }}
+                            onEndReachedThreshold={0.5}
+                            ListFooterComponent={isFetchingNextPage ? <ActivityIndicator size="small" color="#009688" /> : null}
+                            onScrollToIndexFailed={(info) => {
+                                // If scroll fails, wait and retry
+                                setTimeout(() => {
+                                    flatListRef.current?.scrollToIndex({
+                                        index: info.index,
+                                        animated: true,
+                                        viewPosition: 0.5
+                                    });
+                                }, 100);
+                            }}
                         />
 
-                        <TouchableOpacity
-                            style={[
-                                styles.sendButton,
-                                (!inputText.trim() && !selectedImage) || isSending ? styles.sendButtonDisabled : null
-                            ]}
-                            onPress={handleSend}
-                            disabled={(!inputText.trim() && !selectedImage) || isSending}
+                        {/* Input Area */}
+                        <KeyboardAvoidingView
+                            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
                         >
-                            {isSending ? (
-                                <ActivityIndicator size="small" color="white" />
-                            ) : (
-                                <Ionicons
-                                    name="send"
-                                    size={20}
-                                    color={inputText.trim() || selectedImage ? 'white' : '#9ca3af'}
-                                />
+                            {/* Reply Preview */}
+                            {replyingTo && (
+                                <View style={styles.replyPreviewBar}>
+                                    <View style={styles.replyPreviewContent}>
+                                        <View style={styles.replyPreviewLine} />
+                                        <View>
+                                            <Text style={styles.replyPreviewSender}>
+                                                {replyingTo.sender === 'me' ? '自分' : partnerName}への返信
+                                            </Text>
+                                            <Text style={styles.replyPreviewText} numberOfLines={1}>
+                                                {replyingTo.text || '画像'}
+                                            </Text>
+                                        </View>
+                                    </View>
+                                    <TouchableOpacity onPress={() => setReplyingTo(null)} style={styles.closeReplyButton}>
+                                        <Ionicons name="close" size={20} color="#6B7280" />
+                                    </TouchableOpacity>
+                                </View>
                             )}
-                        </TouchableOpacity>
-                    </View>
-                </KeyboardAvoidingView>
-            </SafeAreaView>
+
+                            {/* Image Preview */}
+                            {selectedImage && (
+                                <View style={styles.imagePreviewBar}>
+                                    <Image
+                                        source={{ uri: selectedImage }}
+                                        style={styles.imagePreview}
+                                        contentFit="cover"
+                                        cachePolicy="memory-disk"
+                                    />
+                                    <TouchableOpacity onPress={() => setSelectedImage(null)} style={styles.closeImageButton}>
+                                        <Ionicons name="close-circle" size={24} color="#ef4444" />
+                                    </TouchableOpacity>
+                                </View>
+                            )}
+
+                            <View style={styles.inputContainer}>
+                                <TouchableOpacity style={styles.attachButton} onPress={handlePickImage} disabled={isSending}>
+                                    <Ionicons name="image-outline" size={24} color="#9ca3af" />
+                                </TouchableOpacity>
+
+                                <TextInput
+                                    ref={inputRef}
+                                    style={styles.input}
+                                    placeholder="メッセージを入力..."
+                                    value={inputText}
+                                    onChangeText={setInputText}
+                                    multiline
+                                    maxLength={1000}
+                                    editable={!isSending}
+                                />
+
+                                <TouchableOpacity
+                                    style={[
+                                        styles.sendButton,
+                                        (!inputText.trim() && !selectedImage) || isSending ? styles.sendButtonDisabled : null
+                                    ]}
+                                    onPress={handleSend}
+                                    disabled={(!inputText.trim() && !selectedImage) || isSending}
+                                >
+                                    {isSending ? (
+                                        <ActivityIndicator size="small" color="white" />
+                                    ) : (
+                                        <Ionicons
+                                            name="send"
+                                            size={20}
+                                            color={inputText.trim() || selectedImage ? 'white' : '#9ca3af'}
+                                        />
+                                    )}
+                                </TouchableOpacity>
+                            </View>
+                        </KeyboardAvoidingView>
+                    </SafeAreaView>
+                </View>
+            </PanGestureHandler>
         </GestureHandlerRootView>
     );
 }
