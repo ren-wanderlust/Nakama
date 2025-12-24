@@ -31,6 +31,38 @@ export function NotificationsPage({ onBack, onNotificationsRead, onViewProject, 
         }
     }, []);
 
+    // Realtime subscription for notifications
+    useEffect(() => {
+        if (!userId) return;
+
+        // Import supabase for realtime
+        const setupRealtime = async () => {
+            const { supabase } = await import('../lib/supabase');
+
+            const channel = supabase
+                .channel(`notifications_${userId}`)
+                .on('postgres_changes', {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'notifications',
+                    filter: `user_id=eq.${userId}`
+                }, () => {
+                    // Refresh notifications when new one is inserted
+                    notificationsQuery.refetch();
+                })
+                .subscribe();
+
+            return () => {
+                supabase.removeChannel(channel);
+            };
+        };
+
+        const cleanup = setupRealtime();
+        return () => {
+            cleanup.then(fn => fn && fn());
+        };
+    }, [userId]);
+
     // Mark user-specific notifications as read when page is opened
     useEffect(() => {
         const markAllAsRead = async () => {
