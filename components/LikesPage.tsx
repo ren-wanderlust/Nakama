@@ -232,6 +232,20 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
         if (!session?.user) return;
 
         try {
+            // First, get the application details including project info
+            const { data: applicationData, error: appQueryError } = await supabase
+                .from('project_applications')
+                .select('project_id, user_id, project:projects!project_id(id, title, image_url)')
+                .eq('id', applicationId)
+                .single();
+
+            if (appQueryError) throw appQueryError;
+
+            const projectId = applicationData?.project_id;
+            const applicantUserId = applicationData?.user_id;
+            const projectInfo = applicationData?.project;
+
+            // Update the status
             const { error } = await supabase
                 .from('project_applications')
                 .update({ status: newStatus })
@@ -239,13 +253,77 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
 
             if (error) throw error;
 
+            // Send notification to the applicant
+            if (applicantUserId && projectInfo) {
+                const { error: notifError } = await supabase
+                    .from('notifications')
+                    .insert({
+                        user_id: applicantUserId,
+                        sender_id: session.user.id,
+                        project_id: projectId,
+                        type: 'application_status',
+                        title: newStatus === 'approved' ? 'プロジェクト参加承認' : 'プロジェクト参加見送り',
+                        content: newStatus === 'approved'
+                            ? `「${(projectInfo as any).title}」への参加が承認されました！`
+                            : `「${(projectInfo as any).title}」への参加は見送られました。`,
+                        image_url: (projectInfo as any).image_url || currentUserProfile?.image
+                    });
+
+                if (notifError) console.error('Notification error:', notifError);
+            }
+
+            // Handle team chat creation when approved
+            if (newStatus === 'approved' && projectId) {
+                // Check if total members >= 2 (Owner + at least 1 approved applicant)
+                const { count } = await supabase
+                    .from('project_applications')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('project_id', projectId)
+                    .eq('status', 'approved');
+
+                const totalMembers = (count || 0) + 1; // +1 for owner
+
+                if (totalMembers >= 2) {
+                    // Check if chat room already exists
+                    const { data: existingRoom } = await supabase
+                        .from('chat_rooms')
+                        .select('id')
+                        .eq('project_id', projectId)
+                        .single();
+
+                    if (!existingRoom) {
+                        // Create team chat room
+                        const { error: createRoomError } = await supabase
+                            .from('chat_rooms')
+                            .insert({
+                                project_id: projectId,
+                                type: 'group'
+                            });
+
+                        if (!createRoomError) {
+                            // Invalidate chat rooms query to refresh the list in TalkPage
+                            queryClient.invalidateQueries({ queryKey: queryKeys.chatRooms.list(session.user.id) });
+                            Alert.alert('チームチャット作成', 'メンバーが2名以上になったため、チームチャットが自動作成されました！「トーク」タブから確認できます。');
+                        } else {
+                            console.error('Error creating chat room:', createRoomError);
+                        }
+                    }
+                }
+            }
+
             // Invalidate queries to refresh data
             queryClient.invalidateQueries({ queryKey: queryKeys.projectApplications.recruiting(session.user.id) });
             queryClient.invalidateQueries({ queryKey: queryKeys.projectApplications.applied(session.user.id) });
             queryClient.invalidateQueries({ queryKey: queryKeys.myProjects.detail(session.user.id) });
             queryClient.invalidateQueries({ queryKey: queryKeys.participatingProjects.detail(session.user.id) });
 
-            Alert.alert('完了', `${userName}さんを${newStatus === 'approved' ? '承認' : '見送り'}しました`);
+            if (newStatus === 'rejected') {
+                // Show alert for rejection
+                Alert.alert('完了', `${userName}さんを見送りしました`);
+            } else if (newStatus === 'approved') {
+                // For approval, show simple alert (team chat creation has its own alert if applicable)
+                Alert.alert('完了', `${userName}さんを承認しました`);
+            }
 
             // Notify parent to update badge count
             if (onApplicantStatusChange) {
