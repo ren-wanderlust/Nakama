@@ -78,14 +78,16 @@ const MessageBubble = ({
     onPartnerProfilePress,
     onMemberProfilePress,
     isGroup,
-    partnerImage
+    partnerImage,
+    onScrollToReply
 }: {
     message: Message,
     onReply: (msg: Message) => void,
     onPartnerProfilePress: () => void,
     onMemberProfilePress?: (memberId: string) => void,
     isGroup?: boolean,
-    partnerImage?: string
+    partnerImage?: string,
+    onScrollToReply?: (replyToId: string) => void
 }) => {
     const isMe = message.sender === 'me';
     const swipeableRef = useRef<any>(null);
@@ -294,13 +296,22 @@ const MessageBubble = ({
                                             ]}
                                         >
                                             {message.replyTo && (
-                                                <View style={styles.replyContainerMe}>
-                                                    <View style={styles.replyBarMe} />
-                                                    <View style={styles.replyContent}>
-                                                        <Text style={styles.replySenderMe}>{message.replyTo.senderName}</Text>
-                                                        <Text style={styles.replyTextMe}>{replyText}</Text>
+                                                <TouchableOpacity
+                                                    onPress={() => {
+                                                        if (message.replyTo?.id && onScrollToReply) {
+                                                            onScrollToReply(message.replyTo.id);
+                                                        }
+                                                    }}
+                                                    activeOpacity={0.7}
+                                                >
+                                                    <View style={styles.replyContainerMe}>
+                                                        <View style={styles.replyBarMe} />
+                                                        <View style={styles.replyContent}>
+                                                            <Text style={styles.replySenderMe}>{message.replyTo.senderName}</Text>
+                                                            <Text style={styles.replyTextMe}>{replyText}</Text>
+                                                        </View>
                                                     </View>
-                                                </View>
+                                                </TouchableOpacity>
                                             )}
                                             {message.image_url && (
                                                 <TouchableOpacity onPress={() => setImageModalVisible(true)} activeOpacity={0.9}>
@@ -342,13 +353,22 @@ const MessageBubble = ({
                                                 ]}
                                             >
                                                 {message.replyTo && (
-                                                    <View style={styles.replyContainerOther}>
-                                                        <View style={styles.replyBarOther} />
-                                                        <View style={styles.replyContent}>
-                                                            <Text style={styles.replySenderOther}>{message.replyTo.senderName}</Text>
-                                                            <Text style={styles.replyTextOther}>{replyText}</Text>
+                                                    <TouchableOpacity
+                                                        onPress={() => {
+                                                            if (message.replyTo?.id && onScrollToReply) {
+                                                                onScrollToReply(message.replyTo.id);
+                                                            }
+                                                        }}
+                                                        activeOpacity={0.7}
+                                                    >
+                                                        <View style={styles.replyContainerOther}>
+                                                            <View style={styles.replyBarOther} />
+                                                            <View style={styles.replyContent}>
+                                                                <Text style={styles.replySenderOther}>{message.replyTo.senderName}</Text>
+                                                                <Text style={styles.replyTextOther}>{replyText}</Text>
+                                                            </View>
                                                         </View>
-                                                    </View>
+                                                    </TouchableOpacity>
                                                 )}
                                                 {message.image_url && (
                                                     <TouchableOpacity onPress={() => setImageModalVisible(true)} activeOpacity={0.9}>
@@ -757,6 +777,22 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
         </View>
     );
 
+    // Handle scroll to reply message
+    const handleScrollToReply = (replyToId: string) => {
+        const index = messageListWithDates.findIndex(
+            item => item.type === 'message' && item.message?.id === replyToId
+        );
+        if (index !== -1 && flatListRef.current) {
+            flatListRef.current.scrollToIndex({
+                index,
+                animated: true,
+                viewPosition: 0.5 // Center the item
+            });
+            // Haptic feedback
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        }
+    };
+
     const renderItem = ({ item }: { item: MessageItem }) => {
         if (item.type === 'date') {
             return renderDateSeparator(item.dateLabel!);
@@ -769,6 +805,7 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                     onMemberProfilePress={onMemberProfilePress}
                     isGroup={isGroup}
                     partnerImage={partnerImage}
+                    onScrollToReply={handleScrollToReply}
                 />
             );
         }
@@ -998,6 +1035,16 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                     }}
                     onEndReachedThreshold={0.5}
                     ListFooterComponent={isFetchingNextPage ? <ActivityIndicator size="small" color="#009688" /> : null}
+                    onScrollToIndexFailed={(info) => {
+                        // If scroll fails, wait and retry
+                        setTimeout(() => {
+                            flatListRef.current?.scrollToIndex({
+                                index: info.index,
+                                animated: true,
+                                viewPosition: 0.5
+                            });
+                        }, 100);
+                    }}
                 />
 
                 {/* Input Area */}
