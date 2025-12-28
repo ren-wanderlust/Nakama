@@ -1,8 +1,23 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Image, Dimensions, SafeAreaView, Alert, Modal, TextInput, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, ActivityIndicator, Linking, ScrollView, Animated } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import {
+  StyleSheet,
+  Text,
+  View,
+  TouchableOpacity,
+  Dimensions,
+  SafeAreaView,
+  Alert,
+  Modal,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableWithoutFeedback,
+  Keyboard,
+  Animated
+} from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../lib/supabase';
 import { SHADOWS, FONTS } from '../constants/DesignSystem';
 import { ModernButton, ModernInput } from './ModernComponents';
@@ -10,6 +25,13 @@ import { TermsOfServicePage } from './TermsOfServicePage';
 import { PrivacyPolicyPage } from './PrivacyPolicyPage';
 
 const { width, height } = Dimensions.get('window');
+
+// ブランドカラー
+const COLORS = {
+  primary: '#FF6B35',
+  white: '#FFFFFF',
+  text: '#1E293B',
+};
 
 interface LoginScreenProps {
   onCreateAccount: () => void;
@@ -23,124 +45,23 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // アニメーション用の値
-  const gradientAnimation = useRef(new Animated.Value(0)).current;
-  const scaleAnimation = useRef(new Animated.Value(1)).current;
-  const rotateAnimation = useRef(new Animated.Value(0)).current;
-  const particleAnimations = useRef(
-    Array.from({ length: 20 }, () => ({
-      // 初期位置を0に設定（画面下部から開始）
-      translateY: new Animated.Value(0),
-      translateX: new Animated.Value(0),
-      opacity: new Animated.Value(Math.random() * 0.6 + 0.4),
-      scale: new Animated.Value(Math.random() * 1 + 0.8),
-    }))
-  ).current;
+  // アニメーション
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(20)).current;
 
   useEffect(() => {
-    // グラデーションの移動アニメーション（より速く、より顕著に）
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(gradientAnimation, {
-          toValue: 1,
-          duration: 4000, // 8000から4000に短縮
-          useNativeDriver: true,
-        }),
-        Animated.timing(gradientAnimation, {
-          toValue: 0,
-          duration: 4000,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-
-    // 背景の回転アニメーション
-    Animated.loop(
-      Animated.timing(rotateAnimation, {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 30000,
+        duration: 1000,
         useNativeDriver: true,
-      })
-    ).start();
-
-    // 背景画像のズームアニメーション（より速く、より大きく）
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(scaleAnimation, {
-          toValue: 1.15, // 1.1から1.15に拡大
-          duration: 12000, // 20000から12000に短縮
-          useNativeDriver: true,
-        }),
-        Animated.timing(scaleAnimation, {
-          toValue: 1,
-          duration: 12000,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-
-    // パーティクルのアニメーション（より速く、より大きな動き）
-    particleAnimations.forEach((particle, index) => {
-      const startDelay = index * 400; // 800から400に短縮
-      const duration = 5000 + Math.random() * 3000; // より速く
-      const yDistance = -height - 150;
-      const xSway = (Math.random() - 0.5) * 200; // 100から200に拡大
-
-      // 初期遅延の後、無限ループ
-      setTimeout(() => {
-        Animated.loop(
-          Animated.sequence([
-            // 上昇するアニメーション
-            Animated.parallel([
-              Animated.timing(particle.translateY, {
-                toValue: yDistance,
-                duration: duration,
-                useNativeDriver: true,
-              }),
-              Animated.sequence([
-                Animated.timing(particle.translateX, {
-                  toValue: xSway,
-                  duration: duration / 2,
-                  useNativeDriver: true,
-                }),
-                Animated.timing(particle.translateX, {
-                  toValue: -xSway,
-                  duration: duration / 2,
-                  useNativeDriver: true,
-                }),
-              ]),
-            ]),
-            // 瞬時にリセット（開始位置に戻す）
-            Animated.timing(particle.translateY, {
-              toValue: 0,
-              duration: 0,
-              useNativeDriver: true,
-            }),
-            Animated.timing(particle.translateX, {
-              toValue: 0,
-              duration: 0,
-              useNativeDriver: true,
-            }),
-          ])
-        ).start();
-      }, startDelay);
-
-      // 透明度のアニメーション（独立してループ）
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(particle.opacity, {
-            toValue: 1,
-            duration: 1500,
-            useNativeDriver: true,
-          }),
-          Animated.timing(particle.opacity, {
-            toValue: 0.3,
-            duration: 1500,
-            useNativeDriver: true,
-          }),
-        ])
-      ).start();
-    });
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+    ]).start();
   }, []);
 
   const handleLogin = async () => {
@@ -155,14 +76,7 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
         password,
       });
       if (error) throw error;
-
-      // デバッグ用：ログインしたユーザーIDを確認
-      console.log('=== Login successful ===');
-      console.log('Email:', email);
-      console.log('User ID:', data.user?.id);
-      console.log('Session:', data.session?.user.id);
-
-      // ログイン成功時はAuthContextが状態変化を検知して自動的に画面遷移する
+      console.log('Login successful');
     } catch (error: any) {
       Alert.alert('ログインエラー', error.message || 'ログインに失敗しました');
     } finally {
@@ -175,6 +89,7 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
       Alert.alert('エラー', 'メールアドレスを入力してください');
       return;
     }
+    // ... (パスワードリセット処理)
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email);
       if (error) throw error;
@@ -184,156 +99,75 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
     }
   };
 
-  if (isTermsModalVisible) {
-    return <TermsOfServicePage onBack={() => setIsTermsModalVisible(false)} />;
-  }
-
-  if (isPrivacyModalVisible) {
-    return <PrivacyPolicyPage onBack={() => setIsPrivacyModalVisible(false)} />;
-  }
+  if (isTermsModalVisible) return <TermsOfServicePage onBack={() => setIsTermsModalVisible(false)} />;
+  if (isPrivacyModalVisible) return <PrivacyPolicyPage onBack={() => setIsPrivacyModalVisible(false)} />;
 
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
 
-      {/* Background with Gradient and Network Pattern */}
+      {/* 背景: 画像の代わりにリッチなグラデーションとパターンを使用 */}
       <View style={styles.backgroundContainer}>
-        {/* ベースグラデーション背景（リモート画像の代わり） */}
+        {/* ベース画像（ネットワークパターン） */}
+        <Image
+          source={require('../assets/network-pattern.png')}
+          style={styles.backgroundImage}
+          contentFit="cover"
+        />
+
+        {/* オーバーレイグラデーション: 参考画像のようなダークで没入感のある雰囲気 */}
         <LinearGradient
-          colors={['#0F172A', '#1E3A8A', '#0F172A']}
-          locations={[0, 0.5, 1]}
+          colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.6)', 'rgba(0,0,0,0.85)']}
           style={StyleSheet.absoluteFillObject}
         />
 
-        {/* 動的グラデーションオーバーレイ1 */}
-        <Animated.View
-          style={[
-            styles.overlay,
-            {
-              opacity: gradientAnimation.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0.7, 0.95],
-              }),
-            },
-          ]}
-        >
-          <LinearGradient
-            colors={[
-              'rgba(15, 23, 42, 0.6)',
-              'rgba(30, 58, 138, 0.8)',
-              'rgba(15, 23, 42, 0.9)'
-            ]}
-            locations={[0, 0.5, 1]}
-            style={StyleSheet.absoluteFillObject}
-          />
-        </Animated.View>
-
-        {/* 動的グラデーションオーバーレイ2（反対方向） */}
-        <Animated.View
-          style={[
-            styles.overlay,
-            {
-              opacity: gradientAnimation.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0.3, 0.1],
-              }),
-            },
-          ]}
-        >
-          <LinearGradient
-            colors={[
-              'rgba(59, 130, 246, 0.4)',
-              'rgba(147, 51, 234, 0.3)',
-              'rgba(236, 72, 153, 0.2)'
-            ]}
-            locations={[0, 0.5, 1]}
-            style={StyleSheet.absoluteFillObject}
-          />
-        </Animated.View>
-
-        {/* 浮遊するパーティクルエフェクト */}
-        <View style={styles.particlesContainer}>
-          {particleAnimations.map((particle, index) => (
-            <Animated.View
-              key={index}
-              style={[
-                styles.particle,
-                {
-                  left: `${(index * 5) % 100}%`,
-                  top: height + 50,
-                  transform: [
-                    { translateY: particle.translateY },
-                    { translateX: particle.translateX },
-                    { scale: particle.scale },
-                  ],
-                  opacity: particle.opacity,
-                },
-              ]}
-            />
-          ))}
-        </View>
-
-        {/* Network Pattern Overlay */}
-        <View style={styles.networkPatternContainer}>
-          <Image
-            source={require('../assets/network-pattern.png')}
-            style={styles.networkPattern}
-            resizeMode="cover"
-          />
-        </View>
+        {/* アクセントカラーの光（コンセプト: 未来への情熱） */}
+        <LinearGradient
+          colors={['rgba(255, 107, 53, 0.4)', 'transparent']}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 0.6 }}
+          style={StyleSheet.absoluteFillObject}
+        />
       </View>
 
-      {/* Content */}
       <SafeAreaView style={styles.contentContainer}>
-        <View style={styles.innerContainer}>
+        <Animated.View
+          style={[
+            styles.innerContainer,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            },
+          ]}
+        >
+          {/* Header (Empty for spacing) */}
+          <View style={{ flex: 1 }} />
 
-          {/* Logo - Centered at Top */}
-          <View style={styles.logoContainer}>
-            <View style={styles.logoWrapper}>
-              <Image
-                source={require('../assets/pogg_logo.png')}
-                style={styles.logoIcon}
-              />
-              <Text style={styles.appName}>Pogg</Text>
-            </View>
-            <Text style={[styles.logoSubtitle, { opacity: 0.8, fontSize: 12 }]}>Connect with Future Leaders</Text>
+          {/* Main Content: Minimize text as requested */}
+          <View style={styles.centerContent}>
+            <Text style={styles.mainTitle}>Find Your Team</Text>
+            <Text style={styles.subTitle}>Connect with student innovators</Text>
           </View>
 
-          {/* Main Message - Centered */}
-          <View style={styles.messageContainer}>
-            <Text style={styles.title}>
-              未来を創る仲間に出会う
-            </Text>
-            <Text style={styles.subtitle}>
-              プロジェクト・起業・ビジコン・学生団体{'\n'}挑戦する学生のつながり
-            </Text>
-          </View>
-
-          {/* Action Buttons */}
-          <View style={styles.actionContainer}>
-            {/* Create Account Button - Primary */}
-            <TouchableOpacity onPress={onCreateAccount} activeOpacity={0.8} style={styles.primaryButton}>
-              <Text style={styles.primaryButtonText}>アカウント登録</Text>
+          {/* Bottom Actions */}
+          <View style={styles.bottomSection}>
+            <TouchableOpacity
+              onPress={onCreateAccount}
+              activeOpacity={0.9}
+              style={styles.primaryButton}
+            >
+              <Text style={styles.primaryButtonText}>Get Started</Text>
             </TouchableOpacity>
 
-            {/* Login Button - Secondary */}
-            <TouchableOpacity onPress={() => setIsLoginModalVisible(true)} activeOpacity={0.8} style={styles.secondaryButton}>
-              <Text style={styles.secondaryButtonText}>ログイン</Text>
+            <TouchableOpacity
+              onPress={() => setIsLoginModalVisible(true)}
+              activeOpacity={0.7}
+              style={styles.secondaryButton}
+            >
+              <Text style={styles.secondaryButtonText}>Log In</Text>
             </TouchableOpacity>
-
-            {/* Terms */}
-            <View style={styles.termsContainer}>
-              <Text style={styles.termsText}>
-                登録を完了することで
-                <Text style={styles.linkText} onPress={() => setIsTermsModalVisible(true)}>利用規約</Text>
-                に同意したものとみな{'\n'}されます。情報の取り扱いについては
-                <Text style={styles.linkText} onPress={() => setIsPrivacyModalVisible(true)}>プライバシーポリ{'\n'}シー</Text>
-                をご覧ください。
-              </Text>
-            </View>
           </View>
-
-        </View>
+        </Animated.View>
       </SafeAreaView>
 
       {/* Login Modal */}
@@ -350,17 +184,20 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
               style={styles.modalKeyboardAvoid}
             >
               <View style={styles.modalContent}>
-                <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>ログイン</Text>
-                  <TouchableOpacity onPress={() => setIsLoginModalVisible(false)} style={styles.closeButton}>
-                    <Ionicons name="close" size={24} color="#333" />
+                <View style={[styles.modalHeader, { justifyContent: 'center', position: 'relative' }]}>
+                  <Text style={styles.modalTitle}>Welcome Back</Text>
+                  <TouchableOpacity
+                    onPress={() => setIsLoginModalVisible(false)}
+                    style={[styles.closeButton, { position: 'absolute', right: 0 }]}
+                  >
+                    <Ionicons name="close" size={24} color={COLORS.text} />
                   </TouchableOpacity>
                 </View>
 
                 <View style={styles.formContainer}>
                   <ModernInput
-                    label="メールアドレス"
-                    placeholder="example@email.com"
+                    label="Email"
+                    placeholder="hello@example.com"
                     value={email}
                     onChangeText={setEmail}
                     autoCapitalize="none"
@@ -369,8 +206,8 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
                   />
 
                   <ModernInput
-                    label="パスワード"
-                    placeholder="パスワードを入力"
+                    label="Password"
+                    placeholder="••••••••"
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry
@@ -379,7 +216,7 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
 
                   <View style={{ alignItems: 'flex-end', marginTop: -8 }}>
                     <ModernButton
-                      title="パスワードを忘れた場合"
+                      title="Forgot Password?"
                       onPress={handleForgotPassword}
                       variant="ghost"
                       size="small"
@@ -387,13 +224,12 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
                   </View>
 
                   <ModernButton
-                    title={loading ? "ログイン中..." : "ログイン"}
+                    title={loading ? "Logging in..." : "Log In"}
                     onPress={handleLogin}
                     loading={loading}
                     variant="primary"
                     fullWidth
                     size="large"
-                    icon="log-in-outline"
                   />
                 </View>
               </View>
@@ -401,8 +237,6 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
           </View>
         </TouchableWithoutFeedback>
       </Modal>
-
-      {/* Modals removed as we now use conditional rendering for full page experience */}
     </View>
   );
 }
@@ -410,7 +244,7 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: '#000',
   },
   backgroundContainer: {
     ...StyleSheet.absoluteFillObject,
@@ -418,33 +252,7 @@ const styles = StyleSheet.create({
   backgroundImage: {
     width: '100%',
     height: '100%',
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  networkPatternContainer: {
-    ...StyleSheet.absoluteFillObject,
-    opacity: 0.05,
-  },
-  networkPattern: {
-    width: '100%',
-    height: '100%',
-  },
-  particlesContainer: {
-    ...StyleSheet.absoluteFillObject,
-    overflow: 'hidden',
-  },
-  particle: {
-    position: 'absolute',
-    width: 8, // 4から8に拡大
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#FFD700', // より鮮やかなゴールド
-    shadowColor: '#FFD700',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 10, // 4から10に拡大
-    elevation: 8,
+    opacity: 0.6, // 背景画像としての主張を少し抑える
   },
   contentContainer: {
     flex: 1,
@@ -452,119 +260,67 @@ const styles = StyleSheet.create({
   innerContainer: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingVertical: 40,
-    justifyContent: 'space-between',
+    paddingBottom: 48,
   },
-  logoContainer: {
-    alignItems: 'center',
-    paddingTop: 20,
-  },
-  logoWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 8,
-  },
-  logoIcon: {
-    width: 60,
-    height: 60,
-    borderRadius: 16,
-  },
-  logoText: {
-    color: '#1E3A8A',
-    fontSize: 28,
-    fontWeight: 'bold',
-  },
-  appName: {
-    color: '#D4AF37',
-    fontSize: 32,
-    fontWeight: 'bold',
-    letterSpacing: -0.5,
-  },
-  logoSubtitle: {
-    color: '#D4AF37',
-    fontSize: 14,
-    fontWeight: '500',
-    letterSpacing: 0.5,
-  },
-  messageContainer: {
-    flex: 1,
+  centerContent: {
+    flex: 2,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 20,
   },
-  title: {
+  mainTitle: {
+    fontSize: 42,
+    fontWeight: '800',
     color: '#FFFFFF',
-    fontSize: 32,
-    fontWeight: 'bold',
     textAlign: 'center',
-    lineHeight: 42,
-    letterSpacing: -0.5,
+    letterSpacing: -1,
+    marginBottom: 12,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 4 },
+    textShadowRadius: 10,
   },
-  subtitle: {
+  subTitle: {
+    fontSize: 18,
     color: 'rgba(255, 255, 255, 0.9)',
-    fontSize: 16,
     textAlign: 'center',
-    lineHeight: 24,
-    marginTop: 12,
-  },
-  description: {
-    color: 'rgba(255, 255, 255, 0.7)',
-    fontSize: 14,
-    textAlign: 'center',
-    marginTop: 24,
     fontWeight: '500',
   },
-  actionContainer: {
+  bottomSection: {
     gap: 16,
-    paddingBottom: 20,
+    marginBottom: 20,
   },
   primaryButton: {
-    width: '100%',
+    backgroundColor: COLORS.white, // 参考画像同様、背景白
     paddingVertical: 18,
-    borderRadius: 9999,
+    borderRadius: 12,
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    ...SHADOWS.lg,
+    width: '100%',
+    // 微妙な透明度を持たせて背景を透かすか、完全に不透明にするか
+    // 参考画像は不透明っぽい
+    ...SHADOWS.md,
   },
   primaryButtonText: {
     color: '#000000',
     fontSize: 17,
-    fontWeight: '700',
-    letterSpacing: 0.5,
+    fontWeight: 'bold',
   },
   secondaryButton: {
-    width: '100%',
     paddingVertical: 18,
-    borderRadius: 9999,
+    borderRadius: 12,
     alignItems: 'center',
-    backgroundColor: 'transparent',
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.4)',
+    width: '100%',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)', // 半透明のガラス風
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   secondaryButtonText: {
     color: '#FFFFFF',
     fontSize: 17,
     fontWeight: '600',
-    letterSpacing: 0.5,
   },
-  termsContainer: {
-    paddingTop: 12,
-    alignItems: 'center',
-  },
-  termsText: {
-    color: 'rgba(255, 255, 255, 0.5)',
-    fontSize: 11,
-    textAlign: 'center',
-    lineHeight: 16,
-  },
-  linkText: {
-    color: 'rgba(255, 255, 255, 0.8)',
-    textDecorationLine: 'underline',
-  },
+  // Modal Styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'flex-end',
   },
   modalKeyboardAvoid: {
@@ -575,85 +331,22 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    padding: 24,
-    paddingBottom: 40,
+    padding: 32,
+    paddingBottom: 48,
   },
   modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 32,
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    fontFamily: FONTS.bold,
-    color: '#111827',
+    fontSize: 24,
+    fontWeight: '700',
+    color: COLORS.text,
+    textAlign: 'center',
   },
   closeButton: {
-    padding: 4,
+    padding: 8,
   },
   formContainer: {
-    gap: 16,
-  },
-  inputGroup: {
-    gap: 8,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    backgroundColor: '#F9FAFB',
-  },
-  forgotPasswordContainer: {
-    alignItems: 'flex-end',
-  },
-  forgotPasswordText: {
-    color: '#1E3A8A',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  loginButton: {
-    backgroundColor: '#1E3A8A',
-    paddingVertical: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  loginButtonDisabled: {
-    backgroundColor: '#9CA3AF',
-  },
-  loginButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  policyModalContent: {
-    backgroundColor: 'white',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-    paddingBottom: 40,
-    maxHeight: '90%',
-  },
-  policyScrollView: {
-    marginTop: 16,
-  },
-  policyText: {
-    fontSize: 14,
-    color: '#374151',
-    lineHeight: 22,
-  },
-  policyTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#111827',
+    gap: 20,
   },
 });
