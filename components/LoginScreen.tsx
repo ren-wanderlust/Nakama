@@ -170,7 +170,7 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
               activeOpacity={0.9}
               style={styles.primaryButton}
             >
-              <Text style={styles.primaryButtonText}>Get Started</Text>
+              <Text style={styles.primaryButtonText}>アカウント作成</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -178,7 +178,7 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
               activeOpacity={0.7}
               style={styles.secondaryButton}
             >
-              <Text style={styles.secondaryButtonText}>Log In</Text>
+              <Text style={styles.secondaryButtonText}>ログイン</Text>
             </TouchableOpacity>
           </View>
         </Animated.View>
