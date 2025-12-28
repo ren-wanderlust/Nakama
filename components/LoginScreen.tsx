@@ -19,18 +19,19 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../lib/supabase';
-import { SHADOWS, FONTS } from '../constants/DesignSystem';
+import { SHADOWS } from '../constants/DesignSystem';
 import { ModernButton, ModernInput } from './ModernComponents';
 import { TermsOfServicePage } from './TermsOfServicePage';
 import { PrivacyPolicyPage } from './PrivacyPolicyPage';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 // ブランドカラー
 const COLORS = {
   primary: '#FF6B35',
   white: '#FFFFFF',
   text: '#1E293B',
+  darkBg: '#0F172A', // 深いネイビー
 };
 
 interface LoginScreenProps {
@@ -48,17 +49,25 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
   // アニメーション
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
+  const logoAnim = useRef(new Animated.Value(0.8)).current;
 
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 1000,
+        duration: 800,
         useNativeDriver: true,
       }),
-      Animated.timing(slideAnim, {
+      Animated.spring(slideAnim, {
         toValue: 0,
-        duration: 1000,
+        friction: 8,
+        tension: 40,
+        useNativeDriver: true,
+      }),
+      Animated.spring(logoAnim, {
+        toValue: 1,
+        friction: 6,
+        tension: 40,
         useNativeDriver: true,
       }),
     ]).start();
@@ -89,7 +98,6 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
       Alert.alert('エラー', 'メールアドレスを入力してください');
       return;
     }
-    // ... (パスワードリセット処理)
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email);
       if (error) throw error;
@@ -106,26 +114,21 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
     <View style={styles.container}>
       <StatusBar style="light" />
 
-      {/* 背景: 画像の代わりにリッチなグラデーションとパターンを使用 */}
+      {/* 背景: シンプルかつモダンなダークグラデーション */}
+      {/* オレンジのアイコンが映えるように、深みのある色を使用 */}
       <View style={styles.backgroundContainer}>
-        {/* ベース画像（ネットワークパターン） */}
-        <Image
-          source={require('../assets/network-pattern.png')}
-          style={styles.backgroundImage}
-          contentFit="cover"
-        />
-
-        {/* オーバーレイグラデーション: 参考画像のようなダークで没入感のある雰囲気 */}
         <LinearGradient
-          colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.6)', 'rgba(0,0,0,0.85)']}
+          colors={['#0F172A', '#1E293B', '#020617']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
           style={StyleSheet.absoluteFillObject}
         />
 
-        {/* アクセントカラーの光（コンセプト: 未来への情熱） */}
+        {/* 微細なアクセント光 */}
         <LinearGradient
-          colors={['rgba(255, 107, 53, 0.4)', 'transparent']}
+          colors={['rgba(255, 107, 53, 0.1)', 'transparent']}
           start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 0.6 }}
+          end={{ x: 0.5, y: 0.5 }}
           style={StyleSheet.absoluteFillObject}
         />
       </View>
@@ -140,11 +143,22 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
             },
           ]}
         >
-          {/* Header (Empty for spacing) */}
-          <View style={{ flex: 1 }} />
-
-          {/* Main Content: Minimize text as requested */}
+          {/* Main Content */}
           <View style={styles.centerContent}>
+            {/* 新しいオレンジロゴ */}
+            <Animated.View
+              style={[
+                styles.logoWrapper,
+                { transform: [{ scale: logoAnim }] }
+              ]}
+            >
+              <Image
+                source={require('../assets/pogg_logo_orange.png')}
+                style={styles.logoIcon}
+                contentFit="contain"
+              />
+            </Animated.View>
+
             <Text style={styles.mainTitle}>Find Your Team</Text>
             <Text style={styles.subTitle}>Connect with student innovators</Text>
           </View>
@@ -244,15 +258,10 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: '#0F172A',
   },
   backgroundContainer: {
     ...StyleSheet.absoluteFillObject,
-  },
-  backgroundImage: {
-    width: '100%',
-    height: '100%',
-    opacity: 0.6, // 背景画像としての主張を少し抑える
   },
   contentContainer: {
     flex: 1,
@@ -261,66 +270,79 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 24,
     paddingBottom: 48,
+    justifyContent: 'space-between',
   },
   centerContent: {
-    flex: 2,
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
+  // ロゴスタイル
+  logoWrapper: {
+    width: 100,
+    height: 100,
+    marginBottom: 32,
+    borderRadius: 24, // アプリアイコンのような角丸
+    overflow: 'hidden',
+    // 影をつけて浮き上がらせる
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 10,
+    backgroundColor: '#FFA500', // 画像読み込み前のプレースホルダー色
+  },
+  logoIcon: {
+    width: '100%',
+    height: '100%',
+  },
   mainTitle: {
-    fontSize: 42,
+    fontSize: 36,
     fontWeight: '800',
     color: '#FFFFFF',
     textAlign: 'center',
-    letterSpacing: -1,
+    letterSpacing: -0.5,
     marginBottom: 12,
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 0, height: 4 },
-    textShadowRadius: 10,
   },
   subTitle: {
-    fontSize: 18,
-    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 16,
+    color: '#94A3B8', // 少し落ち着いたグレーで読みやすく
     textAlign: 'center',
     fontWeight: '500',
+    letterSpacing: 0.5,
   },
   bottomSection: {
     gap: 16,
     marginBottom: 20,
   },
   primaryButton: {
-    backgroundColor: COLORS.white, // 参考画像同様、背景白
+    backgroundColor: COLORS.white,
     paddingVertical: 18,
-    borderRadius: 12,
+    borderRadius: 16,
     alignItems: 'center',
     width: '100%',
-    // 微妙な透明度を持たせて背景を透かすか、完全に不透明にするか
-    // 参考画像は不透明っぽい
     ...SHADOWS.md,
   },
   primaryButtonText: {
-    color: '#000000',
-    fontSize: 17,
-    fontWeight: 'bold',
+    color: '#0F172A',
+    fontSize: 16,
+    fontWeight: '700',
   },
   secondaryButton: {
     paddingVertical: 18,
-    borderRadius: 12,
+    borderRadius: 16,
     alignItems: 'center',
     width: '100%',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)', // 半透明のガラス風
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   secondaryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 17,
+    color: '#94A3B8',
+    fontSize: 16,
     fontWeight: '600',
   },
   // Modal Styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'flex-end',
   },
   modalKeyboardAvoid: {
@@ -329,8 +351,8 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: 'white',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
     padding: 32,
     paddingBottom: 48,
   },
