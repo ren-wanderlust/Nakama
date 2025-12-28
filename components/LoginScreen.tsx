@@ -118,7 +118,7 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
       {/* 背景: 明るくクリーンなグラデーション */}
       <View style={styles.backgroundContainer}>
         <LinearGradient
-          colors={['#FFFFFF', '#F8FAFC', '#F1F5F9']}
+          colors={['#FFFFFF', '#FFF7ED', '#FFEDD5']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={StyleSheet.absoluteFillObject}
@@ -131,26 +131,57 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
           contentFit="cover"
         />
 
+        {/* 巨大な透かしロゴ（背景アクセント: 右上） */}
+        <View style={{
+          position: 'absolute',
+          top: -width * 0.2,
+          right: -width * 0.2,
+          opacity: 0.05,
+          transform: [{ rotate: '-15deg' }]
+        }}>
+          <Image
+            source={require('../assets/pogg_logo_orange.png')}
+            style={{ width: width * 0.8, height: width * 0.8 }}
+            contentFit="contain"
+          />
+        </View>
+
+        {/* 巨大な透かしロゴ（背景アクセント: 左下） */}
+        <View style={{
+          position: 'absolute',
+          bottom: width * 0.1,
+          left: -width * 0.3,
+          opacity: 0.04,
+          transform: [{ rotate: '30deg' }]
+        }}>
+          <Image
+            source={require('../assets/pogg_logo_orange.png')}
+            style={{ width: width * 0.9, height: width * 0.9 }}
+            contentFit="contain"
+          />
+        </View>
+
         {/* 装飾: 右上の淡いオレンジの光 */}
         <View style={[styles.decorationCircle, {
           top: -100,
           right: -100,
-          backgroundColor: 'rgba(255, 107, 53, 0.08)'
+          backgroundColor: 'rgba(254, 189, 105, 0.15)'
         }]} />
 
         {/* 装飾: 左下の淡いブルーの光 */}
         <View style={[styles.decorationCircle, {
           bottom: -100,
           left: -100,
-          backgroundColor: 'rgba(56, 189, 248, 0.06)'
+          backgroundColor: 'rgba(56, 189, 248, 0.08)'
         }]} />
 
-        {/* 全体の微細な光の調整 */}
+        {/* 下部のグラデーション装飾（温かみを足す） */}
         <LinearGradient
-          colors={['rgba(255, 255, 255, 0)', 'rgba(255, 255, 255, 0.5)']}
-          start={{ x: 0.5, y: 0 }}
+          colors={['transparent', 'rgba(254, 189, 105, 0.1)', 'rgba(254, 189, 105, 0.25)']}
+          start={{ x: 0.5, y: 0.5 }}
           end={{ x: 0.5, y: 1 }}
           style={StyleSheet.absoluteFillObject}
+          pointerEvents="none"
         />
       </View>
 
