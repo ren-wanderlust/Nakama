@@ -1324,14 +1324,54 @@ function AppContent() {
 
             {activeTab === 'search' && (
               <View>
-                {/* Modern Header - プロジェクトのみ表示（ユーザータブは非表示） */}
+                {/* シンプルなヘッダー - 絞り込み/ソートと通知ボタンを同じ行に配置 */}
+                <View style={[styles.searchHeader, { backgroundColor: 'white' }]}>
+                  <View style={[styles.searchHeaderGradient, { paddingTop: insets.top + 20, paddingBottom: 16, backgroundColor: 'white' }]}>
+                    <View style={styles.headerTop}>
+                      <View style={styles.headerLeft} />
+                      {/* 絞り込み/ソートを中央に配置 */}
+                      <View style={styles.searchControlBarInHeader}>
+                        <TouchableOpacity
+                          style={[styles.filterButton, isFilterActive && styles.filterButtonActive]}
+                          onPress={() => setIsFilterOpen(true)}
+                        >
+                          <Ionicons name="search" size={16} color="#F39800" />
+                          <Text style={[styles.controlButtonText, isFilterActive && styles.controlButtonTextActive]}>
+                            絞り込み
+                          </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={styles.sortButton}
+                          onPress={() => setIsSortModalOpen(true)}
+                        >
+                          <Text style={styles.controlButtonText}>
+                            {sortOrder === 'recommended' ? 'おすすめ順' : sortOrder === 'newest' ? '新着順' : '締め切り順'}
+                          </Text>
+                          <Ionicons name="chevron-down" size={14} color="#F39800" />
+                        </TouchableOpacity>
+                      </View>
+                      <View style={styles.headerRight}>
+                        <TouchableOpacity
+                          style={styles.notificationButton}
+                          onPress={() => setShowNotifications(true)}
+                        >
+                          <Ionicons name="notifications-outline" size={24} color="#F39800" />
+                          {unreadNotificationsCount > 0 && (
+                            <View style={styles.notificationBadgeDot} />
+                          )}
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+
+                {/* ユーザータブは将来的な復活のためにコメントで残す
                 <View style={[styles.searchHeader, { backgroundColor: 'white' }]}>
                   <View style={[styles.searchHeaderGradient, { paddingTop: insets.top + 16, backgroundColor: 'white' }]}>
                     <View style={styles.headerTop}>
                       <View style={styles.headerLeft} />
-                      {/* プロジェクトのみ表示のため、タイトルを中央に配置 */}
                       <Text style={[styles.headerTitle, { color: '#F39800' }]}>プロジェクト</Text>
-                      {/* ユーザータブは将来的な復活のためにコメントで残す
                       <View style={styles.tabContainer}>
                         <TouchableOpacity
                           style={[styles.tabButton, searchTab === 'projects' && styles.tabButtonActive]}
@@ -1366,7 +1406,6 @@ function AppContent() {
                           <Text style={[styles.tabText, searchTab === 'users' && styles.tabTextActive]}>ユーザー</Text>
                         </TouchableOpacity>
                       </View>
-                      */}
                       <View style={styles.headerRight}>
                         <TouchableOpacity
                           style={styles.notificationButton}
@@ -1403,6 +1442,7 @@ function AppContent() {
                     <Ionicons name="chevron-down" size={14} color="#F39800" />
                   </TouchableOpacity>
                 </View>
+                */}
               </View>
             )}
           </View>
@@ -2096,10 +2136,10 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
   },
   headerLeft: {
-    width: 40,
+    width: 44,
   },
   headerRight: {
-    width: 56,
+    width: 44,
     alignItems: 'flex-end',
     paddingRight: 0,
   },
@@ -2133,6 +2173,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
+  },
+  // ヘッダー内に配置する絞り込み/ソートボタン
+  searchControlBarInHeader: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
   },
   filterButton: {
     flex: 6, // 60%
