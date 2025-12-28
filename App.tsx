@@ -157,11 +157,15 @@ function AppContent() {
     : new Set();
 
   // Calculate unread likes count from React Query data (same as LikesPage)
+  // プロジェクトのみ表示に変更したため、募集への応募のみカウント
   const unreadLikesCount = React.useMemo(() => {
-    const receivedLikesData = receivedLikesQuery.data;
     const projectApplicationsData = projectApplicationsQuery.data;
 
-    if (!receivedLikesData || !projectApplicationsData) return 0;
+    if (!projectApplicationsData) return 0;
+
+    /* ユーザーマッチング関連は将来的な復活のためにコメントで残す
+    const receivedLikesData = receivedLikesQuery.data;
+    if (!receivedLikesData) return 0;
 
     // Unread interest count (未マッチの未読)
     // AsyncStorage永続化復元時に Set がプレーンオブジェクト化する可能性があるため、instanceofで防御
@@ -175,6 +179,7 @@ function AppContent() {
       ? receivedLikesData.unreadMatchIds
       : new Set();
     const unreadMatchCount = unreadMatchIds.size || 0;
+    */
 
     // Unread recruiting count (募集への応募の未読)
     const unreadRecruitingIds: Set<string> = (projectApplicationsData.unreadRecruitingIds instanceof Set)
@@ -182,8 +187,9 @@ function AppContent() {
       : new Set();
     const unreadRecruitingCount = unreadRecruitingIds.size || 0;
 
-    return unreadInterestCount + unreadMatchCount + unreadRecruitingCount;
-  }, [receivedLikesQuery.data, projectApplicationsQuery.data]);
+    // return unreadInterestCount + unreadMatchCount + unreadRecruitingCount; // ユーザーマッチング含む
+    return unreadRecruitingCount; // プロジェクトのみ
+  }, [projectApplicationsQuery.data]);
 
   // Initialize push notifications
   React.useEffect(() => {
@@ -1318,11 +1324,14 @@ function AppContent() {
 
             {activeTab === 'search' && (
               <View>
-                {/* Modern Header */}
+                {/* Modern Header - プロジェクトのみ表示（ユーザータブは非表示） */}
                 <View style={[styles.searchHeader, { backgroundColor: 'white' }]}>
                   <View style={[styles.searchHeaderGradient, { paddingTop: insets.top + 16, backgroundColor: 'white' }]}>
                     <View style={styles.headerTop}>
                       <View style={styles.headerLeft} />
+                      {/* プロジェクトのみ表示のため、タイトルを中央に配置 */}
+                      <Text style={[styles.headerTitle, { color: '#F39800' }]}>プロジェクト</Text>
+                      {/* ユーザータブは将来的な復活のためにコメントで残す
                       <View style={styles.tabContainer}>
                         <TouchableOpacity
                           style={[styles.tabButton, searchTab === 'projects' && styles.tabButtonActive]}
@@ -1357,6 +1366,7 @@ function AppContent() {
                           <Text style={[styles.tabText, searchTab === 'users' && styles.tabTextActive]}>ユーザー</Text>
                         </TouchableOpacity>
                       </View>
+                      */}
                       <View style={styles.headerRight}>
                         <TouchableOpacity
                           style={styles.notificationButton}
@@ -1401,6 +1411,21 @@ function AppContent() {
         {/* Content */}
         <View style={styles.contentArea}>
           <FadeTabContent activeTab={activeTab} tabId="search">
+            {/* プロジェクトのみ表示（ユーザー検索は非表示） */}
+            <UserProjectPage
+              sortOrder={sortOrder}
+              currentUser={currentUser}
+              filterCriteria={filterCriteria}
+              onChat={(partnerId, partnerName, partnerImage) => {
+                setActiveChatRoom({
+                  partnerId,
+                  partnerName,
+                  partnerImage,
+                  isGroup: false,
+                });
+              }}
+            />
+            {/* ユーザー検索は将来的な復活のためにコメントで残す
             <FlatList
               ref={searchListRef}
               data={['projects', 'users']}
@@ -1477,6 +1502,7 @@ function AppContent() {
                 </View>
               )}
             />
+            */}
           </FadeTabContent>
           <FadeTabContent activeTab={activeTab} tabId="likes">
             <LikesPage
