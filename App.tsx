@@ -54,6 +54,7 @@ import { registerForPushNotificationsAsync, savePushToken, setupNotificationList
 import { FullPageSkeleton, ProfileListSkeleton } from './components/Skeleton';
 import { FadeTabContent } from './components/AnimatedTabView';
 import { CustomRefreshControl } from './components/CustomRefreshControl';
+import { SplashScreen } from './components/SplashScreen';
 
 import { FONTS } from './constants/DesignSystem';
 
@@ -2313,6 +2314,7 @@ export default function App() {
   });
 
   const [assetsLoaded, setAssetsLoaded] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
 
   // プリロードするアセット（ログイン画面で使用する画像）
   useEffect(() => {
@@ -2332,27 +2334,40 @@ export default function App() {
     loadAssets();
   }, []);
 
-  if (!fontsLoaded || !assetsLoaded) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF' }}>
-        <ActivityIndicator size="large" color="#009688" />
-      </View>
-    );
-  }
+  const isReady = fontsLoaded && assetsLoaded;
+
+  // スプラッシュのフェードアウト完了時のコールバック
+  const handleSplashComplete = () => {
+    setShowSplash(false);
+  };
 
   return (
     <SafeAreaProvider>
-      <PersistQueryClientProvider
-        client={queryClient}
-        persistOptions={{
-          persister: asyncStoragePersister,
-          maxAge: 30 * 60 * 1000, // 30分
-        }}
-      >
-        <AuthProvider queryClient={queryClient}>
-          <AppContent />
-        </AuthProvider>
-      </PersistQueryClientProvider>
+      <View style={{ flex: 1 }}>
+        {/* メインコンテンツ（準備完了時のみレンダリング） */}
+        {isReady && (
+          <PersistQueryClientProvider
+            client={queryClient}
+            persistOptions={{
+              persister: asyncStoragePersister,
+              maxAge: 30 * 60 * 1000, // 30分
+            }}
+          >
+            <AuthProvider queryClient={queryClient}>
+              <AppContent />
+            </AuthProvider>
+          </PersistQueryClientProvider>
+        )}
+
+        {/* スプラッシュスクリーン（オーバーレイ） */}
+        {showSplash && (
+          <SplashScreen
+            isReady={isReady}
+            onAnimationComplete={handleSplashComplete}
+          />
+        )}
+      </View>
     </SafeAreaProvider>
   );
 }
+
