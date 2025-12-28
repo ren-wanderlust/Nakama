@@ -28,7 +28,7 @@ const { width } = Dimensions.get('window');
 
 // ブランドカラー & ライトテーマパレット
 const COLORS = {
-  primary: '#FF6B35',
+  primary: '#FEBD69',  // アイコンに合わせた明るいオレンジ
   bg: '#F8FAFC',       // 明るいオフホワイト
   text: '#1E293B',     // 濃いネイビー（読みやすい黒に近い色）
   subText: '#64748B',  // 落ち着いたグレー
@@ -118,17 +118,38 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
       {/* 背景: 明るくクリーンなグラデーション */}
       <View style={styles.backgroundContainer}>
         <LinearGradient
-          colors={['#FFFFFF', '#F1F5F9', '#E2E8F0']}
+          colors={['#FFFFFF', '#F8FAFC', '#F1F5F9']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={StyleSheet.absoluteFillObject}
         />
 
-        {/* 上部から淡いオレンジの光を注ぐ */}
+        {/* ネットワークパターン（薄く透かす） */}
+        <Image
+          source={require('../assets/network-pattern.png')}
+          style={[StyleSheet.absoluteFillObject, { opacity: 0.03 }]}
+          contentFit="cover"
+        />
+
+        {/* 装飾: 右上の淡いオレンジの光 */}
+        <View style={[styles.decorationCircle, {
+          top: -100,
+          right: -100,
+          backgroundColor: 'rgba(255, 107, 53, 0.08)'
+        }]} />
+
+        {/* 装飾: 左下の淡いブルーの光 */}
+        <View style={[styles.decorationCircle, {
+          bottom: -100,
+          left: -100,
+          backgroundColor: 'rgba(56, 189, 248, 0.06)'
+        }]} />
+
+        {/* 全体の微細な光の調整 */}
         <LinearGradient
-          colors={['rgba(255, 107, 53, 0.08)', 'transparent']}
+          colors={['rgba(255, 255, 255, 0)', 'rgba(255, 255, 255, 0.5)']}
           start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 0.6 }}
+          end={{ x: 0.5, y: 1 }}
           style={StyleSheet.absoluteFillObject}
         />
       </View>
@@ -262,6 +283,15 @@ const styles = StyleSheet.create({
   },
   backgroundContainer: {
     ...StyleSheet.absoluteFillObject,
+    overflow: 'hidden', // 装飾がはみ出さないように
+  },
+  decorationCircle: {
+    position: 'absolute',
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    // ぼかし効果風のスタイル（Androidはelevationが必要だが、ここではopacityで表現）
+    opacity: 0.8,
   },
   contentContainer: {
     flex: 1,
