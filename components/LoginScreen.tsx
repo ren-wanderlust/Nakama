@@ -26,12 +26,13 @@ import { PrivacyPolicyPage } from './PrivacyPolicyPage';
 
 const { width } = Dimensions.get('window');
 
-// ブランドカラー
+// ブランドカラー & ライトテーマパレット
 const COLORS = {
   primary: '#FF6B35',
-  white: '#FFFFFF',
-  text: '#1E293B',
-  darkBg: '#0F172A', // 深いネイビー
+  bg: '#F8FAFC',       // 明るいオフホワイト
+  text: '#1E293B',     // 濃いネイビー（読みやすい黒に近い色）
+  subText: '#64748B',  // 落ち着いたグレー
+  border: '#E2E8F0',
 };
 
 interface LoginScreenProps {
@@ -112,23 +113,22 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
 
   return (
     <View style={styles.container}>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
 
-      {/* 背景: シンプルかつモダンなダークグラデーション */}
-      {/* オレンジのアイコンが映えるように、深みのある色を使用 */}
+      {/* 背景: 明るくクリーンなグラデーション */}
       <View style={styles.backgroundContainer}>
         <LinearGradient
-          colors={['#0F172A', '#1E293B', '#020617']}
+          colors={['#FFFFFF', '#F1F5F9', '#E2E8F0']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={StyleSheet.absoluteFillObject}
         />
 
-        {/* 微細なアクセント光 */}
+        {/* 上部から淡いオレンジの光を注ぐ */}
         <LinearGradient
-          colors={['rgba(255, 107, 53, 0.1)', 'transparent']}
+          colors={['rgba(255, 107, 53, 0.08)', 'transparent']}
           start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 0.5 }}
+          end={{ x: 0.5, y: 0.6 }}
           style={StyleSheet.absoluteFillObject}
         />
       </View>
@@ -145,7 +145,7 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
         >
           {/* Main Content */}
           <View style={styles.centerContent}>
-            {/* 新しいオレンジロゴ */}
+            {/* オレンジロゴ */}
             <Animated.View
               style={[
                 styles.logoWrapper,
@@ -155,7 +155,7 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
               <Image
                 source={require('../assets/pogg_logo_orange.png')}
                 style={styles.logoIcon}
-                contentFit="contain"
+                contentFit="cover"
               />
             </Animated.View>
 
@@ -199,7 +199,7 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
             >
               <View style={styles.modalContent}>
                 <View style={[styles.modalHeader, { justifyContent: 'center', position: 'relative' }]}>
-                  <Text style={styles.modalTitle}>Welcome Back</Text>
+                  <Text style={styles.modalTitle}>おかえりなさい</Text>
                   <TouchableOpacity
                     onPress={() => setIsLoginModalVisible(false)}
                     style={[styles.closeButton, { position: 'absolute', right: 0 }]}
@@ -210,8 +210,8 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
 
                 <View style={styles.formContainer}>
                   <ModernInput
-                    label="Email"
-                    placeholder="hello@example.com"
+                    label="メールアドレス"
+                    placeholder="example@email.com"
                     value={email}
                     onChangeText={setEmail}
                     autoCapitalize="none"
@@ -220,7 +220,7 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
                   />
 
                   <ModernInput
-                    label="Password"
+                    label="パスワード"
                     placeholder="••••••••"
                     value={password}
                     onChangeText={setPassword}
@@ -230,7 +230,7 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
 
                   <View style={{ alignItems: 'flex-end', marginTop: -8 }}>
                     <ModernButton
-                      title="Forgot Password?"
+                      title="パスワードを忘れた場合"
                       onPress={handleForgotPassword}
                       variant="ghost"
                       size="small"
@@ -238,7 +238,7 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
                   </View>
 
                   <ModernButton
-                    title={loading ? "Logging in..." : "Log In"}
+                    title={loading ? "ログイン中..." : "ログイン"}
                     onPress={handleLogin}
                     loading={loading}
                     variant="primary"
@@ -258,7 +258,7 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: COLORS.bg,
   },
   backgroundContainer: {
     ...StyleSheet.absoluteFillObject,
@@ -282,15 +282,15 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     marginBottom: 32,
-    borderRadius: 24, // アプリアイコンのような角丸
+    borderRadius: 24,
     overflow: 'hidden',
-    // 影をつけて浮き上がらせる
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 10,
-    backgroundColor: '#FFA500', // 画像読み込み前のプレースホルダー色
+    // 明るい背景に合わせて影を少し柔らかく
+    shadowColor: COLORS.primary, // 影を少しオレンジ寄りにすると綺麗
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 8,
+    backgroundColor: '#fff',
   },
   logoIcon: {
     width: '100%',
@@ -299,14 +299,14 @@ const styles = StyleSheet.create({
   mainTitle: {
     fontSize: 36,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: COLORS.text,
     textAlign: 'center',
     letterSpacing: -0.5,
     marginBottom: 12,
   },
   subTitle: {
     fontSize: 16,
-    color: '#94A3B8', // 少し落ち着いたグレーで読みやすく
+    color: COLORS.subText,
     textAlign: 'center',
     fontWeight: '500',
     letterSpacing: 0.5,
@@ -316,33 +316,47 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   primaryButton: {
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.primary, // ブランドカラー（オレンジ）
     paddingVertical: 18,
     borderRadius: 16,
     alignItems: 'center',
     width: '100%',
-    ...SHADOWS.md,
+    // 影で浮遊感を出す
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
   },
   primaryButtonText: {
-    color: '#0F172A',
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
   },
   secondaryButton: {
+    backgroundColor: '#FFFFFF',
     paddingVertical: 18,
     borderRadius: 16,
     alignItems: 'center',
     width: '100%',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    // 軽い影
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   secondaryButtonText: {
-    color: '#94A3B8',
+    color: COLORS.text,
     fontSize: 16,
     fontWeight: '600',
   },
   // Modal Styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: 'rgba(30, 41, 59, 0.4)', // 少し青みがかった半透明
     justifyContent: 'flex-end',
   },
   modalKeyboardAvoid: {
@@ -355,12 +369,17 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 32,
     padding: 32,
     paddingBottom: 48,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 20,
   },
   modalHeader: {
     marginBottom: 32,
   },
   modalTitle: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '700',
     color: COLORS.text,
     textAlign: 'center',
