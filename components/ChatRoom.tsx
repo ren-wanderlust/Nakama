@@ -25,6 +25,7 @@ import { supabase } from '../lib/supabase';
 import { GestureHandlerRootView, PanGestureHandler, State } from 'react-native-gesture-handler';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
 import * as Haptics from 'expo-haptics';
+import * as Clipboard from 'expo-clipboard';
 import { getUserPushTokens, sendPushNotification } from '../lib/notifications';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../data/queryKeys';
@@ -244,6 +245,9 @@ const ImageBatchBubble = ({
     const swipeableRef = useRef<any>(null);
     const [imageModalVisible, setImageModalVisible] = useState(false);
     const [modalUri, setModalUri] = useState<string | null>(null);
+    const anchorRef = useRef<View>(null);
+    const [actionMenuVisible, setActionMenuVisible] = useState(false);
+    const [actionMenuAnchor, setActionMenuAnchor] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
 
     const screenWidth = Dimensions.get('window').width;
     const gridWidth = screenWidth * 0.64;
@@ -280,8 +284,91 @@ const ImageBatchBubble = ({
         swipeableRef.current?.close();
     };
 
+    const openActionMenu = () => {
+        if (!anchorRef.current) return;
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        anchorRef.current.measureInWindow((x, y, width, height) => {
+            setActionMenuAnchor({ x, y, width, height });
+            setActionMenuVisible(true);
+        });
+    };
+
+    const closeActionMenu = () => {
+        setActionMenuVisible(false);
+    };
+
+    const canCopyText = !!(first.text && first.text.trim().length > 0);
+
     return (
         <>
+            {/* Long-press action menu (LINE-style) */}
+            {actionMenuVisible && actionMenuAnchor && (
+                <Modal
+                    transparent
+                    visible={actionMenuVisible}
+                    onRequestClose={closeActionMenu}
+                    animationType="fade"
+                >
+                    <Pressable style={styles.actionMenuBackdrop} onPress={closeActionMenu}>
+                        <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+                            {(() => {
+                                const { width: screenW, height: screenH } = Dimensions.get('window');
+                                const MENU_W = 190;
+                                const MENU_H = 94;
+                                const PAD = 12;
+                                const cx = actionMenuAnchor.x + actionMenuAnchor.width / 2;
+                                const showAbove = actionMenuAnchor.y > MENU_H + 24;
+                                const left = Math.max(PAD, Math.min(cx - MENU_W / 2, screenW - MENU_W - PAD));
+                                const top = showAbove
+                                    ? Math.max(PAD, actionMenuAnchor.y - MENU_H - 14)
+                                    : Math.min(screenH - MENU_H - PAD, actionMenuAnchor.y + actionMenuAnchor.height + 14);
+
+                                return (
+                                    <>
+                                        <View style={[styles.actionMenuPanel, { top, left, width: MENU_W }]}>
+                                            <Pressable
+                                                style={[styles.actionMenuButton, !canCopyText && styles.actionMenuButtonDisabled]}
+                                                onPress={async () => {
+                                                    if (!canCopyText) return;
+                                                    closeActionMenu();
+                                                    try {
+                                                        await Clipboard.setStringAsync(first.text ?? '');
+                                                    } catch (e) {
+                                                        console.log('Failed to copy:', e);
+                                                    }
+                                                }}
+                                            >
+                                                <Ionicons
+                                                    name="copy-outline"
+                                                    size={24}
+                                                    color={canCopyText ? '#FFFFFF' : 'rgba(255,255,255,0.4)'}
+                                                />
+                                                <Text style={[styles.actionMenuLabel, !canCopyText && styles.actionMenuLabelDisabled]}>
+                                                    テキストをコピー
+                                                </Text>
+                                            </Pressable>
+
+                                            <View style={styles.actionMenuDivider} />
+
+                                            <Pressable
+                                                style={styles.actionMenuButton}
+                                                onPress={() => {
+                                                    closeActionMenu();
+                                                    onReply(first);
+                                                }}
+                                            >
+                                                <Ionicons name="arrow-undo" size={24} color="#FFFFFF" />
+                                                <Text style={styles.actionMenuLabel}>リプライ</Text>
+                                            </Pressable>
+                                        </View>
+                                    </>
+                                );
+                            })()}
+                        </View>
+                    </Pressable>
+                </Modal>
+            )}
+
             <Swipeable
                 ref={swipeableRef}
                 renderRightActions={renderRightActions}
@@ -298,7 +385,12 @@ const ImageBatchBubble = ({
                         </TouchableOpacity>
                     )}
 
-                    <View style={[styles.messageContainer, isMe ? styles.messageContainerMe : styles.messageContainerOther]}>
+                    <Pressable onLongPress={openActionMenu} delayLongPress={250}>
+                        <View
+                            ref={anchorRef}
+                            collapsable={false}
+                            style={[styles.messageContainer, isMe ? styles.messageContainerMe : styles.messageContainerOther]}
+                        >
                         <View style={styles.bubbleRow}>
                             {isMe && (
                                 <Text style={[styles.timestamp, styles.timestampMe]}>{first.timestamp}</Text>
@@ -332,13 +424,17 @@ const ImageBatchBubble = ({
                                         );
                                     })()
                                 ))}
+                                {actionMenuVisible && (
+                                    <View pointerEvents="none" style={styles.longPressOverlay} />
+                                )}
                             </View>
 
                             {!isMe && (
                                 <Text style={[styles.timestamp, styles.timestampOther]}>{first.timestamp}</Text>
                             )}
                         </View>
-                    </View>
+                        </View>
+                    </Pressable>
                 </View>
             </Swipeable>
 
@@ -391,6 +487,9 @@ const MessageBubble = ({
     const isMe = message.sender === 'me';
     const swipeableRef = useRef<any>(null);
     const [imageModalVisible, setImageModalVisible] = useState(false);
+    const anchorRef = useRef<View>(null);
+    const [actionMenuVisible, setActionMenuVisible] = useState(false);
+    const [actionMenuAnchor, setActionMenuAnchor] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
 
     // For reply messages: track widths of each element to determine max width
     const [replySenderWidth, setReplySenderWidth] = useState(0);
@@ -530,20 +629,21 @@ const MessageBubble = ({
         swipeableRef.current?.close();
     };
 
-    const handleLongPress = () => {
-        Alert.alert(
-            'メニュー',
-            '',
-            [
-                {
-                    text: '返信する',
-                    onPress: () => onReply(message)
-                },
-                { text: 'キャンセル', style: 'cancel' }
-            ],
-            { cancelable: true }
-        );
+    const openActionMenu = () => {
+        if (!anchorRef.current) return;
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        // Android needs collapsable={false} on the measured view
+        anchorRef.current.measureInWindow((x, y, width, height) => {
+            setActionMenuAnchor({ x, y, width, height });
+            setActionMenuVisible(true);
+        });
     };
+
+    const closeActionMenu = () => {
+        setActionMenuVisible(false);
+    };
+
+    const canCopyText = !!(message.text && message.text.trim().length > 0);
 
     // Handle avatar press based on chat type
     const handleAvatarPress = () => {
@@ -561,6 +661,74 @@ const MessageBubble = ({
 
     return (
         <>
+            {/* Long-press action menu (LINE-style) */}
+            {actionMenuVisible && actionMenuAnchor && (
+                <Modal
+                    transparent
+                    visible={actionMenuVisible}
+                    onRequestClose={closeActionMenu}
+                    animationType="fade"
+                >
+                    <Pressable style={styles.actionMenuBackdrop} onPress={closeActionMenu}>
+                        <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+                            {(() => {
+                                const { width: screenW, height: screenH } = Dimensions.get('window');
+                                const MENU_W = 190;
+                                const MENU_H = 94;
+                                const PAD = 12;
+                                const cx = actionMenuAnchor.x + actionMenuAnchor.width / 2;
+                                const showAbove = actionMenuAnchor.y > MENU_H + 24;
+                                const left = Math.max(PAD, Math.min(cx - MENU_W / 2, screenW - MENU_W - PAD));
+                                const top = showAbove
+                                    ? Math.max(PAD, actionMenuAnchor.y - MENU_H - 14)
+                                    : Math.min(screenH - MENU_H - PAD, actionMenuAnchor.y + actionMenuAnchor.height + 14);
+
+                                return (
+                                    <>
+                                        <View style={[styles.actionMenuPanel, { top, left, width: MENU_W }]}>
+                                            <Pressable
+                                                style={[styles.actionMenuButton, !canCopyText && styles.actionMenuButtonDisabled]}
+                                                onPress={async () => {
+                                                    if (!canCopyText) return;
+                                                    closeActionMenu();
+                                                    try {
+                                                        await Clipboard.setStringAsync(message.text ?? '');
+                                                    } catch (e) {
+                                                        console.log('Failed to copy:', e);
+                                                    }
+                                                }}
+                                            >
+                                                <Ionicons
+                                                    name="copy-outline"
+                                                    size={24}
+                                                    color={canCopyText ? '#FFFFFF' : 'rgba(255,255,255,0.4)'}
+                                                />
+                                                <Text style={[styles.actionMenuLabel, !canCopyText && styles.actionMenuLabelDisabled]}>
+                                                    テキストをコピー
+                                                </Text>
+                                            </Pressable>
+
+                                            <View style={styles.actionMenuDivider} />
+
+                                            <Pressable
+                                                style={styles.actionMenuButton}
+                                                onPress={() => {
+                                                    closeActionMenu();
+                                                    onReply(message);
+                                                }}
+                                            >
+                                                <Ionicons name="arrow-undo" size={24} color="#FFFFFF" />
+                                                <Text style={styles.actionMenuLabel}>リプライ</Text>
+                                            </Pressable>
+                                        </View>
+                                    </>
+                                );
+                            })()}
+                        </View>
+                    </Pressable>
+                </Modal>
+            )}
+
             <Swipeable
                 ref={swipeableRef}
                 renderRightActions={renderRightActions}
@@ -659,7 +827,10 @@ const MessageBubble = ({
                         </Text>
                     )}
 
+                    <Pressable onLongPress={openActionMenu} delayLongPress={250}>
                     <View
+                            ref={anchorRef}
+                            collapsable={false}
                         style={[
                             styles.messageContainer,
                             isMe ? styles.messageContainerMe : styles.messageContainerOther,
@@ -685,11 +856,16 @@ const MessageBubble = ({
                                     {/* Image only - no bubble */}
                                     {message.image_url && !message.text && !message.replyTo && (
                                         <TouchableOpacity onPress={() => setImageModalVisible(true)} activeOpacity={0.9}>
-                                            <Image
-                                                source={{ uri: message.image_url }}
-                                                resizeMode="contain"
-                                                style={[styles.messageImageMe, { width: fittedImageSize.width, height: fittedImageSize.height }]}
-                                            />
+                                            <View style={{ position: 'relative' }}>
+                                                <Image
+                                                    source={{ uri: message.image_url }}
+                                                    resizeMode="contain"
+                                                    style={[styles.messageImageMe, { width: fittedImageSize.width, height: fittedImageSize.height }]}
+                                                />
+                                                {actionMenuVisible && (
+                                                    <View pointerEvents="none" style={styles.longPressOverlay} />
+                                                )}
+                                            </View>
                                         </TouchableOpacity>
                                     )}
                                     {/* Has text or reply - show bubble */}
@@ -742,14 +918,22 @@ const MessageBubble = ({
                                             )}
                                             {message.image_url && (
                                                 <TouchableOpacity onPress={() => setImageModalVisible(true)} activeOpacity={0.9}>
-                                                    <Image
-                                                        source={{ uri: message.image_url }}
-                                                        resizeMode="contain"
-                                                        style={[styles.messageImageMe, { width: fittedImageSize.width, height: fittedImageSize.height }]}
-                                                    />
+                                                    <View style={{ position: 'relative' }}>
+                                                        <Image
+                                                            source={{ uri: message.image_url }}
+                                                            resizeMode="contain"
+                                                            style={[styles.messageImageMe, { width: fittedImageSize.width, height: fittedImageSize.height }]}
+                                                        />
+                                                        {actionMenuVisible && (
+                                                            <View pointerEvents="none" style={styles.longPressOverlay} />
+                                                        )}
+                                                    </View>
                                                 </TouchableOpacity>
                                             )}
                                             {message.text ? richTextNodes : null}
+                                            {actionMenuVisible && (
+                                                <View pointerEvents="none" style={styles.longPressOverlay} />
+                                            )}
                                         </LinearGradient>
                                     )}
                                 </>
@@ -758,24 +942,25 @@ const MessageBubble = ({
                                     {/* Image only - no bubble */}
                                     {message.image_url && !message.text && !message.replyTo && (
                                         <TouchableOpacity onPress={() => setImageModalVisible(true)} activeOpacity={0.9}>
-                                            <Image
-                                                source={{ uri: message.image_url }}
-                                                resizeMode="contain"
-                                                style={[styles.messageImageOther, { width: fittedImageSize.width, height: fittedImageSize.height }]}
-                                            />
+                                            <View style={{ position: 'relative' }}>
+                                                <Image
+                                                    source={{ uri: message.image_url }}
+                                                    resizeMode="contain"
+                                                    style={[styles.messageImageOther, { width: fittedImageSize.width, height: fittedImageSize.height }]}
+                                                />
+                                                {actionMenuVisible && (
+                                                    <View pointerEvents="none" style={styles.longPressOverlay} />
+                                                )}
+                                            </View>
                                         </TouchableOpacity>
                                     )}
                                     {/* Has text or reply - show bubble */}
                                     {(message.text || message.replyTo) && (
-                                        <TouchableOpacity
-                                            onLongPress={handleLongPress}
-                                            activeOpacity={0.8}
-                                        >
                                             <View
                                                 style={[
                                                     styles.bubbleOther,
-                                                    { maxWidth: bubbleMaxWidth },
-                                                    totalReplyWidth > 0 && { minWidth: Math.min(totalReplyWidth + 32, bubbleMaxWidth) } // cap to bubble max width
+                                                { maxWidth: bubbleMaxWidth },
+                                                totalReplyWidth > 0 && { minWidth: Math.min(totalReplyWidth + 32, bubbleMaxWidth) } // cap to bubble max width
                                                 ]}
                                             >
                                                 {message.replyTo && (
@@ -815,16 +1000,23 @@ const MessageBubble = ({
                                                 )}
                                                 {message.image_url && (
                                                     <TouchableOpacity onPress={() => setImageModalVisible(true)} activeOpacity={0.9}>
+                                                    <View style={{ position: 'relative' }}>
                                                         <Image
                                                             source={{ uri: message.image_url }}
                                                             resizeMode="contain"
                                                             style={[styles.messageImageOther, { width: fittedImageSize.width, height: fittedImageSize.height }]}
                                                         />
+                                                        {actionMenuVisible && (
+                                                            <View pointerEvents="none" style={styles.longPressOverlay} />
+                                                        )}
+                                                    </View>
                                                     </TouchableOpacity>
                                                 )}
                                                 {message.text ? richTextNodes : null}
+                                            {actionMenuVisible && (
+                                                <View pointerEvents="none" style={styles.longPressOverlay} />
+                                            )}
                                             </View>
-                                        </TouchableOpacity>
                                     )}
                                 </>
                             )}
@@ -835,6 +1027,7 @@ const MessageBubble = ({
                             )}
                         </View>
                     </View>
+                    </Pressable>
                 </View>
             </Swipeable>
 
@@ -1070,18 +1263,18 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                         messages: group,
                     });
                 } else {
-                    items.push({
-                        type: 'message',
+            items.push({
+                type: 'message',
                         id: m.id,
                         message: m,
-                    });
+            });
                 }
 
                 const lastProcessed = group[group.length - 1];
                 const nextMessage = messages[j];
                 if (!nextMessage || nextMessage.date !== lastProcessed.date) {
-                    items.push({
-                        type: 'date',
+                items.push({
+                    type: 'date',
                         id: `date-${lastProcessed.date}`,
                         dateLabel: getDateLabel(lastProcessed.date),
                     });
@@ -1157,152 +1350,152 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                 reply: typeof replyData;
                 batchId?: string;
             }) => {
-                let uploadedImageUrl: string | null = null;
+            let uploadedImageUrl: string | null = null;
 
-                if (imageUri) {
-                    const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
-                        const xhr = new XMLHttpRequest();
-                        xhr.onload = function () {
-                            resolve(xhr.response);
-                        };
-                        xhr.onerror = function (e) {
-                            console.log(e);
-                            reject(new TypeError('Network request failed'));
-                        };
-                        xhr.responseType = 'arraybuffer';
-                        xhr.open('GET', imageUri, true);
-                        xhr.send(null);
-                    });
+            if (imageUri) {
+                const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+                    const xhr = new XMLHttpRequest();
+                    xhr.onload = function () {
+                        resolve(xhr.response);
+                    };
+                    xhr.onerror = function (e) {
+                        console.log(e);
+                        reject(new TypeError('Network request failed'));
+                    };
+                    xhr.responseType = 'arraybuffer';
+                    xhr.open('GET', imageUri, true);
+                    xhr.send(null);
+                });
 
-                    const fileExt = imageUri.split('.').pop()?.toLowerCase() ?? 'jpg';
-                    const safeExt = fileExt === 'jpeg' ? 'jpg' : fileExt;
+                const fileExt = imageUri.split('.').pop()?.toLowerCase() ?? 'jpg';
+                const safeExt = fileExt === 'jpeg' ? 'jpg' : fileExt;
                     const fileName = batchId
                         ? `${currentUserId}/batches/${batchId}/${Date.now()}-${Math.random().toString(16).slice(2)}.${safeExt}`
                         : `${currentUserId}/${Date.now()}-${Math.random().toString(16).slice(2)}.${safeExt}`;
 
-                    const contentType = safeExt === 'jpg' ? 'image/jpeg' : `image/${safeExt}`;
+                const contentType = safeExt === 'jpg' ? 'image/jpeg' : `image/${safeExt}`;
 
-                    const { error: uploadError } = await supabase.storage
-                        .from('chat-images')
-                        .upload(fileName, arrayBuffer, {
-                            contentType,
-                            upsert: false,
-                        });
+                const { error: uploadError } = await supabase.storage
+                    .from('chat-images')
+                    .upload(fileName, arrayBuffer, {
+                        contentType,
+                        upsert: false,
+                    });
 
-                    if (uploadError) throw uploadError;
+                if (uploadError) throw uploadError;
 
-                    const { data: { publicUrl } } = supabase.storage
-                        .from('chat-images')
-                        .getPublicUrl(fileName);
+                const { data: { publicUrl } } = supabase.storage
+                    .from('chat-images')
+                    .getPublicUrl(fileName);
 
-                    uploadedImageUrl = publicUrl;
-                }
+                uploadedImageUrl = publicUrl;
+            }
 
-                // Optimistic Update
+            // Optimistic Update
                 const tempId = `temp-${Date.now()}-${Math.random().toString(16).slice(2)}`;
                 const nowIso = new Date().toISOString();
-                const optimisticMessage: Message = {
-                    id: tempId,
+            const optimisticMessage: Message = {
+                id: tempId,
                     text: messageText,
-                    image_url: uploadedImageUrl || undefined,
-                    sender: 'me',
-                    senderId: currentUserId,
+                image_url: uploadedImageUrl || undefined,
+                sender: 'me',
+                senderId: currentUserId,
                     senderName: currentUserName || '不明',
-                    timestamp: new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }),
+                timestamp: new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }),
                     date: nowIso.split('T')[0],
                     created_at: nowIso,
                     replyTo: reply || undefined,
                 };
 
-                queryClient.setQueryData(queryKey, (oldData: any) => {
-                    if (!oldData || !oldData.pages) {
-                        return {
-                            pages: [{
-                                data: [optimisticMessage],
-                                nextCursor: null
-                            }],
-                            pageParams: [undefined]
-                        };
-                    }
+            queryClient.setQueryData(queryKey, (oldData: any) => {
+                if (!oldData || !oldData.pages) {
+                    return {
+                        pages: [{
+                            data: [optimisticMessage],
+                            nextCursor: null
+                        }],
+                        pageParams: [undefined]
+                    };
+                }
 
-                    const firstPage = oldData.pages[0];
+                const firstPage = oldData.pages[0];
+                return {
+                    ...oldData,
+                    pages: [{
+                        ...firstPage,
+                        data: [optimisticMessage, ...firstPage.data]
+                    }, ...oldData.pages.slice(1)]
+                };
+            });
+
+            setTimeout(() => {
+                flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+            }, 100);
+
+            const { data, error } = await supabase
+                .from('messages')
+                .insert({
+                    sender_id: currentUserId,
+                    receiver_id: isGroup ? currentUserId : partnerId,
+                    chat_room_id: isGroup ? partnerId : null,
+                        content: messageText,
+                    image_url: uploadedImageUrl,
+                        reply_to: reply,
+                })
+                .select()
+                .single();
+
+            if (error) {
+                // Rollback on error
+                queryClient.setQueryData(queryKey, (oldData: any) => {
+                    if (!oldData || !oldData.pages) return oldData;
+
+                    const newPages = oldData.pages.map((page: any) => ({
+                        ...page,
+                        data: page.data.filter((msg: Message) => msg.id !== tempId)
+                    }));
+
                     return {
                         ...oldData,
-                        pages: [{
-                            ...firstPage,
-                            data: [optimisticMessage, ...firstPage.data]
-                        }, ...oldData.pages.slice(1)]
+                        pages: newPages
                     };
                 });
+                throw error;
+            }
 
-                setTimeout(() => {
-                    flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
-                }, 100);
-
-                const { data, error } = await supabase
-                    .from('messages')
-                    .insert({
-                        sender_id: currentUserId,
-                        receiver_id: isGroup ? currentUserId : partnerId,
-                        chat_room_id: isGroup ? partnerId : null,
-                        content: messageText,
-                        image_url: uploadedImageUrl,
-                        reply_to: reply,
-                    })
-                    .select()
-                    .single();
-
-                if (error) {
-                    // Rollback on error
-                    queryClient.setQueryData(queryKey, (oldData: any) => {
-                        if (!oldData || !oldData.pages) return oldData;
-
-                        const newPages = oldData.pages.map((page: any) => ({
-                            ...page,
-                            data: page.data.filter((msg: Message) => msg.id !== tempId)
-                        }));
-
-                        return {
-                            ...oldData,
-                            pages: newPages
-                        };
-                    });
-                    throw error;
-                }
-
-                if (data) {
-                    const realMessage: Message = {
-                        id: data.id,
-                        text: data.content,
-                        image_url: data.image_url,
-                        sender: 'me',
-                        senderId: currentUserId,
+            if (data) {
+                const realMessage: Message = {
+                    id: data.id,
+                    text: data.content,
+                    image_url: data.image_url,
+                    sender: 'me',
+                    senderId: currentUserId,
                         senderName: currentUserName || '不明',
-                        timestamp: new Date(data.created_at).toLocaleTimeString('ja-JP', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                        }),
-                        date: new Date(data.created_at).toISOString().split('T')[0],
-                        created_at: data.created_at,
+                    timestamp: new Date(data.created_at).toLocaleTimeString('ja-JP', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                    }),
+                    date: new Date(data.created_at).toISOString().split('T')[0],
+                    created_at: data.created_at,
                         replyTo: reply || undefined,
+                };
+
+                queryClient.setQueryData(queryKey, (oldData: any) => {
+                    if (!oldData || !oldData.pages) return oldData;
+
+                    const newPages = oldData.pages.map((page: any) => ({
+                        ...page,
+                        data: page.data.map((msg: Message) =>
+                            msg.id === tempId ? realMessage : msg
+                        )
+                    }));
+
+                    return {
+                        ...oldData,
+                        pages: newPages
                     };
-
-                    queryClient.setQueryData(queryKey, (oldData: any) => {
-                        if (!oldData || !oldData.pages) return oldData;
-
-                        const newPages = oldData.pages.map((page: any) => ({
-                            ...page,
-                            data: page.data.map((msg: Message) =>
-                                msg.id === tempId ? realMessage : msg
-                            )
-                        }));
-
-                        return {
-                            ...oldData,
-                            pages: newPages
-                        };
-                    });
-                }
+                });
+            }
             };
 
             if (imagesToSend.length > 0) {
@@ -1706,9 +1899,9 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                                 {isChatMuted && (
                                     <Ionicons name="notifications-off-outline" size={20} color="#9ca3af" style={{ marginRight: 8 }} />
                                 )}
-                                <TouchableOpacity onPress={handleMenuPress} style={styles.menuButton}>
-                                    <Ionicons name="ellipsis-horizontal" size={24} color="#374151" />
-                                </TouchableOpacity>
+                            <TouchableOpacity onPress={handleMenuPress} style={styles.menuButton}>
+                                <Ionicons name="ellipsis-horizontal" size={24} color="#374151" />
+                            </TouchableOpacity>
                             </View>
                         </View>
 
@@ -1720,43 +1913,43 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                                 // No extra padding here; reserve space via FlatList contentContainerStyle to avoid unscrollable blank area.
                             ]}
                         >
-                            <FlatList
+                        <FlatList
                                 style={[styles.messagesList, isGroup && { backgroundColor: 'transparent' }]}
-                                ref={flatListRef}
-                                data={messageListWithDates}
-                                renderItem={renderItem}
-                                keyExtractor={(item) => item.id}
+                            ref={flatListRef}
+                            data={messageListWithDates}
+                            renderItem={renderItem}
+                            keyExtractor={(item) => item.id}
                                 contentContainerStyle={listContentStyle as any}
-                                inverted={true}
-                                onEndReached={() => {
-                                    if (hasNextPage) fetchNextPage();
-                                }}
-                                onEndReachedThreshold={0.5}
-                                ListFooterComponent={isFetchingNextPage ? <ActivityIndicator size="small" color="#009688" /> : null}
-                                onScrollToIndexFailed={(info) => {
-                                    // If scroll fails, wait and retry
-                                    setTimeout(() => {
-                                        flatListRef.current?.scrollToIndex({
-                                            index: info.index,
-                                            animated: true,
-                                            viewPosition: 0.5
-                                        });
-                                    }, 100);
-                                }}
-                            />
+                            inverted={true}
+                            onEndReached={() => {
+                                if (hasNextPage) fetchNextPage();
+                            }}
+                            onEndReachedThreshold={0.5}
+                            ListFooterComponent={isFetchingNextPage ? <ActivityIndicator size="small" color="#009688" /> : null}
+                            onScrollToIndexFailed={(info) => {
+                                // If scroll fails, wait and retry
+                                setTimeout(() => {
+                                    flatListRef.current?.scrollToIndex({
+                                        index: info.index,
+                                        animated: true,
+                                        viewPosition: 0.5
+                                    });
+                                }, 100);
+                            }}
+                        />
                         </View>
 
                         {/* Input Area */}
                         {!isSearchMode && (
-                            <KeyboardAvoidingView
-                                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-                            >
-                                {/* Reply Preview */}
-                                {replyingTo && (
-                                    <View style={styles.replyPreviewBar}>
-                                        <View style={styles.replyPreviewContent}>
-                                            <View>
+                        <KeyboardAvoidingView
+                            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+                        >
+                            {/* Reply Preview */}
+                            {replyingTo && (
+                                <View style={styles.replyPreviewBar}>
+                                    <View style={styles.replyPreviewContent}>
+                                        <View>
                                                 <View style={styles.replyPreviewSenderRow}>
                                                     {!!(replyingTo.sender === 'me' ? currentUserImage : replyingTo.senderImage) && (
                                                         <Image
@@ -1764,13 +1957,13 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                                                             style={styles.replyPreviewSenderAvatar}
                                                         />
                                                     )}
-                                                    <Text style={styles.replyPreviewSender}>
+                                            <Text style={styles.replyPreviewSender}>
                                                         {((replyingTo.senderName && replyingTo.senderName !== '自分')
                                                             ? replyingTo.senderName
                                                             : (replyingTo.sender === 'me'
                                                                 ? (currentUserName || replyingTo.senderName || '不明')
                                                                 : ((!isGroup ? partnerName : replyingTo.senderName) || '不明')))}への返信
-                                                    </Text>
+                                            </Text>
                                                 </View>
                                                 {replyingTo.image_url ? (
                                                     <Image
@@ -1779,21 +1972,21 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                                                         resizeMode="cover"
                                                     />
                                                 ) : (
-                                                    <Text style={styles.replyPreviewText} numberOfLines={1}>
+                                            <Text style={styles.replyPreviewText} numberOfLines={1}>
                                                         {replyingTo.text || ' '}
-                                                    </Text>
+                                            </Text>
                                                 )}
-                                            </View>
                                         </View>
-                                        <TouchableOpacity onPress={() => setReplyingTo(null)} style={styles.closeReplyButton}>
-                                            <Ionicons name="close" size={20} color="#6B7280" />
-                                        </TouchableOpacity>
                                     </View>
-                                )}
+                                    <TouchableOpacity onPress={() => setReplyingTo(null)} style={styles.closeReplyButton}>
+                                        <Ionicons name="close" size={20} color="#6B7280" />
+                                    </TouchableOpacity>
+                                </View>
+                            )}
 
-                                {/* Image Preview */}
+                            {/* Image Preview */}
                                 {selectedImages.length > 0 && (
-                                    <View style={styles.imagePreviewBar}>
+                                <View style={styles.imagePreviewBar}>
                                         <ScrollView
                                             horizontal
                                             showsHorizontalScrollIndicator={false}
@@ -1801,10 +1994,10 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                                         >
                                             {selectedImages.map((uri, idx) => (
                                                 <View key={`${uri}-${idx}`} style={styles.imagePreviewItem}>
-                                                    <Image
+                                    <Image
                                                         source={{ uri }}
-                                                        style={styles.imagePreview}
-                                                    />
+                                        style={styles.imagePreview}
+                                    />
                                                     <View style={styles.imagePreviewIndexBadge}>
                                                         <Text style={styles.imagePreviewIndexText}>{idx + 1}</Text>
                                                     </View>
@@ -1815,49 +2008,49 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                                                         style={styles.closeImageButton}
                                                     >
                                                         <Ionicons name="close-circle" size={22} color="#ef4444" />
-                                                    </TouchableOpacity>
+                                    </TouchableOpacity>
                                                 </View>
                                             ))}
                                         </ScrollView>
-                                    </View>
-                                )}
-
-                                <View style={styles.inputContainer}>
-                                    <TouchableOpacity style={styles.attachButton} onPress={handlePickImage} disabled={isSending}>
-                                        <Ionicons name="image-outline" size={24} color="#9ca3af" />
-                                    </TouchableOpacity>
-
-                                    <TextInput
-                                        ref={inputRef}
-                                        style={styles.input}
-                                        placeholder="メッセージを入力..."
-                                        value={inputText}
-                                        onChangeText={setInputText}
-                                        multiline
-                                        maxLength={1000}
-                                        editable={!isSending}
-                                    />
-
-                                    <TouchableOpacity
-                                        style={[
-                                            styles.sendButton,
-                                            (!inputText.trim() && selectedImages.length === 0) || isSending ? styles.sendButtonDisabled : null
-                                        ]}
-                                        onPress={handleSend}
-                                        disabled={(!inputText.trim() && selectedImages.length === 0) || isSending}
-                                    >
-                                        {isSending ? (
-                                            <ActivityIndicator size="small" color="white" />
-                                        ) : (
-                                            <Ionicons
-                                                name="send"
-                                                size={20}
-                                                color={inputText.trim() || selectedImages.length > 0 ? 'white' : '#9ca3af'}
-                                            />
-                                        )}
-                                    </TouchableOpacity>
                                 </View>
-                            </KeyboardAvoidingView>
+                            )}
+
+                            <View style={styles.inputContainer}>
+                                <TouchableOpacity style={styles.attachButton} onPress={handlePickImage} disabled={isSending}>
+                                    <Ionicons name="image-outline" size={24} color="#9ca3af" />
+                                </TouchableOpacity>
+
+                                <TextInput
+                                    ref={inputRef}
+                                    style={styles.input}
+                                    placeholder="メッセージを入力..."
+                                    value={inputText}
+                                    onChangeText={setInputText}
+                                    multiline
+                                    maxLength={1000}
+                                    editable={!isSending}
+                                />
+
+                                <TouchableOpacity
+                                    style={[
+                                        styles.sendButton,
+                                            (!inputText.trim() && selectedImages.length === 0) || isSending ? styles.sendButtonDisabled : null
+                                    ]}
+                                    onPress={handleSend}
+                                        disabled={(!inputText.trim() && selectedImages.length === 0) || isSending}
+                                >
+                                    {isSending ? (
+                                        <ActivityIndicator size="small" color="white" />
+                                    ) : (
+                                        <Ionicons
+                                            name="send"
+                                            size={20}
+                                                color={inputText.trim() || selectedImages.length > 0 ? 'white' : '#9ca3af'}
+                                        />
+                                    )}
+                                </TouchableOpacity>
+                            </View>
+                        </KeyboardAvoidingView>
                         )}
                     </SafeAreaView>
                 </View>
@@ -2337,6 +2530,45 @@ const styles = StyleSheet.create({
         backgroundColor: '#e5e7eb',
     },
     // Reply Styles
+    actionMenuBackdrop: {
+        flex: 1,
+        backgroundColor: 'transparent',
+    },
+    actionMenuPanel: {
+        position: 'absolute',
+        flexDirection: 'column',
+        backgroundColor: 'rgba(17,24,39,0.95)',
+        borderRadius: 18,
+        overflow: 'hidden',
+    },
+    actionMenuButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'flex-start',
+        paddingVertical: 12,
+        paddingHorizontal: 14,
+    },
+    actionMenuButtonDisabled: {
+        opacity: 0.6,
+    },
+    actionMenuDivider: {
+        height: 1,
+        backgroundColor: 'rgba(255,255,255,0.12)',
+    },
+    actionMenuLabel: {
+        marginLeft: 10,
+        fontSize: 13,
+        color: '#FFFFFF',
+        fontWeight: '600',
+    },
+    actionMenuLabelDisabled: {
+        color: 'rgba(255,255,255,0.45)',
+    },
+    longPressOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0,0,0,0.08)',
+        borderRadius: 14,
+    },
     replyPreviewBar: {
         flexDirection: 'row',
         alignItems: 'center',
