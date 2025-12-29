@@ -15,6 +15,7 @@ export interface Message {
         id: string;
         text: string;
         senderName: string;
+        image_url?: string | null;
     };
 }
 

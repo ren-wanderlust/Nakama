@@ -145,12 +145,14 @@ const getBatchKeyFromImageUrl = (imageUrl?: string) => {
 
 const ImageBatchBubble = ({
     messages,
+    onReply,
     onPartnerProfilePress,
     onMemberProfilePress,
     isGroup,
     partnerImage,
 }: {
     messages: Message[];
+    onReply: (msg: Message) => void;
     onPartnerProfilePress: () => void;
     onMemberProfilePress?: (memberId: string) => void;
     isGroup?: boolean;
@@ -158,6 +160,7 @@ const ImageBatchBubble = ({
 }) => {
     const first = messages[0];
     const isMe = first.sender === 'me';
+    const swipeableRef = useRef<any>(null);
     const [imageModalVisible, setImageModalVisible] = useState(false);
     const [modalUri, setModalUri] = useState<string | null>(null);
 
@@ -182,57 +185,81 @@ const ImageBatchBubble = ({
         ? first.senderImage
         : partnerImage;
 
+    const renderRightActions = (_progress: any, _dragX: any) => {
+        return (
+            <View style={styles.replyActionContainer}>
+                <Ionicons name="arrow-undo" size={24} color="#0d9488" />
+            </View>
+        );
+    };
+
+    const handleSwipeOpen = () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        onReply(first);
+        swipeableRef.current?.close();
+    };
+
     return (
         <>
-            <View style={[styles.messageRow, isMe ? styles.messageRowMe : styles.messageRowOther]}>
-                {!isMe && avatarImage && (
-                    <TouchableOpacity onPress={handleAvatarPress} style={styles.messageAvatarContainer}>
-                        <Image source={{ uri: avatarImage }} style={styles.messageAvatar} />
-                    </TouchableOpacity>
-                )}
+            <Swipeable
+                ref={swipeableRef}
+                renderRightActions={renderRightActions}
+                onSwipeableOpen={handleSwipeOpen}
+                friction={2}
+                enableTrackpadTwoFingerGesture
+                rightThreshold={40}
+                containerStyle={styles.swipeableContainer}
+            >
+                <View style={[styles.messageRow, isMe ? styles.messageRowMe : styles.messageRowOther]}>
+                    {!isMe && avatarImage && (
+                        <TouchableOpacity onPress={handleAvatarPress} style={styles.messageAvatarContainer}>
+                            <Image source={{ uri: avatarImage }} style={styles.messageAvatar} />
+                        </TouchableOpacity>
+                    )}
 
-                <View style={[styles.messageContainer, isMe ? styles.messageContainerMe : styles.messageContainerOther]}>
-                    <View style={styles.bubbleRow}>
-                        {isMe && (
-                            <Text style={[styles.timestamp, styles.timestampMe]}>{first.timestamp}</Text>
-                        )}
+                    <View style={[styles.messageContainer, isMe ? styles.messageContainerMe : styles.messageContainerOther]}>
+                        <View style={styles.bubbleRow}>
+                            {isMe && (
+                                <Text style={[styles.timestamp, styles.timestampMe]}>{first.timestamp}</Text>
+                            )}
 
-                        <View style={[styles.imageBatchGrid, { width: gridWidth }]}>
-                            {uris.map((uri, idx) => (
-                                // 奇数枚の最後は2枚分の幅（横長）で表示
-                                (() => {
-                                    const isLast = idx === uris.length - 1;
-                                    const isWide = isOddLastWide && isLast;
-                                    const width = isWide ? gridWidth : cellWidth;
-                                    const height = cellHeight;
-                                    const marginRight = isWide ? 0 : (idx % 2 === 0 ? gap : 0);
-                                    const marginBottom = gap;
-                                    return (
-                                <TouchableOpacity
-                                    key={`${uri}-${idx}`}
-                                    activeOpacity={0.9}
-                                    onPress={() => {
-                                        setModalUri(uri);
-                                        setImageModalVisible(true);
-                                    }}
-                                    style={[
-                                        styles.imageBatchCell,
-                                        { width, height, marginRight, marginBottom }
-                                    ]}
-                                >
-                                    <Image source={{ uri }} style={styles.imageBatchImage} resizeMode="cover" />
-                                </TouchableOpacity>
-                                    );
-                                })()
-                            ))}
+                            <View style={[styles.imageBatchGrid, { width: gridWidth }]}>
+                                {uris.map((uri, idx) => (
+                                    // 奇数枚の最後は2枚分の幅（横長）で表示
+                                    (() => {
+                                        const isLast = idx === uris.length - 1;
+                                        const isWide = isOddLastWide && isLast;
+                                        const width = isWide ? gridWidth : cellWidth;
+                                        const height = cellHeight;
+                                        const marginRight = isWide ? 0 : (idx % 2 === 0 ? gap : 0);
+                                        const marginBottom = gap;
+                                        return (
+                                            <TouchableOpacity
+                                                key={`${uri}-${idx}`}
+                                                activeOpacity={0.9}
+                                                onPress={() => {
+                                                    setModalUri(uri);
+                                                    setImageModalVisible(true);
+                                                }}
+                                                style={[
+                                                    styles.imageBatchCell,
+                                                    { width, height, marginRight, marginBottom }
+                                                ]}
+                                            >
+                                                <Image source={{ uri }} style={styles.imageBatchImage} resizeMode="cover" />
+                                            </TouchableOpacity>
+                                        );
+                                    })()
+                                ))}
+                            </View>
+
+                            {!isMe && (
+                                <Text style={[styles.timestamp, styles.timestampOther]}>{first.timestamp}</Text>
+                            )}
                         </View>
-
-                        {!isMe && (
-                            <Text style={[styles.timestamp, styles.timestampOther]}>{first.timestamp}</Text>
-                        )}
                     </View>
                 </View>
-            </View>
+            </Swipeable>
 
             <Modal visible={imageModalVisible} transparent={true} onRequestClose={() => setImageModalVisible(false)}>
                 <View style={styles.imageModalContainer}>
@@ -304,20 +331,20 @@ const MessageBubble = ({
         return chunks ? chunks.join('\n') : text;
     };
 
-    const replyText = message.replyTo ? formatReplyText(message.replyTo.text) : '';
+    const replyText = message.replyTo?.text ? formatReplyText(message.replyTo.text) : '';
+    const replyImageUri = message.replyTo?.image_url ?? null;
 
     // Calculate max width from reply elements and main message
     // replyContainerOverhead = Padding(8*2) + Bar(3) + Margin(8) = 27
     const replyContainerOverhead = 27;
     // Add buffer (+4) to prevent unnatural line breaks due to rendering differences
-    const replyContentWidth = Math.max(replySenderWidth, replyTextWidth) + 4;
+    // If reply is an image, ensure the bubble width is at least the thumbnail width (44).
+    const replyBodyWidth = replyImageUri ? 44 : replyTextWidth;
+    const replyContentWidth = Math.max(replySenderWidth, replyBodyWidth) + 4;
     const totalReplyWidth = message.replyTo ? replyContentWidth + replyContainerOverhead : 0;
 
-    // Dynamic maxWidth: use the larger of default or required width
-    const requiredWidth = totalReplyWidth > 0 ? Math.max(totalReplyWidth, mainMessageWidth) + 32 : 0; // Add bubble padding (16*2)
-    const dynamicMaxWidth = requiredWidth > 0 && requiredWidth > defaultMaxWidth
-        ? requiredWidth
-        : defaultMaxWidth;
+    // IMPORTANT: Never exceed normal message max width (prevents long text from stretching the bubble off-screen)
+    const dynamicMaxWidth = defaultMaxWidth;
 
     const renderRightActions = (_progress: any, dragX: any) => {
         return (
@@ -485,7 +512,7 @@ const MessageBubble = ({
                                             end={{ x: 1, y: 0 }}
                                             style={[
                                                 styles.bubbleGradient,
-                                                totalReplyWidth > 0 && { minWidth: totalReplyWidth + 32 } // Add padding (16*2)
+                                                totalReplyWidth > 0 && { minWidth: Math.min(totalReplyWidth + 32, defaultMaxWidth) } // cap to normal max width
                                             ]}
                                         >
                                             {message.replyTo && (
@@ -501,7 +528,15 @@ const MessageBubble = ({
                                                         <View style={styles.replyBarMe} />
                                                         <View style={styles.replyContent}>
                                                             <Text style={styles.replySenderMe}>{message.replyTo.senderName}</Text>
-                                                            <Text style={styles.replyTextMe}>{replyText}</Text>
+                                                            {replyImageUri ? (
+                                                                <Image
+                                                                    source={{ uri: replyImageUri }}
+                                                                    style={styles.replyImageThumb}
+                                                                    resizeMode="cover"
+                                                                />
+                                                            ) : (
+                                                                <Text style={styles.replyTextMe}>{replyText || ' '}</Text>
+                                                            )}
                                                         </View>
                                                     </View>
                                                 </TouchableOpacity>
@@ -540,7 +575,7 @@ const MessageBubble = ({
                                             <View
                                                 style={[
                                                     styles.bubbleOther,
-                                                    totalReplyWidth > 0 && { minWidth: totalReplyWidth + 32 } // Add padding (16*2)
+                                                    totalReplyWidth > 0 && { minWidth: Math.min(totalReplyWidth + 32, defaultMaxWidth) } // cap to normal max width
                                                 ]}
                                             >
                                                 {message.replyTo && (
@@ -556,7 +591,15 @@ const MessageBubble = ({
                                                             <View style={styles.replyBarOther} />
                                                             <View style={styles.replyContent}>
                                                                 <Text style={styles.replySenderOther}>{message.replyTo.senderName}</Text>
-                                                                <Text style={styles.replyTextOther}>{replyText}</Text>
+                                                                {replyImageUri ? (
+                                                                    <Image
+                                                                        source={{ uri: replyImageUri }}
+                                                                        style={styles.replyImageThumb}
+                                                                        resizeMode="cover"
+                                                                    />
+                                                                ) : (
+                                                                    <Text style={styles.replyTextOther}>{replyText || ' '}</Text>
+                                                                )}
                                                             </View>
                                                         </View>
                                                     </TouchableOpacity>
@@ -792,7 +835,8 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
             const replyData = replyingTo ? {
                 id: replyingTo.id,
                 text: replyingTo.text || '画像',
-                senderName: replyingTo.sender === 'me' ? '自分' : partnerName
+                senderName: replyingTo.sender === 'me' ? '自分' : partnerName,
+                image_url: replyingTo.image_url ?? null,
             } : null;
 
             const queryKey = queryKeys.messages.list(partnerId);
@@ -1055,6 +1099,7 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
             return (
                 <ImageBatchBubble
                     messages={item.messages!}
+                    onReply={handleReply}
                     onPartnerProfilePress={onPartnerProfilePress}
                     onMemberProfilePress={onMemberProfilePress}
                     isGroup={isGroup}
@@ -1339,9 +1384,17 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                                             <Text style={styles.replyPreviewSender}>
                                                 {replyingTo.sender === 'me' ? '自分' : partnerName}への返信
                                             </Text>
-                                            <Text style={styles.replyPreviewText} numberOfLines={1}>
-                                                {replyingTo.text || '画像'}
-                                            </Text>
+                                            {replyingTo.image_url ? (
+                                                <Image
+                                                    source={{ uri: replyingTo.image_url }}
+                                                    style={styles.replyPreviewThumb}
+                                                    resizeMode="cover"
+                                                />
+                                            ) : (
+                                                <Text style={styles.replyPreviewText} numberOfLines={1}>
+                                                    {replyingTo.text || ' '}
+                                                </Text>
+                                            )}
                                         </View>
                                     </View>
                                     <TouchableOpacity onPress={() => setReplyingTo(null)} style={styles.closeReplyButton}>
@@ -1675,6 +1728,13 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#4B5563',
     },
+    replyPreviewThumb: {
+        width: 44,
+        height: 44,
+        borderRadius: 8,
+        marginTop: 6,
+        backgroundColor: '#e5e7eb',
+    },
     closeReplyButton: {
         padding: 8,
     },
@@ -1706,6 +1766,13 @@ const styles = StyleSheet.create({
     },
     replyContent: {
         flex: 1,
+    },
+    replyImageThumb: {
+        width: 44,
+        height: 44,
+        borderRadius: 8,
+        marginTop: 6,
+        backgroundColor: '#e5e7eb',
     },
     replySenderMe: {
         fontSize: 11,
