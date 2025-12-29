@@ -129,6 +129,20 @@ const parseTimeMs = (iso?: string) => {
     return Number.isFinite(t) ? t : NaN;
 };
 
+const getBatchKeyFromImageUrl = (imageUrl?: string) => {
+    if (!imageUrl) return null;
+    try {
+        const u = new URL(imageUrl);
+        const path = decodeURIComponent(u.pathname);
+        const m = path.match(/\/batches\/([^/]+)\//);
+        return m?.[1] ?? null;
+    } catch {
+        // If it's not an absolute URL (e.g. file://), try a simple match
+        const m = imageUrl.match(/\/batches\/([^/]+)\//);
+        return m?.[1] ?? null;
+    }
+};
+
 const ImageBatchBubble = ({
     messages,
     onPartnerProfilePress,
@@ -151,9 +165,10 @@ const ImageBatchBubble = ({
     const gridWidth = screenWidth * 0.64;
     const gap = 6;
     const cellWidth = (gridWidth - gap) / 2;
-    const cellHeight = cellWidth * 0.75; // 長方形
+    const cellHeight = cellWidth * 0.95; // 長方形（少し縦長に）
 
     const uris = messages.map(m => m.image_url).filter((u): u is string => !!u);
+    const isOddLastWide = uris.length % 2 === 1;
 
     const handleAvatarPress = () => {
         if (isGroup && first.senderId && onMemberProfilePress) {
@@ -184,6 +199,15 @@ const ImageBatchBubble = ({
 
                         <View style={[styles.imageBatchGrid, { width: gridWidth }]}>
                             {uris.map((uri, idx) => (
+                                // 奇数枚の最後は2枚分の幅（横長）で表示
+                                (() => {
+                                    const isLast = idx === uris.length - 1;
+                                    const isWide = isOddLastWide && isLast;
+                                    const width = isWide ? gridWidth : cellWidth;
+                                    const height = cellHeight;
+                                    const marginRight = isWide ? 0 : (idx % 2 === 0 ? gap : 0);
+                                    const marginBottom = gap;
+                                    return (
                                 <TouchableOpacity
                                     key={`${uri}-${idx}`}
                                     activeOpacity={0.9}
@@ -193,11 +217,13 @@ const ImageBatchBubble = ({
                                     }}
                                     style={[
                                         styles.imageBatchCell,
-                                        { width: cellWidth, height: cellHeight, marginRight: idx % 2 === 0 ? gap : 0, marginBottom: gap }
+                                        { width, height, marginRight, marginBottom }
                                     ]}
                                 >
                                     <Image source={{ uri }} style={styles.imageBatchImage} resizeMode="cover" />
                                 </TouchableOpacity>
+                                    );
+                                })()
                             ))}
                         </View>
 
@@ -666,9 +692,10 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
 
             // Group consecutive pure-image messages from same sender within a short window
             if (isPureImageMessage(m)) {
+                const batchKey = getBatchKeyFromImageUrl(m.image_url);
                 const group: Message[] = [m];
                 let j = i + 1;
-                const maxGapMs = 20_000; // "同時送信"扱いの猶予
+                const maxGapMs = 5_000; // レガシー画像の推定まとめ（短めにして誤結合を防ぐ）
                 while (j < messages.length) {
                     const n = messages[j];
                     if (!isPureImageMessage(n)) break;
@@ -676,11 +703,17 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                     if ((n.senderId ?? '') !== (m.senderId ?? '')) break;
                     if ((n.date ?? '') !== (m.date ?? '')) break;
 
+                    // New behavior: if URLs include a batch key, only group within the same batch.
+                    if (batchKey) {
+                        const nextKey = getBatchKeyFromImageUrl(n.image_url);
+                        if (nextKey !== batchKey) break;
+                    } else {
                     const prevTime = parseTimeMs(group[group.length - 1].created_at);
                     const nextTime = parseTimeMs(n.created_at);
                     if (Number.isFinite(prevTime) && Number.isFinite(nextTime)) {
                         const gap = Math.abs(prevTime - nextTime);
                         if (gap > maxGapMs) break;
+                    }
                     }
 
                     group.push(n);
@@ -691,7 +724,7 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                 if (group.length >= 2) {
                     items.push({
                         type: 'imageBatch',
-                        id: `image-batch-${group[0].id}`,
+                        id: batchKey ? `image-batch-${batchKey}` : `image-batch-${group[0].id}`,
                         messages: group,
                     });
                 } else {
@@ -768,10 +801,12 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                 messageText,
                 imageUri,
                 reply,
+                batchId,
             }: {
                 messageText: string;
                 imageUri?: string;
                 reply: typeof replyData;
+                batchId?: string;
             }) => {
                 let uploadedImageUrl: string | null = null;
 
@@ -792,7 +827,9 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
 
                     const fileExt = imageUri.split('.').pop()?.toLowerCase() ?? 'jpg';
                     const safeExt = fileExt === 'jpeg' ? 'jpg' : fileExt;
-                    const fileName = `${currentUserId}/${Date.now()}-${Math.random().toString(16).slice(2)}.${safeExt}`;
+                    const fileName = batchId
+                        ? `${currentUserId}/batches/${batchId}/${Date.now()}-${Math.random().toString(16).slice(2)}.${safeExt}`
+                        : `${currentUserId}/${Date.now()}-${Math.random().toString(16).slice(2)}.${safeExt}`;
 
                     const contentType = safeExt === 'jpg' ? 'image/jpeg' : `image/${safeExt}`;
 
@@ -921,12 +958,20 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
 
             if (imagesToSend.length > 0) {
                 // 選択順に送信（awaitで順番を保証）
+                // 画像+テキストの場合は「画像→テキスト」の順（テキストは最後に別メッセージで送信）
+                const batchId = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
                 for (let i = 0; i < imagesToSend.length; i++) {
                     const imageUri = imagesToSend[i];
-                    const messageText = i === 0 ? content : '';
-                    const reply = i === 0 ? replyData : null;
-                    await sendOne({ messageText, imageUri, reply });
+                    const messageText = '';
+                    // 画像のみ（テキスト無し）の場合は最初の画像に返信情報を付与（従来互換）
+                    const reply = !content && i === 0 ? replyData : null;
+                    await sendOne({ messageText, imageUri, reply, batchId });
                     sentCount++;
+                }
+
+                // テキストがある場合は最後に送る（画像と同じメッセージにまとめない）
+                if (content) {
+                    await sendOne({ messageText: content, reply: replyData });
                 }
             } else {
                 // テキストのみ
@@ -945,9 +990,9 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
             try {
                 if (!isGroup) {
                     const tokens = await getUserPushTokens(partnerId);
-                    const body = imagesToSend.length > 0
-                        ? '画像が送信されました'
-                        : (content || 'メッセージが送信されました');
+                    const body = content
+                        ? content
+                        : (imagesToSend.length > 0 ? '画像が送信されました' : 'メッセージが送信されました');
                     for (const token of tokens) {
                         await sendPushNotification(
                             token,
@@ -1727,9 +1772,9 @@ const styles = StyleSheet.create({
     },
     closeImageButton: {
         position: 'absolute',
-        top: -8,
-        right: -8,
-        backgroundColor: 'white',
+        top: 6,
+        right: 6,
+        backgroundColor: 'rgba(255,255,255,0.95)',
         borderRadius: 12,
     },
     // Image Modal Styles
