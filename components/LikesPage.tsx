@@ -46,6 +46,9 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
     // Project sub-tabs
     const [projectTab, setProjectTab] = useState<'recruiting' | 'applied'>('recruiting');
 
+    // Applied applications sort/filter
+    const [appliedFilter, setAppliedFilter] = useState<'all' | 'approved' | 'pending' | 'rejected'>('all');
+
     // Selected project for detail view
     const [selectedProject, setSelectedProject] = useState<any>(null);
     const [currentUserProfile, setCurrentUserProfile] = useState<Profile | null>(null);
@@ -787,26 +790,99 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
     const renderAppliedList = () => {
         if (loadingProject) return <ProjectListSkeleton count={4} />;
 
+        // Filter and sort applied applications based on selected filter
+        const getFilteredAndSortedApplications = () => {
+            let filtered = [...appliedApplications];
+
+            // Apply filter
+            if (appliedFilter !== 'all') {
+                filtered = filtered.filter(app => app.status === appliedFilter);
+            }
+
+            // Sort by status priority: approved > pending > rejected
+            const statusPriority: { [key: string]: number } = {
+                'approved': 1,
+                'pending': 2,
+                'rejected': 3,
+            };
+
+            filtered.sort((a, b) => {
+                const priorityA = statusPriority[a.status] || 4;
+                const priorityB = statusPriority[b.status] || 4;
+                return priorityA - priorityB;
+            });
+
+            return filtered;
+        };
+
+        const filteredApplications = getFilteredAndSortedApplications();
+
         const AppliedEmptyComponent = () => (
             <View style={styles.emptyContainer}>
                 <Ionicons name="briefcase-outline" size={64} color="#d1d5db" />
-                <Text style={styles.emptyText}>応募したプロジェクトはありません</Text>
-                <Text style={styles.emptySubText}>気になるプロジェクトに応募してみましょう</Text>
+                <Text style={styles.emptyText}>
+                    {appliedFilter === 'all'
+                        ? '応募したプロジェクトはありません'
+                        : appliedFilter === 'approved'
+                            ? '参加決定のプロジェクトはありません'
+                            : appliedFilter === 'pending'
+                                ? '承認待ちのプロジェクトはありません'
+                                : '見送りのプロジェクトはありません'}
+                </Text>
+                <Text style={styles.emptySubText}>
+                    {appliedFilter === 'all'
+                        ? '気になるプロジェクトに応募してみましょう'
+                        : `全ての応募を表示するには「すべて」をタップしてください`}
+                </Text>
             </View>
         );
 
+        // Filter button component
+        const FilterButton = ({ filter, label, icon, color }: { filter: typeof appliedFilter; label: string; icon: string; color: string }) => (
+            <TouchableOpacity
+                style={[
+                    styles.appliedFilterButton,
+                    appliedFilter === filter && { backgroundColor: color + '20', borderColor: color }
+                ]}
+                onPress={() => setAppliedFilter(filter)}
+                activeOpacity={0.7}
+            >
+                <Ionicons
+                    name={icon as any}
+                    size={14}
+                    color={appliedFilter === filter ? color : '#9CA3AF'}
+                />
+                <Text style={[
+                    styles.appliedFilterButtonText,
+                    appliedFilter === filter && { color: color }
+                ]}>
+                    {label}
+                </Text>
+            </TouchableOpacity>
+        );
+
         return (
-            <FlatList
-                data={appliedApplications}
-                renderItem={renderApplicationProjectCard}
-                keyExtractor={(item) => item.id}
-                contentContainerStyle={[styles.listContent, appliedApplications.length === 0 && { flex: 1 }]}
-                showsVerticalScrollIndicator={false}
-                refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F39800" />
-                }
-                ListEmptyComponent={<AppliedEmptyComponent />}
-            />
+            <View style={{ flex: 1 }}>
+                {/* Filter buttons */}
+                <View style={styles.appliedFilterContainer}>
+                    <FilterButton filter="all" label="すべて" icon="list-outline" color="#F39800" />
+                    <FilterButton filter="approved" label="参加決定" icon="checkmark-circle" color="#10B981" />
+                    <FilterButton filter="pending" label="承認待ち" icon="time-outline" color="#F59E0B" />
+                    <FilterButton filter="rejected" label="見送り" icon="close-circle" color="#EF4444" />
+                </View>
+
+                <FlatList
+                    data={filteredApplications}
+                    renderItem={renderApplicationProjectCard}
+                    keyExtractor={(item) => item.id}
+                    contentContainerStyle={[styles.listContent, filteredApplications.length === 0 && { flex: 1 }]}
+                    showsVerticalScrollIndicator={false}
+                    refreshControl={
+                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F39800" />
+                    }
+                    ListEmptyComponent={<AppliedEmptyComponent />}
+                />
+            </View>
         );
     };
 
@@ -1332,11 +1408,16 @@ const styles = StyleSheet.create({
     },
     // Recruiting card styles (応募者カード)
     recruitingCard: {
-        backgroundColor: '#FFF9E6',
+        backgroundColor: '#FFFFFF',
         borderRadius: 16,
         padding: 16,
         marginBottom: 12,
         position: 'relative',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 2,
     },
     recruitingUnreadDot: {
         position: 'absolute',
@@ -1348,7 +1429,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#10B981',
         zIndex: 20,
         borderWidth: 2,
-        borderColor: '#FFF9E6',
+        borderColor: '#FFFFFF',
     },
     profileConfirmButton: {
         position: 'absolute',
@@ -1680,6 +1761,32 @@ const styles = StyleSheet.create({
         fontFamily: FONTS.medium,
         color: '#9CA3AF',
         alignSelf: 'center',
+    },
+    // Applied filter styles
+    appliedFilterContainer: {
+        flexDirection: 'row',
+        justifyContent: 'flex-start',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        gap: 8,
+        backgroundColor: '#FFF3E0',
+    },
+    appliedFilterButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 16,
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        gap: 4,
+    },
+    appliedFilterButtonText: {
+        fontSize: 12,
+        fontFamily: FONTS.medium,
+        color: '#9CA3AF',
     },
 });
 
