@@ -110,98 +110,35 @@ const ProjectCard = ({ project, onPress, index = 0 }: { project: Project; onPres
 
     // Determine layout based on icon count
     const getIconLayout = () => {
-        if (iconCount === 0) {
-            return null;
-        } else if (iconCount === 1) {
-            // Single icon in center (larger size)
+        const projectData = project as any;
+        const ownerImage = projectData.profiles?.image || projectData.owner?.image;
+
+        if (ownerImage) {
             return (
-                <View style={styles.iconsContainer}>
-                    <View style={styles.iconSlotCenter}>
-                        <View style={[styles.iconCircleLarge, { backgroundColor: rolesWithIcons[0].colors.bg }]}>
-                            <Ionicons
-                                name={rolesWithIcons[0].icon as any}
-                                size={30}
-                                color={rolesWithIcons[0].colors.icon}
-                            />
-                        </View>
-                    </View>
-                </View>
-            );
-        } else if (iconCount === 2) {
-            // Two icons side by side, centered vertically
-            return (
-                <View style={styles.iconsContainer}>
-                    <View style={styles.iconSlotTwo}>
-                        <View style={[styles.iconCircle, { backgroundColor: rolesWithIcons[0].colors.bg }]}>
-                            <Ionicons
-                                name={rolesWithIcons[0].icon as any}
-                                size={20}
-                                color={rolesWithIcons[0].colors.icon}
-                            />
-                        </View>
-                    </View>
-                    <View style={styles.iconSlotTwo}>
-                        <View style={[styles.iconCircle, { backgroundColor: rolesWithIcons[1].colors.bg }]}>
-                            <Ionicons
-                                name={rolesWithIcons[1].icon as any}
-                                size={20}
-                                color={rolesWithIcons[1].colors.icon}
-                            />
-                        </View>
-                    </View>
-                </View>
-            );
-        } else if (iconCount === 3) {
-            // Top two, bottom one centered
-            return (
-                <View style={styles.iconsContainer}>
-                    <View style={styles.iconSlotTop}>
-                        <View style={[styles.iconCircle, { backgroundColor: rolesWithIcons[0].colors.bg }]}>
-                            <Ionicons
-                                name={rolesWithIcons[0].icon as any}
-                                size={20}
-                                color={rolesWithIcons[0].colors.icon}
-                            />
-                        </View>
-                    </View>
-                    <View style={styles.iconSlotTop}>
-                        <View style={[styles.iconCircle, { backgroundColor: rolesWithIcons[1].colors.bg }]}>
-                            <Ionicons
-                                name={rolesWithIcons[1].icon as any}
-                                size={20}
-                                color={rolesWithIcons[1].colors.icon}
-                            />
-                        </View>
-                    </View>
-                    <View style={styles.iconSlotBottomCenter}>
-                        <View style={[styles.iconCircle, { backgroundColor: rolesWithIcons[2].colors.bg }]}>
-                            <Ionicons
-                                name={rolesWithIcons[2].icon as any}
-                                size={20}
-                                color={rolesWithIcons[2].colors.icon}
-                            />
-                        </View>
-                    </View>
-                </View>
-            );
-        } else {
-            // Four icons in 2x2 grid
-            return (
-                <View style={styles.iconsContainer}>
-                    {rolesWithIcons.map((item, i) => (
-                        <View key={`icon-${i}`} style={styles.iconSlotGrid}>
-                            <View style={[styles.iconCircle, { backgroundColor: item.colors.bg }]}>
-                                <Ionicons
-                                    name={item.icon as any}
-                                    size={20}
-                                    color={item.colors.icon}
-                                />
-                            </View>
-                        </View>
-                    ))}
-                </View>
+                <Image
+                    source={{ uri: ownerImage }}
+                    style={{
+                        width: 48,
+                        height: 48,
+                        borderRadius: 24,
+                        backgroundColor: '#EEE',
+                    }}
+                />
             );
         }
+
+        return (
+            <View style={{
+                width: 48,
+                height: 48,
+                borderRadius: 24,
+                backgroundColor: '#EEE',
+                alignItems: 'center',
+                justifyContent: 'center'
+            }}>
+                <Ionicons name="person" size={24} color="#9CA3AF" />
+            </View>
+        );
     };
 
     return (
