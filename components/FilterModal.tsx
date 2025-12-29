@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     StyleSheet,
     Text,
@@ -80,6 +80,20 @@ export function FilterModal({ visible, onClose, onApply, initialCriteria, mode =
 
     const [showResetConfirm, setShowResetConfirm] = useState(false);
     const slideAnim = useState(new Animated.Value(SCREEN_HEIGHT))[0];
+    const prevVisibleRef = useRef(false);
+
+    // Sync internal state with initialCriteria only when modal OPENS (visible transitions false -> true)
+    useEffect(() => {
+        if (visible && !prevVisibleRef.current) {
+            // Modal just opened - sync state
+            setKeyword(initialCriteria?.keyword || '');
+            setUniversity(initialCriteria?.university || '');
+            setSelectedGrades(initialCriteria?.grades || []);
+            setSelectedSeekingRoles(initialCriteria?.seekingRoles || []);
+            setSelectedThemes(initialCriteria?.themes || []);
+        }
+        prevVisibleRef.current = visible;
+    }, [visible, initialCriteria]);
 
     // Load universities
     useEffect(() => {

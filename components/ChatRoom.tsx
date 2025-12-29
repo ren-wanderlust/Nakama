@@ -12,28 +12,30 @@ import {
     Alert,
     ActivityIndicator,
     Modal,
-    Dimensions
+    Dimensions,
+    Image,
+    ScrollView,
 } from 'react-native';
-import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../lib/supabase';
 import { GestureHandlerRootView, PanGestureHandler, State } from 'react-native-gesture-handler';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
 import * as Haptics from 'expo-haptics';
-import * as ImagePicker from 'expo-image-picker';
 import { getUserPushTokens, sendPushNotification } from '../lib/notifications';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../data/queryKeys';
 
 import { useMessagesInfinite } from '../data/hooks/useMessagesInfinite';
 import { Message } from '../data/api/messages';
+import { ChatImagePickerModal } from './ChatImagePickerModal';
 
 interface MessageItem {
-    type: 'date' | 'message';
+    type: 'date' | 'message' | 'imageBatch';
     id: string;
     dateLabel?: string; // For date separators
     message?: Message; // For actual messages
+    messages?: Message[]; // For image batches
 }
 
 interface ChatRoomProps {
@@ -71,6 +73,159 @@ const getDateLabel = (dateString: string): string => {
     }
 };
 
+// Cache aspect ratios to avoid repeated Image.getSize calls while scrolling.
+const imageAspectRatioCache = new Map<string, number>();
+
+function useImageAspectRatio(uri?: string) {
+    const [aspectRatio, setAspectRatio] = useState<number | null>(() => {
+        if (!uri) return null;
+        return imageAspectRatioCache.get(uri) ?? null;
+    });
+
+    useEffect(() => {
+        if (!uri) {
+            setAspectRatio(null);
+            return;
+        }
+
+        const cached = imageAspectRatioCache.get(uri);
+        if (cached) {
+            setAspectRatio(cached);
+            return;
+        }
+
+        let cancelled = false;
+        Image.getSize(
+            uri,
+            (width, height) => {
+                if (cancelled) return;
+                if (!width || !height) return;
+                const r = width / height;
+                imageAspectRatioCache.set(uri, r);
+                setAspectRatio(r);
+            },
+            () => {
+                // If we can't read size (e.g., temporary URL), fall back to a sane default.
+                if (!cancelled) setAspectRatio(null);
+            }
+        );
+
+        return () => {
+            cancelled = true;
+        };
+    }, [uri]);
+
+    return aspectRatio;
+}
+
+const isPureImageMessage = (m: Message) => {
+    const text = (m.text ?? '').trim();
+    return !!m.image_url && text.length === 0 && !m.replyTo;
+};
+
+const parseTimeMs = (iso?: string) => {
+    if (!iso) return NaN;
+    const t = new Date(iso).getTime();
+    return Number.isFinite(t) ? t : NaN;
+};
+
+const ImageBatchBubble = ({
+    messages,
+    onPartnerProfilePress,
+    onMemberProfilePress,
+    isGroup,
+    partnerImage,
+}: {
+    messages: Message[];
+    onPartnerProfilePress: () => void;
+    onMemberProfilePress?: (memberId: string) => void;
+    isGroup?: boolean;
+    partnerImage?: string;
+}) => {
+    const first = messages[0];
+    const isMe = first.sender === 'me';
+    const [imageModalVisible, setImageModalVisible] = useState(false);
+    const [modalUri, setModalUri] = useState<string | null>(null);
+
+    const screenWidth = Dimensions.get('window').width;
+    const gridWidth = screenWidth * 0.64;
+    const gap = 6;
+    const cellWidth = (gridWidth - gap) / 2;
+    const cellHeight = cellWidth * 0.75; // 長方形
+
+    const uris = messages.map(m => m.image_url).filter((u): u is string => !!u);
+
+    const handleAvatarPress = () => {
+        if (isGroup && first.senderId && onMemberProfilePress) {
+            onMemberProfilePress(first.senderId);
+        } else {
+            onPartnerProfilePress();
+        }
+    };
+
+    const avatarImage = isGroup && first.senderImage
+        ? first.senderImage
+        : partnerImage;
+
+    return (
+        <>
+            <View style={[styles.messageRow, isMe ? styles.messageRowMe : styles.messageRowOther]}>
+                {!isMe && avatarImage && (
+                    <TouchableOpacity onPress={handleAvatarPress} style={styles.messageAvatarContainer}>
+                        <Image source={{ uri: avatarImage }} style={styles.messageAvatar} />
+                    </TouchableOpacity>
+                )}
+
+                <View style={[styles.messageContainer, isMe ? styles.messageContainerMe : styles.messageContainerOther]}>
+                    <View style={styles.bubbleRow}>
+                        {isMe && (
+                            <Text style={[styles.timestamp, styles.timestampMe]}>{first.timestamp}</Text>
+                        )}
+
+                        <View style={[styles.imageBatchGrid, { width: gridWidth }]}>
+                            {uris.map((uri, idx) => (
+                                <TouchableOpacity
+                                    key={`${uri}-${idx}`}
+                                    activeOpacity={0.9}
+                                    onPress={() => {
+                                        setModalUri(uri);
+                                        setImageModalVisible(true);
+                                    }}
+                                    style={[
+                                        styles.imageBatchCell,
+                                        { width: cellWidth, height: cellHeight, marginRight: idx % 2 === 0 ? gap : 0, marginBottom: gap }
+                                    ]}
+                                >
+                                    <Image source={{ uri }} style={styles.imageBatchImage} resizeMode="cover" />
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+
+                        {!isMe && (
+                            <Text style={[styles.timestamp, styles.timestampOther]}>{first.timestamp}</Text>
+                        )}
+                    </View>
+                </View>
+            </View>
+
+            <Modal visible={imageModalVisible} transparent={true} onRequestClose={() => setImageModalVisible(false)}>
+                <View style={styles.imageModalContainer}>
+                    <TouchableOpacity style={styles.imageModalCloseButton} onPress={() => setImageModalVisible(false)}>
+                        <Ionicons name="close" size={30} color="white" />
+                    </TouchableOpacity>
+                    {modalUri ? (
+                        <Image
+                            source={{ uri: modalUri }}
+                            resizeMode="contain"
+                            style={styles.fullScreenImage}
+                        />
+                    ) : null}
+                </View>
+            </Modal>
+        </>
+    );
+};
+
 // Message Bubble Component with Swipeable
 const MessageBubble = ({
     message,
@@ -100,6 +255,21 @@ const MessageBubble = ({
 
     const screenWidth = Dimensions.get('window').width;
     const defaultMaxWidth = screenWidth * 0.75; // 75% of screen width
+    const maxImageWidth = screenWidth * 0.6;
+    const maxImageHeight = screenWidth * 0.7;
+
+    const imageUri = message.image_url;
+    const imageAspectRatio = useImageAspectRatio(imageUri);
+    const fittedImageSize = useMemo(() => {
+        const r = imageAspectRatio ?? (4 / 3);
+        let width = maxImageWidth;
+        let height = width / r;
+        if (height > maxImageHeight) {
+            height = maxImageHeight;
+            width = height * r;
+        }
+        return { width, height };
+    }, [imageAspectRatio, maxImageWidth, maxImageHeight]);
 
     // Helper to format reply text (force wrap every 20 chars)
     const formatReplyText = (text: string) => {
@@ -184,8 +354,6 @@ const MessageBubble = ({
                             <Image
                                 source={{ uri: avatarImage }}
                                 style={styles.messageAvatar}
-                                contentFit="cover"
-                                cachePolicy="memory-disk"
                             />
                         </TouchableOpacity>
                     )}
@@ -278,9 +446,8 @@ const MessageBubble = ({
                                         <TouchableOpacity onPress={() => setImageModalVisible(true)} activeOpacity={0.9}>
                                             <Image
                                                 source={{ uri: message.image_url }}
-                                                style={styles.messageImageMe}
-                                                contentFit="cover"
-                                                cachePolicy="memory-disk"
+                                                resizeMode="contain"
+                                                style={[styles.messageImageMe, { width: fittedImageSize.width, height: fittedImageSize.height }]}
                                             />
                                         </TouchableOpacity>
                                     )}
@@ -317,9 +484,8 @@ const MessageBubble = ({
                                                 <TouchableOpacity onPress={() => setImageModalVisible(true)} activeOpacity={0.9}>
                                                     <Image
                                                         source={{ uri: message.image_url }}
-                                                        style={styles.messageImageMe}
-                                                        contentFit="cover"
-                                                        cachePolicy="memory-disk"
+                                                        resizeMode="contain"
+                                                        style={[styles.messageImageMe, { width: fittedImageSize.width, height: fittedImageSize.height }]}
                                                     />
                                                 </TouchableOpacity>
                                             )}
@@ -334,9 +500,8 @@ const MessageBubble = ({
                                         <TouchableOpacity onPress={() => setImageModalVisible(true)} activeOpacity={0.9}>
                                             <Image
                                                 source={{ uri: message.image_url }}
-                                                style={styles.messageImageOther}
-                                                contentFit="cover"
-                                                cachePolicy="memory-disk"
+                                                resizeMode="contain"
+                                                style={[styles.messageImageOther, { width: fittedImageSize.width, height: fittedImageSize.height }]}
                                             />
                                         </TouchableOpacity>
                                     )}
@@ -374,9 +539,8 @@ const MessageBubble = ({
                                                     <TouchableOpacity onPress={() => setImageModalVisible(true)} activeOpacity={0.9}>
                                                         <Image
                                                             source={{ uri: message.image_url }}
-                                                            style={styles.messageImageOther}
-                                                            contentFit="cover"
-                                                            cachePolicy="memory-disk"
+                                                            resizeMode="contain"
+                                                            style={[styles.messageImageOther, { width: fittedImageSize.width, height: fittedImageSize.height }]}
                                                         />
                                                     </TouchableOpacity>
                                                 )}
@@ -404,9 +568,8 @@ const MessageBubble = ({
                     </TouchableOpacity>
                     <Image
                         source={{ uri: message.image_url }}
+                        resizeMode="contain"
                         style={styles.fullScreenImage}
-                        contentFit="contain"
-                        cachePolicy="memory-disk"
                     />
                 </View>
             </Modal >
@@ -419,8 +582,9 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
     const [inputText, setInputText] = useState('');
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const [replyingTo, setReplyingTo] = useState<Message | null>(null);
-    const [selectedImage, setSelectedImage] = useState<string | null>(null);
+    const [selectedImages, setSelectedImages] = useState<string[]>([]);
     const [isSending, setIsSending] = useState(false);
+    const [imagePickerVisible, setImagePickerVisible] = useState(false);
     const flatListRef = useRef<FlatList>(null);
     const inputRef = useRef<TextInput>(null);
 
@@ -491,274 +655,318 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
         markAsRead();
     }, [partnerId, isGroup]);
 
-
-
-    // Create message list with date separators
     // Create message list with date separators (for Inverted List)
     const messageListWithDates = useMemo(() => {
         const items: MessageItem[] = [];
 
         // messages is [Newest, ..., Oldest]
-        messages.forEach((message, index) => {
-            // Add message
+        let i = 0;
+        while (i < messages.length) {
+            const m = messages[i];
+
+            // Group consecutive pure-image messages from same sender within a short window
+            if (isPureImageMessage(m)) {
+                const group: Message[] = [m];
+                let j = i + 1;
+                const maxGapMs = 20_000; // "同時送信"扱いの猶予
+                while (j < messages.length) {
+                    const n = messages[j];
+                    if (!isPureImageMessage(n)) break;
+                    if (n.sender !== m.sender) break;
+                    if ((n.senderId ?? '') !== (m.senderId ?? '')) break;
+                    if ((n.date ?? '') !== (m.date ?? '')) break;
+
+                    const prevTime = parseTimeMs(group[group.length - 1].created_at);
+                    const nextTime = parseTimeMs(n.created_at);
+                    if (Number.isFinite(prevTime) && Number.isFinite(nextTime)) {
+                        const gap = Math.abs(prevTime - nextTime);
+                        if (gap > maxGapMs) break;
+                    }
+
+                    group.push(n);
+                    j++;
+                    if (group.length >= 10) break; // UI負荷対策
+                }
+
+                if (group.length >= 2) {
+                    items.push({
+                        type: 'imageBatch',
+                        id: `image-batch-${group[0].id}`,
+                        messages: group,
+                    });
+                } else {
+                    items.push({
+                        type: 'message',
+                        id: m.id,
+                        message: m,
+                    });
+                }
+
+                const lastProcessed = group[group.length - 1];
+                const nextMessage = messages[j];
+                if (!nextMessage || nextMessage.date !== lastProcessed.date) {
+                    items.push({
+                        type: 'date',
+                        id: `date-${lastProcessed.date}`,
+                        dateLabel: getDateLabel(lastProcessed.date),
+                    });
+                }
+
+                i = j;
+                continue;
+            }
+
             items.push({
                 type: 'message',
-                id: message.id,
-                message,
+                id: m.id,
+                message: m,
             });
 
-            // Check if next message (older) has different date
-            const nextMessage = messages[index + 1];
-            if (!nextMessage || nextMessage.date !== message.date) {
-                // Date changed or end of list (oldest message)
-                // Insert separator for THIS message's date
+            const nextMessage = messages[i + 1];
+            if (!nextMessage || nextMessage.date !== m.date) {
                 items.push({
                     type: 'date',
-                    id: `date-${message.date}`,
-                    dateLabel: getDateLabel(message.date),
+                    id: `date-${m.date}`,
+                    dateLabel: getDateLabel(m.date),
                 });
             }
-        });
+            i++;
+        }
 
         return items;
     }, [messages]);
 
     const handlePickImage = async () => {
-        const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            allowsEditing: true,
-            quality: 1, // 最初は高品質で取得、後でリサイズ
-        });
-
-        if (!result.canceled) {
-            try {
-                // `expo-image-manipulator` はネイティブモジュールのため、
-                // dev client が再ビルドされていないと起動時クラッシュする。
-                // ここでは動的importにして、未導入/未ビルド時はフォールバックする。
-                const ImageManipulator = await import('expo-image-manipulator');
-                // 画像をリサイズ・圧縮（最大幅1200px、JPEG 70%品質）
-                const manipulated = await ImageManipulator.manipulateAsync(
-                    result.assets[0].uri,
-                    [{ resize: { width: 1200 } }],
-                    { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
-                );
-                setSelectedImage(manipulated.uri);
-            } catch (error) {
-                console.error('Image resize error:', error);
-                // リサイズに失敗した場合は元の画像を使用
-                setSelectedImage(result.assets[0].uri);
-            }
-        }
+        setImagePickerVisible(true);
     };
 
     const handleSend = async () => {
-        if ((!inputText.trim() && !selectedImage) || !currentUserId || isSending) return;
+        if ((!inputText.trim() && selectedImages.length === 0) || !currentUserId || isSending) return;
 
         setIsSending(true);
         const content = inputText.trim();
-        const imageUri = selectedImage;
+        const imagesToSend = [...selectedImages];
+        let sentCount = 0;
 
         // Reset inputs immediately for UX
         setInputText('');
-        setSelectedImage(null);
+        setSelectedImages([]);
         setReplyingTo(null);
         // Explicitly clear TextInput
         inputRef.current?.clear();
 
         try {
-            let uploadedImageUrl = null;
-
-            if (imageUri) {
-                const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
-                    const xhr = new XMLHttpRequest();
-                    xhr.onload = function () {
-                        resolve(xhr.response);
-                    };
-                    xhr.onerror = function (e) {
-                        console.log(e);
-                        reject(new TypeError('Network request failed'));
-                    };
-                    xhr.responseType = 'arraybuffer';
-                    xhr.open('GET', imageUri, true);
-                    xhr.send(null);
-                });
-
-                const fileExt = imageUri.split('.').pop()?.toLowerCase() ?? 'jpg';
-                const fileName = `${currentUserId}/${Date.now()}.${fileExt}`;
-
-                const { error: uploadError } = await supabase.storage
-                    .from('chat-images')
-                    .upload(fileName, arrayBuffer, {
-                        contentType: `image/${fileExt}`,
-                        upsert: false,
-                    });
-
-                if (uploadError) throw uploadError;
-
-                const { data: { publicUrl } } = supabase.storage
-                    .from('chat-images')
-                    .getPublicUrl(fileName);
-
-                uploadedImageUrl = publicUrl;
-            }
-
             const replyData = replyingTo ? {
                 id: replyingTo.id,
                 text: replyingTo.text || '画像',
                 senderName: replyingTo.sender === 'me' ? '自分' : partnerName
             } : null;
 
-            // Optimistic Update
-            const tempId = `temp-${Date.now()}`;
-            const optimisticMessage: Message = {
-                id: tempId,
-                text: content,
-                image_url: uploadedImageUrl || undefined, // Use uploaded URL if available, or local if we had it (but here we are after upload)
-                sender: 'me',
-                senderId: currentUserId,
-                senderName: '自分',
-                timestamp: new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }),
-                date: new Date().toISOString().split('T')[0],
-                created_at: new Date().toISOString(),
-                replyTo: replyData || undefined,
-            };
-
             const queryKey = queryKeys.messages.list(partnerId);
 
-            queryClient.setQueryData(queryKey, (oldData: any) => {
-                if (!oldData || !oldData.pages) {
-                    return {
-                        pages: [{
-                            data: [optimisticMessage],
-                            nextCursor: null
-                        }],
-                        pageParams: [undefined]
-                    };
+            const sendOne = async ({
+                messageText,
+                imageUri,
+                reply,
+            }: {
+                messageText: string;
+                imageUri?: string;
+                reply: typeof replyData;
+            }) => {
+                let uploadedImageUrl: string | null = null;
+
+                if (imageUri) {
+                    const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+                        const xhr = new XMLHttpRequest();
+                        xhr.onload = function () {
+                            resolve(xhr.response);
+                        };
+                        xhr.onerror = function (e) {
+                            console.log(e);
+                            reject(new TypeError('Network request failed'));
+                        };
+                        xhr.responseType = 'arraybuffer';
+                        xhr.open('GET', imageUri, true);
+                        xhr.send(null);
+                    });
+
+                    const fileExt = imageUri.split('.').pop()?.toLowerCase() ?? 'jpg';
+                    const safeExt = fileExt === 'jpeg' ? 'jpg' : fileExt;
+                    const fileName = `${currentUserId}/${Date.now()}-${Math.random().toString(16).slice(2)}.${safeExt}`;
+
+                    const contentType = safeExt === 'jpg' ? 'image/jpeg' : `image/${safeExt}`;
+
+                    const { error: uploadError } = await supabase.storage
+                        .from('chat-images')
+                        .upload(fileName, arrayBuffer, {
+                            contentType,
+                            upsert: false,
+                        });
+
+                    if (uploadError) throw uploadError;
+
+                    const { data: { publicUrl } } = supabase.storage
+                        .from('chat-images')
+                        .getPublicUrl(fileName);
+
+                    uploadedImageUrl = publicUrl;
                 }
 
-                const firstPage = oldData.pages[0];
-                return {
-                    ...oldData,
-                    pages: [{
-                        ...firstPage,
-                        data: [optimisticMessage, ...firstPage.data]
-                    }, ...oldData.pages.slice(1)]
-                };
-            });
-
-            // Scroll to bottom
-            setTimeout(() => {
-                flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
-            }, 100);
-
-            const { data, error } = await supabase
-                .from('messages')
-                .insert({
-                    sender_id: currentUserId,
-                    // For group chats, we set receiver_id to sender to satisfy NOT NULL constraint
-                    // filtering logic correctly handles this using chat_room_id
-                    receiver_id: isGroup ? currentUserId : partnerId,
-                    chat_room_id: isGroup ? partnerId : null,
-                    content: content,
-                    image_url: uploadedImageUrl,
-                    reply_to: replyData,
-                })
-                .select()
-                .single();
-
-            if (error) {
-                // Rollback on error
-                queryClient.setQueryData(queryKey, (oldData: any) => {
-                    if (!oldData || !oldData.pages) return oldData;
-
-                    const newPages = oldData.pages.map((page: any) => ({
-                        ...page,
-                        data: page.data.filter((msg: Message) => msg.id !== tempId)
-                    }));
-
-                    return {
-                        ...oldData,
-                        pages: newPages
-                    };
-                });
-                throw error;
-            }
-
-            // Success: Replace temp message with real one
-            if (data) {
-                const realMessage: Message = {
-                    id: data.id,
-                    text: data.content,
-                    image_url: data.image_url,
+                // Optimistic Update
+                const tempId = `temp-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+                const nowIso = new Date().toISOString();
+                const optimisticMessage: Message = {
+                    id: tempId,
+                    text: messageText,
+                    image_url: uploadedImageUrl || undefined,
                     sender: 'me',
                     senderId: currentUserId,
                     senderName: '自分',
-                    timestamp: new Date(data.created_at).toLocaleTimeString('ja-JP', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                    }),
-                    date: new Date(data.created_at).toISOString().split('T')[0],
-                    created_at: data.created_at,
-                    replyTo: replyData || undefined,
+                    timestamp: new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }),
+                    date: nowIso.split('T')[0],
+                    created_at: nowIso,
+                    replyTo: reply || undefined,
                 };
 
                 queryClient.setQueryData(queryKey, (oldData: any) => {
-                    if (!oldData || !oldData.pages) return oldData;
+                    if (!oldData || !oldData.pages) {
+                        return {
+                            pages: [{
+                                data: [optimisticMessage],
+                                nextCursor: null
+                            }],
+                            pageParams: [undefined]
+                        };
+                    }
 
-                    const newPages = oldData.pages.map((page: any) => ({
-                        ...page,
-                        data: page.data.map((msg: Message) =>
-                            msg.id === tempId ? realMessage : msg
-                        )
-                    }));
-
+                    const firstPage = oldData.pages[0];
                     return {
                         ...oldData,
-                        pages: newPages
+                        pages: [{
+                            ...firstPage,
+                            data: [optimisticMessage, ...firstPage.data]
+                        }, ...oldData.pages.slice(1)]
                     };
                 });
-            }
-
-            if (data) {
 
                 setTimeout(() => {
-                    // Scroll to bottom (which is top in inverted list)
                     flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
                 }, 100);
 
-                // Invalidate chat rooms query to update chat list in TalkPage immediately
-                if (currentUserId) {
-                    queryClient.invalidateQueries({
-                        queryKey: queryKeys.chatRooms.list(currentUserId),
-                        refetchType: 'active',
+                const { data, error } = await supabase
+                    .from('messages')
+                    .insert({
+                        sender_id: currentUserId,
+                        receiver_id: isGroup ? currentUserId : partnerId,
+                        chat_room_id: isGroup ? partnerId : null,
+                        content: messageText,
+                        image_url: uploadedImageUrl,
+                        reply_to: reply,
+                    })
+                    .select()
+                    .single();
+
+                if (error) {
+                    // Rollback on error
+                    queryClient.setQueryData(queryKey, (oldData: any) => {
+                        if (!oldData || !oldData.pages) return oldData;
+
+                        const newPages = oldData.pages.map((page: any) => ({
+                            ...page,
+                            data: page.data.filter((msg: Message) => msg.id !== tempId)
+                        }));
+
+                        return {
+                            ...oldData,
+                            pages: newPages
+                        };
                     });
+                    throw error;
                 }
 
-                // Send push notification to recipient(s)
-                try {
-                    if (!isGroup) {
-                        // For direct messages, send to the partner
-                        const tokens = await getUserPushTokens(partnerId);
-                        for (const token of tokens) {
-                            await sendPushNotification(
-                                token,
-                                '新しいメッセージ',
-                                content || '画像が送信されました',
-                                { type: 'message', senderId: currentUserId }
-                            );
-                        }
-                    }
-                    // For group chats, could send to all members (more complex, skipping for now)
-                } catch (notifError) {
-                    console.log('Push notification error:', notifError);
+                if (data) {
+                    const realMessage: Message = {
+                        id: data.id,
+                        text: data.content,
+                        image_url: data.image_url,
+                        sender: 'me',
+                        senderId: currentUserId,
+                        senderName: '自分',
+                        timestamp: new Date(data.created_at).toLocaleTimeString('ja-JP', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                        }),
+                        date: new Date(data.created_at).toISOString().split('T')[0],
+                        created_at: data.created_at,
+                        replyTo: reply || undefined,
+                    };
+
+                    queryClient.setQueryData(queryKey, (oldData: any) => {
+                        if (!oldData || !oldData.pages) return oldData;
+
+                        const newPages = oldData.pages.map((page: any) => ({
+                            ...page,
+                            data: page.data.map((msg: Message) =>
+                                msg.id === tempId ? realMessage : msg
+                            )
+                        }));
+
+                        return {
+                            ...oldData,
+                            pages: newPages
+                        };
+                    });
                 }
+            };
+
+            if (imagesToSend.length > 0) {
+                // 選択順に送信（awaitで順番を保証）
+                for (let i = 0; i < imagesToSend.length; i++) {
+                    const imageUri = imagesToSend[i];
+                    const messageText = i === 0 ? content : '';
+                    const reply = i === 0 ? replyData : null;
+                    await sendOne({ messageText, imageUri, reply });
+                    sentCount++;
+                }
+            } else {
+                // テキストのみ
+                await sendOne({ messageText: content, reply: replyData });
+            }
+
+            // Invalidate chat rooms query once to update chat list in TalkPage immediately
+            if (currentUserId) {
+                queryClient.invalidateQueries({
+                    queryKey: queryKeys.chatRooms.list(currentUserId),
+                    refetchType: 'active',
+                });
+            }
+
+            // Send push notification once (direct messages only)
+            try {
+                if (!isGroup) {
+                    const tokens = await getUserPushTokens(partnerId);
+                    const body = imagesToSend.length > 0
+                        ? '画像が送信されました'
+                        : (content || 'メッセージが送信されました');
+                    for (const token of tokens) {
+                        await sendPushNotification(
+                            token,
+                            '新しいメッセージ',
+                            body,
+                            { type: 'message', senderId: currentUserId }
+                        );
+                    }
+                }
+            } catch (notifError) {
+                console.log('Push notification error:', notifError);
             }
         } catch (error: any) {
             console.error('Error sending message:', error);
             Alert.alert('エラー', `メッセージの送信に失敗しました: ${error.message || error}`);
             // Restore inputs on error
             setInputText(content);
-            setSelectedImage(imageUri);
+            // 途中まで送れている可能性があるので、未送信分だけ戻す
+            setSelectedImages(imagesToSend.slice(sentCount));
         } finally {
             setIsSending(false);
         }
@@ -780,7 +988,9 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
     // Handle scroll to reply message
     const handleScrollToReply = (replyToId: string) => {
         const index = messageListWithDates.findIndex(
-            item => item.type === 'message' && item.message?.id === replyToId
+            item =>
+                (item.type === 'message' && item.message?.id === replyToId) ||
+                (item.type === 'imageBatch' && item.messages?.some(m => m.id === replyToId))
         );
         if (index !== -1 && flatListRef.current) {
             flatListRef.current.scrollToIndex({
@@ -796,6 +1006,16 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
     const renderItem = ({ item }: { item: MessageItem }) => {
         if (item.type === 'date') {
             return renderDateSeparator(item.dateLabel!);
+        } else if (item.type === 'imageBatch') {
+            return (
+                <ImageBatchBubble
+                    messages={item.messages!}
+                    onPartnerProfilePress={onPartnerProfilePress}
+                    onMemberProfilePress={onMemberProfilePress}
+                    isGroup={isGroup}
+                    partnerImage={partnerImage}
+                />
+            );
         } else {
             return (
                 <MessageBubble
@@ -1016,8 +1236,6 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                                     <Image
                                         source={{ uri: partnerImage }}
                                         style={styles.headerAvatar}
-                                        contentFit="cover"
-                                        cachePolicy="memory-disk"
                                     />
                                     <Text style={styles.headerName} numberOfLines={2} ellipsizeMode="tail">{partnerName}</Text>
                                 </TouchableOpacity>
@@ -1026,8 +1244,6 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                                     <Image
                                         source={{ uri: partnerImage }}
                                         style={styles.headerAvatar}
-                                        contentFit="cover"
-                                        cachePolicy="memory-disk"
                                     />
                                     <Text style={styles.headerName} numberOfLines={2} ellipsizeMode="tail">{partnerName}</Text>
                                 </View>
@@ -1090,17 +1306,33 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                             )}
 
                             {/* Image Preview */}
-                            {selectedImage && (
+                            {selectedImages.length > 0 && (
                                 <View style={styles.imagePreviewBar}>
-                                    <Image
-                                        source={{ uri: selectedImage }}
-                                        style={styles.imagePreview}
-                                        contentFit="cover"
-                                        cachePolicy="memory-disk"
-                                    />
-                                    <TouchableOpacity onPress={() => setSelectedImage(null)} style={styles.closeImageButton}>
-                                        <Ionicons name="close-circle" size={24} color="#ef4444" />
-                                    </TouchableOpacity>
+                                    <ScrollView
+                                        horizontal
+                                        showsHorizontalScrollIndicator={false}
+                                        contentContainerStyle={styles.imagePreviewList}
+                                    >
+                                        {selectedImages.map((uri, idx) => (
+                                            <View key={`${uri}-${idx}`} style={styles.imagePreviewItem}>
+                                                <Image
+                                                    source={{ uri }}
+                                                    style={styles.imagePreview}
+                                                />
+                                                <View style={styles.imagePreviewIndexBadge}>
+                                                    <Text style={styles.imagePreviewIndexText}>{idx + 1}</Text>
+                                                </View>
+                                                <TouchableOpacity
+                                                    onPress={() => {
+                                                        setSelectedImages(prev => prev.filter((_, i) => i !== idx));
+                                                    }}
+                                                    style={styles.closeImageButton}
+                                                >
+                                                    <Ionicons name="close-circle" size={22} color="#ef4444" />
+                                                </TouchableOpacity>
+                                            </View>
+                                        ))}
+                                    </ScrollView>
                                 </View>
                             )}
 
@@ -1123,10 +1355,10 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                                 <TouchableOpacity
                                     style={[
                                         styles.sendButton,
-                                        (!inputText.trim() && !selectedImage) || isSending ? styles.sendButtonDisabled : null
+                                        (!inputText.trim() && selectedImages.length === 0) || isSending ? styles.sendButtonDisabled : null
                                     ]}
                                     onPress={handleSend}
-                                    disabled={(!inputText.trim() && !selectedImage) || isSending}
+                                    disabled={(!inputText.trim() && selectedImages.length === 0) || isSending}
                                 >
                                     {isSending ? (
                                         <ActivityIndicator size="small" color="white" />
@@ -1134,7 +1366,7 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                                         <Ionicons
                                             name="send"
                                             size={20}
-                                            color={inputText.trim() || selectedImage ? 'white' : '#9ca3af'}
+                                            color={inputText.trim() || selectedImages.length > 0 ? 'white' : '#9ca3af'}
                                         />
                                     )}
                                 </TouchableOpacity>
@@ -1143,6 +1375,21 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                     </SafeAreaView>
                 </View>
             </PanGestureHandler>
+
+            <ChatImagePickerModal
+                visible={imagePickerVisible}
+                maxSelection={10}
+                onClose={() => setImagePickerVisible(false)}
+                onConfirm={(pickedUris) => {
+                    setSelectedImages(prev => {
+                        const combined = [...prev, ...pickedUris];
+                        const unique = combined.filter((u, idx) => combined.indexOf(u) === idx);
+                        return unique.slice(0, 10);
+                    });
+                    setImagePickerVisible(false);
+                }}
+            />
+
         </GestureHandlerRootView>
     );
 }
@@ -1290,16 +1537,26 @@ const styles = StyleSheet.create({
         lineHeight: 22,
     },
     messageImageMe: {
-        width: 200,
-        height: 150,
         borderRadius: 12,
         marginBottom: 4,
     },
     messageImageOther: {
-        width: 200,
-        height: 150,
         borderRadius: 12,
         marginBottom: 4,
+    },
+    imageBatchGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        alignItems: 'flex-start',
+    },
+    imageBatchCell: {
+        borderRadius: 12,
+        overflow: 'hidden',
+        backgroundColor: '#e5e7eb',
+    },
+    imageBatchImage: {
+        width: '100%',
+        height: '100%',
     },
     timestamp: {
         fontSize: 10,
@@ -1440,18 +1697,38 @@ const styles = StyleSheet.create({
         backgroundColor: '#F9FAFB',
         borderTopWidth: 1,
         borderTopColor: '#E5E7EB',
+    },
+    imagePreviewList: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+    },
+    imagePreviewItem: {
         position: 'relative',
-        alignItems: 'flex-start',
     },
     imagePreview: {
         width: 100,
         height: 100,
         borderRadius: 8,
     },
+    imagePreviewIndexBadge: {
+        position: 'absolute',
+        left: 6,
+        bottom: 6,
+        backgroundColor: 'rgba(0,0,0,0.6)',
+        borderRadius: 10,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+    },
+    imagePreviewIndexText: {
+        color: 'white',
+        fontSize: 11,
+        fontWeight: '600',
+    },
     closeImageButton: {
         position: 'absolute',
-        top: 4,
-        left: 104,
+        top: -8,
+        right: -8,
         backgroundColor: 'white',
         borderRadius: 12,
     },
@@ -1473,6 +1750,7 @@ const styles = StyleSheet.create({
         width: '100%',
         height: '100%',
     },
+
 });
 
 

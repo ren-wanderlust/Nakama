@@ -1,6 +1,6 @@
 // Trigger rebuild
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { StyleSheet, Text, View, FlatList, TouchableOpacity, Platform, ActivityIndicator, Modal, UIManager, LayoutAnimation, Dimensions } from 'react-native';
+import { StyleSheet, Text, View, FlatList, TouchableOpacity, Platform, ActivityIndicator, Modal, UIManager, LayoutAnimation, Dimensions, ScrollView } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as SecureStore from 'expo-secure-store';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -1335,9 +1335,27 @@ function AppContent() {
                           onPress={() => setIsFilterOpen(true)}
                         >
                           <Ionicons name="search" size={16} color="#F39800" />
-                          <Text style={[styles.controlButtonText, isFilterActive && styles.controlButtonTextActive]}>
-                            絞り込み
-                          </Text>
+                          {filterCriteria?.keyword ? (
+                            <>
+                              <Text style={[styles.controlButtonText, styles.controlButtonTextActive, { flex: 1 }]} numberOfLines={1}>
+                                {filterCriteria.keyword}
+                              </Text>
+                              <TouchableOpacity
+                                onPress={(e) => {
+                                  e.stopPropagation();
+                                  setFilterCriteria(prev => prev ? { ...prev, keyword: '' } : null);
+                                }}
+                                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                                style={{ marginLeft: 'auto' }}
+                              >
+                                <Ionicons name="close-circle" size={16} color="#F39800" />
+                              </TouchableOpacity>
+                            </>
+                          ) : (
+                            <Text style={[styles.controlButtonText, isFilterActive && styles.controlButtonTextActive]}>
+                              絞り込み
+                            </Text>
+                          )}
                         </TouchableOpacity>
 
                         <TouchableOpacity
@@ -1364,6 +1382,54 @@ function AppContent() {
                     </View>
                   </View>
                 </View>
+
+                {/* アクティブフィルタータグ表示 */}
+                {((filterCriteria?.themes && filterCriteria.themes.length > 0) || (filterCriteria?.seekingRoles && filterCriteria.seekingRoles.length > 0)) && (
+                  <View style={styles.activeFilterTagsContainer}>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                      {filterCriteria?.themes?.map((theme) => (
+                        <TouchableOpacity
+                          key={`theme-${theme}`}
+                          style={styles.activeFilterTag}
+                          onPress={() => {
+                            setFilterCriteria(prev => prev ? {
+                              ...prev,
+                              themes: prev.themes?.filter(t => t !== theme) || []
+                            } : null);
+                          }}
+                        >
+                          <Text style={styles.activeFilterTagText}>{theme}</Text>
+                          <Ionicons name="close" size={14} color="#F39800" />
+                        </TouchableOpacity>
+                      ))}
+                      {filterCriteria?.seekingRoles?.map((roleId) => {
+                        const roleLabels: { [key: string]: string } = {
+                          'engineer': 'エンジニア',
+                          'designer': 'デザイナー',
+                          'marketer': 'マーケター',
+                          'ideaman': 'アイディアマン',
+                          'creator': 'クリエイター',
+                          'other': 'その他'
+                        };
+                        return (
+                          <TouchableOpacity
+                            key={`role-${roleId}`}
+                            style={styles.activeFilterTag}
+                            onPress={() => {
+                              setFilterCriteria(prev => prev ? {
+                                ...prev,
+                                seekingRoles: prev.seekingRoles?.filter(r => r !== roleId) || []
+                              } : null);
+                            }}
+                          >
+                            <Text style={styles.activeFilterTagText}>{roleLabels[roleId] || roleId}</Text>
+                            <Ionicons name="close" size={14} color="#F39800" />
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </ScrollView>
+                  </View>
+                )}
 
                 {/* ユーザータブは将来的な復活のためにコメントで残す
                 <View style={[styles.searchHeader, { backgroundColor: 'white' }]}>
@@ -1442,6 +1508,30 @@ function AppContent() {
                   </TouchableOpacity>
                 </View>
                 */}
+              </View>
+            )}
+
+            {activeTab === 'talk' && (
+              <View style={[styles.searchHeader, { backgroundColor: 'white' }]}>
+                <View style={[styles.searchHeaderGradient, { paddingTop: insets.top + 20, paddingBottom: 16, backgroundColor: 'white' }]}>
+                  <View style={styles.headerTop}>
+                    <View style={styles.headerLeft} />
+                    <View style={styles.talkHeaderTitleContainer}>
+                      <Text style={styles.talkHeaderTitle}>チームトーク</Text>
+                    </View>
+                    <View style={styles.headerRight}>
+                      <TouchableOpacity
+                        style={styles.notificationButton}
+                        onPress={() => setShowNotifications(true)}
+                      >
+                        <Ionicons name="notifications-outline" size={24} color="#F39800" />
+                        {unreadNotificationsCount > 0 && (
+                          <View style={styles.notificationBadgeDot} />
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
               </View>
             )}
           </View>
@@ -1618,6 +1708,7 @@ function AppContent() {
               }}
               onOpenNotifications={() => setShowNotifications(true)}
               unreadNotificationsCount={unreadNotificationsCount}
+              hideHeader={true}
             />
           </FadeTabContent>
           <FadeTabContent activeTab={activeTab} tabId="profile">
@@ -2163,6 +2254,46 @@ const styles = StyleSheet.create({
     height: 10,
     borderRadius: 5,
     backgroundColor: '#EF4444',
+  },
+  talkHeaderTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#F39800',
+    fontFamily: FONTS.bold,
+  },
+  talkHeaderTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 100,
+    height: 36,
+    paddingHorizontal: 20,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  activeFilterTagsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: '#FFF3E0',
+  },
+  activeFilterTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#F39800',
+    gap: 4,
+  },
+  activeFilterTagText: {
+    fontSize: 12,
+    fontFamily: FONTS.medium,
+    color: '#F39800',
   },
   searchControlBar: {
     flexDirection: 'row',

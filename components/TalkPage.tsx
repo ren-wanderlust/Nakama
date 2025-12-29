@@ -21,9 +21,10 @@ interface TalkPageProps {
     onViewProject?: (projectId: string) => void;
     onOpenNotifications?: () => void;
     unreadNotificationsCount?: number;
+    hideHeader?: boolean;
 }
 
-export function TalkPage({ onOpenChat, onViewProfile, onViewProject, onOpenNotifications, unreadNotificationsCount = 0 }: TalkPageProps) {
+export function TalkPage({ onOpenChat, onViewProfile, onViewProject, onOpenNotifications, unreadNotificationsCount = 0, hideHeader = false }: TalkPageProps) {
     const insets = useSafeAreaInsets();
     const [talkTab, setTalkTab] = useState<'individual' | 'team'>('team');
     const talkListRef = useRef<FlatList>(null);
@@ -240,27 +241,8 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject, onOpenNotif
         }
     };
 
-    const renderHeader = () => (
-        <View style={styles.header}>
-            <View style={[styles.headerGradient, { paddingTop: insets.top + 20, paddingBottom: 16, backgroundColor: 'white' }]}>
-                <View style={styles.headerTop}>
-                    <View style={styles.headerLeft} />
-                    <Text style={styles.headerTitle}>チームトーク</Text>
-                    <View style={styles.headerRight}>
-                        <TouchableOpacity
-                            style={styles.notificationButton}
-                            onPress={onOpenNotifications}
-                        >
-                            <Ionicons name="notifications-outline" size={24} color="#F39800" />
-                            {unreadNotificationsCount > 0 && (
-                                <View style={styles.notificationBadgeDot} />
-                            )}
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </View>
-        </View>
-    );
+    // Header is now rendered in App.tsx to avoid animation
+    const renderHeader = () => null;
 
     if (loading) {
         return (
