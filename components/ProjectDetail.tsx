@@ -402,13 +402,12 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                 }
             }
 
-            Alert.alert('完了', `${userName}さんを${newStatus === 'approved' ? '承認' : '棄却'}しました`);
-
             // 承認/棄却直後に、対象ユーザー側の「応募」一覧を最新化（画面非表示でも次回表示で古いキャッシュが残らない）
             if (applicant?.user_id) {
                 queryClient.invalidateQueries({ queryKey: queryKeys.projectApplications.applied(applicant.user_id), refetchType: 'active' });
             }
 
+            let teamChatCreated = false;
             if (newStatus === 'approved') {
                 // 承認されたユーザーの「参加中」を即時更新（実行者ではなく対象ユーザー）
                 if (applicant?.user_id) {
@@ -446,12 +445,33 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                             if (currentUser?.id) {
                                 queryClient.invalidateQueries({ queryKey: queryKeys.chatRooms.list(currentUser.id) });
                             }
-                            Alert.alert('チームチャット作成', 'メンバーが2名以上になったため、チームチャットが自動作成されました！「トーク」タブから確認できます。');
+                            teamChatCreated = true;
                         } else {
                             console.error('Error creating chat room:', createRoomError);
                         }
                     }
                 }
+            }
+
+            // Show combined alert for approval and team chat creation
+            if (newStatus === 'approved') {
+                Alert.alert(
+                    '完了',
+                    `${userName}さんを承認しました`,
+                    [{
+                        text: 'OK',
+                        onPress: () => {
+                            if (teamChatCreated) {
+                                Alert.alert(
+                                    '🎉 チームチャット作成',
+                                    'メンバーが2名以上になったため、チームチャットが自動作成されました！\n\n「トーク」タブから確認できます。'
+                                );
+                            }
+                        }
+                    }]
+                );
+            } else {
+                Alert.alert('完了', `${userName}さんを棄却しました`);
             }
 
             // Invalidate React Query caches to sync with LikesPage

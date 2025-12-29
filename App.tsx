@@ -1749,7 +1749,7 @@ function AppContent() {
             setActiveTab(tab);
           }}
           currentUser={currentUser}
-          badges={{ profile: pendingAppsCount, talk: unreadMessagesCount, likes: unreadLikesCount }}
+          badges={{ talk: unreadMessagesCount, likes: unreadLikesCount }}
           onCreateProject={() => {
             if (!currentUser) {
               Alert.alert('ログインが必要です', 'プロジェクトを作成するにはログインしてください');
