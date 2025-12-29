@@ -11,6 +11,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { useReceivedLikes } from '../data/hooks/useReceivedLikes';
 import { useProjectApplications } from '../data/hooks/useProjectApplications';
+import { useMyProjects } from '../data/hooks/useMyProjects';
 import { queryKeys } from '../data/queryKeys';
 import { ProfileListSkeleton, ProjectListSkeleton } from './Skeleton';
 import { LikesEmptyState } from './EmptyState';
@@ -19,9 +20,11 @@ import { FONTS } from '../constants/DesignSystem';
 import { ProjectDetail } from './ProjectDetail';
 import { getImageSource } from '../constants/DefaultImages';
 import { getUserPushTokens, sendPushNotification } from '../lib/notifications';
+import { ProjectSelectModal, SimpleProject } from './ProjectSelectModal';
 
 // Project型とApplication型はdata/apiからインポート
 import { Application } from '../data/api/applications';
+import { Project as MyProject } from '../data/api/myProjects';
 
 interface LikesPageProps {
     likedProfileIds: Set<string>;
@@ -60,9 +63,14 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
     // Refresh state
     const [refreshing, setRefreshing] = useState(false);
 
+    // Recruiting filter (project-based)
+    const [isRecruitingFilterOpen, setIsRecruitingFilterOpen] = useState(false);
+    const [selectedRecruitingProjectId, setSelectedRecruitingProjectId] = useState<string | null>(null);
+
     // React Query hooks
     const receivedLikesQuery = useReceivedLikes(session?.user?.id);
     const projectApplicationsQuery = useProjectApplications(session?.user?.id);
+    const myProjectsQuery = useMyProjects(session?.user?.id);
 
     // User data from React Query
     const receivedLikes: Profile[] = receivedLikesQuery.data?.profiles || [];
@@ -83,6 +91,20 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
         ? projectApplicationsQuery.data.unreadRecruitingIds
         : new Set();
     const loadingProject = projectApplicationsQuery.isLoading;
+
+    // My recruiting projects (募集中: status !== 'closed')
+    const myProjects: MyProject[] = myProjectsQuery.data || [];
+    const myRecruitingProjects: SimpleProject[] = myProjects
+        .filter(p => p.status !== 'closed')
+        .map(p => ({
+            id: p.id,
+            title: p.title,
+            status: p.status,
+            pendingCount: p.pendingCount,
+        }));
+    const selectedRecruitingProject = selectedRecruitingProjectId
+        ? myRecruitingProjects.find(p => p.id === selectedRecruitingProjectId) || null
+        : null;
 
     // Fetch current user profile
     useEffect(() => {
@@ -761,28 +783,71 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
     const renderRecruitingList = () => {
         if (loadingProject) return <ProfileListSkeleton count={4} />;
 
-        const pendingApps = recruitingApplications.filter(a => a.status === 'pending');
+        const filteredRecruitingApps = selectedRecruitingProjectId
+            ? recruitingApplications.filter(a => a.project_id === selectedRecruitingProjectId)
+            : recruitingApplications;
+
+        const pendingApps = filteredRecruitingApps.filter(a => a.status === 'pending');
 
         const RecruitingEmptyComponent = () => (
             <View style={styles.emptyContainer}>
                 <Ionicons name="people-outline" size={64} color="#d1d5db" />
-                <Text style={styles.emptyText}>応募者はまだいません</Text>
-                <Text style={styles.emptySubText}>プロジェクトを作成すると、応募者がここに表示されます</Text>
+                <Text style={styles.emptyText}>
+                    {selectedRecruitingProject
+                        ? 'このプロジェクトへの応募者はまだいません'
+                        : '応募者はまだいません'}
+                </Text>
+                <Text style={styles.emptySubText}>
+                    {selectedRecruitingProject
+                        ? '別のプロジェクトを選択するか、しばらくお待ちください'
+                        : 'プロジェクトを作成すると、応募者がここに表示されます'}
+                </Text>
             </View>
         );
 
         return (
-            <FlatList
-                data={pendingApps}
-                renderItem={renderApplicantCard}
-                keyExtractor={(item) => item.id}
-                contentContainerStyle={[styles.listContent, pendingApps.length === 0 && { flex: 1 }]}
-                showsVerticalScrollIndicator={false}
-                refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F39800" />
-                }
-                ListEmptyComponent={<RecruitingEmptyComponent />}
-            />
+            <View style={{ flex: 1 }}>
+                {/* Filter tag (like Search tab) */}
+                <View style={styles.recruitingFilterContainer}>
+                    <TouchableOpacity
+                        style={[
+                            styles.recruitingFilterButton,
+                            selectedRecruitingProjectId && styles.recruitingFilterButtonActive
+                        ]}
+                        onPress={() => setIsRecruitingFilterOpen(true)}
+                        activeOpacity={0.7}
+                    >
+                        <Ionicons name="search" size={16} color="#F39800" />
+                        <Text style={[
+                            styles.recruitingFilterButtonText,
+                            selectedRecruitingProjectId && styles.recruitingFilterButtonTextActive
+                        ]}>
+                            絞り込み
+                        </Text>
+                        {selectedRecruitingProject && (
+                            <Text
+                                style={styles.recruitingFilterSelectedText}
+                                numberOfLines={1}
+                            >
+                                : {selectedRecruitingProject.title}
+                            </Text>
+                        )}
+                        <Ionicons name="chevron-down" size={14} color="#F39800" />
+                    </TouchableOpacity>
+                </View>
+
+                <FlatList
+                    data={pendingApps}
+                    renderItem={renderApplicantCard}
+                    keyExtractor={(item) => item.id}
+                    contentContainerStyle={[styles.listContent, pendingApps.length === 0 && { flex: 1 }]}
+                    showsVerticalScrollIndicator={false}
+                    refreshControl={
+                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F39800" />
+                    }
+                    ListEmptyComponent={<RecruitingEmptyComponent />}
+                />
+            </View>
         );
     };
 
@@ -1163,6 +1228,18 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                     />
                 )}
             </Modal>
+
+            {/* Recruiting project filter modal */}
+            <ProjectSelectModal
+                visible={isRecruitingFilterOpen}
+                onClose={() => setIsRecruitingFilterOpen(false)}
+                projects={myRecruitingProjects}
+                selectedProjectId={selectedRecruitingProjectId}
+                onSelectProject={(project) => setSelectedRecruitingProjectId(project.id)}
+                onClearSelection={() => setSelectedRecruitingProjectId(null)}
+                title="絞り込み"
+                subtitle="募集中のプロジェクトを選択"
+            />
         </View>
     );
 }
@@ -1787,6 +1864,47 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontFamily: FONTS.medium,
         color: '#9CA3AF',
+    },
+
+    // Recruiting filter (project-based)
+    recruitingFilterContainer: {
+        flexDirection: 'row',
+        justifyContent: 'flex-start',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        gap: 8,
+        backgroundColor: '#FFF3E0',
+    },
+    recruitingFilterButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 16,
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        gap: 6,
+        maxWidth: '100%',
+    },
+    recruitingFilterButtonActive: {
+        backgroundColor: '#F3980020',
+        borderColor: '#F39800',
+    },
+    recruitingFilterButtonText: {
+        fontSize: 12,
+        fontFamily: FONTS.medium,
+        color: '#F39800',
+    },
+    recruitingFilterButtonTextActive: {
+        color: '#F39800',
+    },
+    recruitingFilterSelectedText: {
+        fontSize: 12,
+        fontFamily: FONTS.medium,
+        color: '#6B7280',
+        maxWidth: 220,
     },
 });
 

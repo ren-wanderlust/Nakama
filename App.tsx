@@ -1616,6 +1616,8 @@ function AppContent() {
                   }
                 }
               }}
+              onOpenNotifications={() => setShowNotifications(true)}
+              unreadNotificationsCount={unreadNotificationsCount}
             />
           </FadeTabContent>
           <FadeTabContent activeTab={activeTab} tabId="profile">

@@ -19,9 +19,11 @@ interface TalkPageProps {
     onOpenChat?: (room: ChatRoom) => void;
     onViewProfile?: (partnerId: string) => void;
     onViewProject?: (projectId: string) => void;
+    onOpenNotifications?: () => void;
+    unreadNotificationsCount?: number;
 }
 
-export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageProps) {
+export function TalkPage({ onOpenChat, onViewProfile, onViewProject, onOpenNotifications, unreadNotificationsCount = 0 }: TalkPageProps) {
     const insets = useSafeAreaInsets();
     const [talkTab, setTalkTab] = useState<'individual' | 'team'>('team');
     const talkListRef = useRef<FlatList>(null);
@@ -238,15 +240,33 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
         }
     };
 
+    const renderHeader = () => (
+        <View style={styles.header}>
+            <View style={[styles.headerGradient, { paddingTop: insets.top + 20, paddingBottom: 16, backgroundColor: 'white' }]}>
+                <View style={styles.headerTop}>
+                    <View style={styles.headerLeft} />
+                    <Text style={styles.headerTitle}>チームトーク</Text>
+                    <View style={styles.headerRight}>
+                        <TouchableOpacity
+                            style={styles.notificationButton}
+                            onPress={onOpenNotifications}
+                        >
+                            <Ionicons name="notifications-outline" size={24} color="#F39800" />
+                            {unreadNotificationsCount > 0 && (
+                                <View style={styles.notificationBadgeDot} />
+                            )}
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </View>
+        </View>
+    );
+
     if (loading) {
         return (
             <View style={styles.container}>
                 {/* シンプルなヘッダー - チームのみ表示 */}
-                <View style={styles.header}>
-                    <View style={{ width: '100%', paddingTop: insets.top + 20, paddingBottom: 16, alignItems: 'center', backgroundColor: 'white' }}>
-                        <Text style={styles.headerTitle}>チームトーク</Text>
-                    </View>
-                </View>
+                {renderHeader()}
                 <ChatListSkeleton count={6} />
             </View>
         );
@@ -255,11 +275,7 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
     return (
         <View style={styles.container}>
             {/* シンプルなヘッダー - チームのみ表示（個人タブは非表示） */}
-            <View style={styles.header}>
-                <View style={{ width: '100%', paddingTop: insets.top + 20, paddingBottom: 16, alignItems: 'center', backgroundColor: 'white' }}>
-                    <Text style={styles.headerTitle}>チームトーク</Text>
-                </View>
-            </View>
+            {renderHeader()}
 
             {/* チームチャットのみ表示 */}
             {renderTeamList()}
@@ -340,16 +356,48 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     header: {
-        backgroundColor: 'transparent',
-        // paddingTop handled in component
-        borderBottomWidth: 1,
-        borderBottomColor: '#e5e7eb',
+        backgroundColor: 'white',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+        elevation: 6,
+        zIndex: 10,
+    },
+    headerGradient: {
+        // padding handled in component
+    },
+    headerTop: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
         alignItems: 'center',
+        paddingHorizontal: 20,
+    },
+    headerLeft: {
+        width: 44,
+    },
+    headerRight: {
+        width: 44,
+        alignItems: 'flex-end',
     },
     headerTitle: {
         fontSize: 18,
+        fontWeight: '600',
+        color: '#F39800',
         fontFamily: FONTS.bold,
-        color: '#111827',
+    },
+    notificationButton: {
+        padding: 4,
+        marginRight: -8,
+    },
+    notificationBadgeDot: {
+        position: 'absolute',
+        top: 2,
+        right: 2,
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        backgroundColor: '#EF4444',
     },
     tabContainer: {
         flexDirection: 'row',
