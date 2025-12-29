@@ -131,7 +131,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
 
             {/* 下部のテキスト */}
             <View style={styles.footerContainer}>
-                <Text style={styles.tagline}>Future Leaders Community</Text>
+                <Text style={styles.tagline}>Pogg</Text>
             </View>
         </Animated.View>
     );
@@ -168,9 +168,9 @@ const styles = StyleSheet.create({
         width: '100%',
     },
     tagline: {
-        fontSize: 14,
-        fontWeight: '600',
+        fontSize: 28,
+        fontWeight: '700',
         color: '#F39800', // ブランドカラー
-        letterSpacing: 1.5,
+        letterSpacing: 1,
     },
 });
