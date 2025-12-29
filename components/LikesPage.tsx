@@ -604,31 +604,24 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
         const isUnread = unreadRecruitingIds.has(item.id);
         const isPending = item.status === 'pending';
         const isApproved = item.status === 'approved';
-        const isRejected = item.status === 'rejected';
 
         return (
-            <View style={styles.recruitingCard}>
-                {/* Unread indicator (top-right) */}
-                {isUnread && (
-                    <View style={styles.recruitingUnreadDot} />
-                )}
+            <TouchableOpacity
+                style={styles.recruitingCard}
+                onPress={() => handleApplicantProfileSelect(item)}
+                activeOpacity={0.7}
+            >
+                {/* Unread indicator */}
+                {isUnread && <View style={styles.recruitingUnreadDot} />}
 
-                {/* Profile confirm button - top right (slightly inset) */}
-                <TouchableOpacity
-                    style={styles.profileConfirmButton}
-                    onPress={() => handleApplicantProfileSelect(item)}
-                >
-                    <Text style={styles.profileConfirmButtonText}>プロフィールを確認</Text>
-                </TouchableOpacity>
+                <View style={styles.recruitingCardInner}>
+                    {/* Left: Avatar */}
+                    <Image
+                        source={getImageSource(user.image)}
+                        style={styles.recruitingAvatar}
+                    />
 
-                {/* Header: Avatar + Name + University */}
-                <View style={styles.recruitingCardHeader}>
-                    <TouchableOpacity onPress={() => handleApplicantProfileSelect(item)}>
-                        <Image
-                            source={getImageSource(user.image)}
-                            style={styles.recruitingAvatar}
-                        />
-                    </TouchableOpacity>
+                    {/* Middle: Info */}
                     <View style={styles.recruitingUserInfo}>
                         <Text style={styles.recruitingUserName} numberOfLines={1}>
                             {user.name}
@@ -636,51 +629,50 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                         <Text style={styles.recruitingUserUniversity} numberOfLines={1}>
                             {user.university || '所属なし'}
                         </Text>
+                        <View style={styles.appliedProjectContainer}>
+                            <Text style={styles.appliedProjectLabel}>応募先:</Text>
+                            <Text style={styles.appliedProjectName} numberOfLines={1}>
+                                {item.project?.title}
+                            </Text>
+                        </View>
+                    </View>
+
+                    {/* Right: Actions */}
+                    <View style={styles.recruitingActionsRight}>
+                        {isPending ? (
+                            <>
+                                <TouchableOpacity
+                                    style={styles.actionIconButtonReject}
+                                    onPress={(e) => {
+                                        e.stopPropagation();
+                                        handleRejectConfirmation(item.id, user.name);
+                                    }}
+                                >
+                                    <Ionicons name="close" size={20} color="#EF4444" />
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={styles.actionIconButtonApprove}
+                                    onPress={(e) => {
+                                        e.stopPropagation();
+                                        updateApplicantStatus(item.id, 'approved', user.name);
+                                    }}
+                                >
+                                    <Ionicons name="checkmark" size={20} color="#FFFFFF" />
+                                </TouchableOpacity>
+                            </>
+                        ) : (
+                            <View style={[
+                                styles.statusBadgeCompact,
+                                { backgroundColor: isApproved ? '#D1FAE5' : '#FEE2E2' }
+                            ]}>
+                                <Text style={{ fontSize: 11, fontWeight: 'bold', color: isApproved ? '#10B981' : '#EF4444' }}>
+                                    {isApproved ? '決定' : '見送り'}
+                                </Text>
+                            </View>
+                        )}
                     </View>
                 </View>
-
-                {/* Project name */}
-                <Text style={styles.recruitingProjectName} numberOfLines={1}>
-                    {item.project?.title || 'プロジェクト'}への応募
-                </Text>
-
-                {/* Action buttons or Status */}
-                {isPending ? (
-                    <View style={styles.recruitingActions}>
-                        <TouchableOpacity
-                            style={styles.rejectButton}
-                            onPress={() => handleRejectConfirmation(item.id, user.name)}
-                        >
-                            <Ionicons name="close" size={18} color="#EF4444" />
-                            <Text style={styles.rejectButtonText}>棄却</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={styles.approveButton}
-                            onPress={() => updateApplicantStatus(item.id, 'approved', user.name)}
-                        >
-                            <Ionicons name="checkmark" size={18} color="white" />
-                            <Text style={styles.approveButtonText}>承認</Text>
-                        </TouchableOpacity>
-                    </View>
-                ) : (
-                    <View style={[
-                        styles.statusResultBadge,
-                        { backgroundColor: isApproved ? '#D1FAE5' : '#FEE2E2' }
-                    ]}>
-                        <Ionicons
-                            name={isApproved ? 'checkmark-circle' : 'close-circle'}
-                            size={16}
-                            color={isApproved ? '#10B981' : '#EF4444'}
-                        />
-                        <Text style={[
-                            styles.statusResultText,
-                            { color: isApproved ? '#10B981' : '#EF4444' }
-                        ]}>
-                            {isApproved ? '参加決定' : '見送り'}
-                        </Text>
-                    </View>
-                )}
-            </View>
+            </TouchableOpacity>
         );
     };
 
@@ -1425,113 +1417,108 @@ const styles = StyleSheet.create({
     recruitingCard: {
         backgroundColor: '#FFFFFF',
         borderRadius: 16,
-        padding: 16,
-        marginBottom: 4,
+        marginBottom: 8,
         position: 'relative',
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
+        shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.05,
-        shadowRadius: 4,
+        shadowRadius: 2,
         elevation: 2,
+        padding: 12,
     },
     recruitingUnreadDot: {
         position: 'absolute',
-        top: 10,
-        right: 10,
-        width: 12,
-        height: 12,
-        borderRadius: 6,
+        top: 8,
+        right: 8,
+        width: 10,
+        height: 10,
+        borderRadius: 5,
         backgroundColor: '#10B981',
         zIndex: 20,
-        borderWidth: 2,
+        borderWidth: 1.5,
         borderColor: '#FFFFFF',
     },
-    profileConfirmButton: {
-        position: 'absolute',
-        top: 12,
-        right: 22, // move further left to avoid overlap with unread dot
-        zIndex: 10,
-    },
-    profileConfirmButtonText: {
-        fontSize: 12,
-        color: '#6B7280',
-        textDecorationLine: 'underline',
-    },
-    recruitingCardHeader: {
+    recruitingCardInner: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 8,
-        marginTop: 8,
     },
     recruitingAvatar: {
-        width: 56,
-        height: 56,
-        borderRadius: 28,
+        width: 48,
+        height: 48,
+        borderRadius: 24,
         marginRight: 12,
+        backgroundColor: '#F3F4F6',
     },
     recruitingUserInfo: {
         flex: 1,
+        justifyContent: 'center',
+        paddingRight: 8,
     },
     recruitingUserName: {
-        fontSize: 18,
+        fontSize: 15,
         fontWeight: 'bold',
         color: '#111827',
         marginBottom: 2,
     },
     recruitingUserUniversity: {
-        fontSize: 14,
-        color: '#6B7280',
-    },
-    recruitingProjectName: {
         fontSize: 12,
+        color: '#6B7280',
+        marginBottom: 4,
+    },
+    appliedProjectContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#F9FAFB',
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 4,
+        alignSelf: 'flex-start',
+    },
+    appliedProjectLabel: {
+        fontSize: 10,
         color: '#9CA3AF',
-        marginBottom: 12,
+        marginRight: 4,
     },
-    recruitingActions: {
-        flexDirection: 'row',
-        gap: 12,
+    appliedProjectName: {
+        fontSize: 10,
+        color: '#4B5563',
+        fontWeight: '500',
     },
-    rejectButton: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 14,
-        backgroundColor: '#FEE2E2',
-        borderRadius: 12,
-        gap: 6,
-    },
-    rejectButtonText: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#EF4444',
-    },
-    approveButton: {
-        flex: 1,
+    recruitingActionsRight: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 14,
-        backgroundColor: '#009688',
-        borderRadius: 12,
-        gap: 6,
+        gap: 8,
+        paddingLeft: 4,
     },
-    approveButtonText: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: 'white',
-    },
-    statusResultBadge: {
-        flexDirection: 'row',
+    actionIconButtonReject: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: '#FEF2F2',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 12,
-        borderRadius: 12,
-        gap: 6,
+        borderWidth: 1,
+        borderColor: '#FECACA',
     },
-    statusResultText: {
-        fontSize: 14,
-        fontWeight: '600',
+    actionIconButtonApprove: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: '#009688', // テーマカラー
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: "#009688",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 3,
+        elevation: 2,
+    },
+    statusBadgeCompact: {
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 8,
+        minWidth: 60,
+        alignItems: 'center',
     },
     // Legacy applicant card styles (keep for compatibility)
     applicantCardWrapper: {
