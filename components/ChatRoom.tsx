@@ -17,6 +17,7 @@ import {
     Image,
     ScrollView,
     Pressable,
+    Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -32,6 +33,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMessagesInfinite } from '../data/hooks/useMessagesInfinite';
 import { Message } from '../data/api/messages';
 import { ChatImagePickerModal } from './ChatImagePickerModal';
+import LinkifyIt from 'linkify-it';
+
+const linkify = new LinkifyIt();
 
 interface MessageItem {
     type: 'date' | 'message' | 'imageBatch';
@@ -366,6 +370,10 @@ const MessageBubble = ({
     partnerImage,
     onScrollToReply,
     highlightQuery,
+    replySenderNameById,
+    replySenderImageById,
+    currentUserName,
+    currentUserImage,
 }: {
     message: Message,
     onReply: (msg: Message) => void,
@@ -374,7 +382,11 @@ const MessageBubble = ({
     isGroup?: boolean,
     partnerImage?: string,
     onScrollToReply?: (replyToId: string) => void,
-    highlightQuery?: string
+    highlightQuery?: string,
+    replySenderNameById?: Map<string, string>,
+    replySenderImageById?: Map<string, string>,
+    currentUserName?: string,
+    currentUserImage?: string
 }) => {
     const isMe = message.sender === 'me';
     const swipeableRef = useRef<any>(null);
@@ -406,35 +418,91 @@ const MessageBubble = ({
 
     const replyText = message.replyTo?.text ? message.replyTo.text : '';
     const replyImageUri = message.replyTo?.image_url ?? null;
+    const resolvedReplySenderName = useMemo(() => {
+        const id = message.replyTo?.id;
+        if (!id) return message.replyTo?.senderName ?? '';
+        const fromMap = replySenderNameById?.get(id);
+        const name = fromMap ?? message.replyTo?.senderName ?? '';
+        // Eliminate legacy "自分" placeholder in reply payloads
+        if (name === '自分') return currentUserName ?? '';
+        return name;
+    }, [message.replyTo?.id, message.replyTo?.senderName, replySenderNameById]);
+    const resolvedReplySenderImage = useMemo(() => {
+        const id = message.replyTo?.id;
+        if (!id) return null;
+        return replySenderImageById?.get(id) ?? null;
+    }, [message.replyTo?.id, replySenderImageById]);
     const bubbleMaxWidth = Math.min(
         // 20文字分のテキスト幅 + バブル左右パディング(16*2)
         (twentyCharWidth > 0 ? twentyCharWidth + 32 : defaultMaxWidth),
         defaultMaxWidth
     );
 
-    const renderHighlightedText = (text: string, style: any) => {
+    const richTextNodes = useMemo(() => {
+        const text = message.text ?? '';
         const q = (highlightQuery ?? '').trim();
-        if (!q) return <Text style={style}>{text}</Text>;
-        if (!text) return <Text style={style}>{text}</Text>;
+        const matches = linkify.match(text) ?? [];
+        const parts: Array<{ type: 'text'; text: string } | { type: 'url'; text: string; url: string }> = [];
+        let cursor = 0;
+        for (const m of matches) {
+            const start = m.index;
+            const end = m.lastIndex;
+            if (start > cursor) parts.push({ type: 'text', text: text.slice(cursor, start) });
+            const rawText = text.slice(start, end);
+            parts.push({ type: 'url', text: rawText, url: m.url });
+            cursor = end;
+        }
+        if (cursor < text.length) parts.push({ type: 'text', text: text.slice(cursor) });
 
-        // Escape regex special chars
-        const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const parts = text.split(new RegExp(`(${escaped})`, 'g'));
+        const linkStyle = isMe ? styles.messageLinkMe : styles.messageLinkOther;
+
+        const highlightText = (chunk: string) => {
+            if (!q) return [<Text key="t">{chunk}</Text>];
+            if (!chunk) return [<Text key="t">{chunk}</Text>];
+            const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const segs = chunk.split(new RegExp(`(${escaped})`, 'g'));
+            return segs.map((seg, idx) => {
+                if (seg === q) {
+                    return <Text key={`h-${idx}`} style={styles.searchHighlight}>{seg}</Text>;
+                }
+                return <Text key={`t-${idx}`}>{seg}</Text>;
+            });
+        };
 
         return (
-            <Text style={style}>
-                {parts.map((part, idx) => {
-                    const isHit = part === q;
-                    if (!isHit) return <Text key={idx}>{part}</Text>;
-                    return (
-                        <Text key={idx} style={styles.searchHighlight}>
-                            {part}
-                        </Text>
-                    );
+            <Text style={isMe ? styles.messageTextMe : styles.messageTextOther}>
+                {parts.map((p, idx) => {
+                    if (p.type === 'url') {
+                        return (
+                            <Text
+                                key={`u-${idx}`}
+                                style={linkStyle}
+                                onPress={async () => {
+                                    const url = p.url.trim();
+                                    if (!/^https?:\/\//i.test(url)) return;
+                                    try {
+                                        const ok = await Linking.canOpenURL(url);
+                                        if (!ok) {
+                                            Alert.alert('エラー', 'リンクを開けませんでした');
+                                            return;
+                                        }
+                                        await Linking.openURL(url);
+                                    } catch (e) {
+                                        console.log('Failed to open url:', e);
+                                        Alert.alert('エラー', 'リンクを開けませんでした');
+                                    }
+                                }}
+                                suppressHighlighting={false}
+                            >
+                                {highlightText(p.text)}
+                            </Text>
+                        );
+                    }
+                    return <Text key={`p-${idx}`}>{highlightText(p.text)}</Text>;
                 })}
             </Text>
         );
-    };
+    }, [message.text, highlightQuery, isMe]);
 
     // Calculate max width from reply elements and main message
     // replyContainerOverhead = Padding(8*2) + Bar(3) + Margin(8) = 27
@@ -627,7 +695,8 @@ const MessageBubble = ({
                                     {/* Has text or reply - show bubble */}
                                     {(message.text || message.replyTo) && (
                                         <LinearGradient
-                                            colors={['#0d9488', '#2563eb']}
+                                            // 自分の吹き出しは「探す/いいね」系のトーンを保ちつつ、少しオレンジ寄りに
+                                            colors={['#FFE7C2', '#FFE7C2']}
                                             start={{ x: 0, y: 0 }}
                                             end={{ x: 1, y: 0 }}
                                             style={[
@@ -646,9 +715,16 @@ const MessageBubble = ({
                                                     activeOpacity={0.7}
                                                 >
                                                     <View style={styles.replyContainerMe}>
-                                                        <View style={styles.replyBarMe} />
                                                         <View style={styles.replyContent}>
-                                                            <Text style={styles.replySenderMe}>{message.replyTo.senderName}</Text>
+                                                            <View style={styles.replySenderRow}>
+                                                                {!!resolvedReplySenderImage && (
+                                                                    <Image
+                                                                        source={{ uri: resolvedReplySenderImage }}
+                                                                        style={styles.replySenderAvatar}
+                                                                    />
+                                                                )}
+                                                                <Text style={styles.replySenderMe}>{resolvedReplySenderName}</Text>
+                                                            </View>
                                                             {replyImageUri ? (
                                                                 <Image
                                                                     source={{ uri: replyImageUri }}
@@ -673,7 +749,7 @@ const MessageBubble = ({
                                                     />
                                                 </TouchableOpacity>
                                             )}
-                                            {message.text ? renderHighlightedText(message.text, styles.messageTextMe) : null}
+                                            {message.text ? richTextNodes : null}
                                         </LinearGradient>
                                     )}
                                 </>
@@ -712,9 +788,16 @@ const MessageBubble = ({
                                                         activeOpacity={0.7}
                                                     >
                                                         <View style={styles.replyContainerOther}>
-                                                            <View style={styles.replyBarOther} />
                                                             <View style={styles.replyContent}>
-                                                                <Text style={styles.replySenderOther}>{message.replyTo.senderName}</Text>
+                                                                <View style={styles.replySenderRow}>
+                                                                    {!!resolvedReplySenderImage && (
+                                                                        <Image
+                                                                            source={{ uri: resolvedReplySenderImage }}
+                                                                            style={styles.replySenderAvatar}
+                                                                        />
+                                                                    )}
+                                                                    <Text style={styles.replySenderOther}>{resolvedReplySenderName}</Text>
+                                                                </View>
                                                                 {replyImageUri ? (
                                                                     <Image
                                                                         source={{ uri: replyImageUri }}
@@ -739,7 +822,7 @@ const MessageBubble = ({
                                                         />
                                                     </TouchableOpacity>
                                                 )}
-                                                {message.text ? renderHighlightedText(message.text, styles.messageTextOther) : null}
+                                                {message.text ? richTextNodes : null}
                                             </View>
                                         </TouchableOpacity>
                                     )}
@@ -777,6 +860,8 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
     const insets = useSafeAreaInsets();
     const [inputText, setInputText] = useState('');
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+    const [currentUserName, setCurrentUserName] = useState<string>('');
+    const [currentUserImage, setCurrentUserImage] = useState<string>('');
     const [replyingTo, setReplyingTo] = useState<Message | null>(null);
     const [selectedImages, setSelectedImages] = useState<string[]>([]);
     const [isSending, setIsSending] = useState(false);
@@ -801,6 +886,22 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
         };
         getUserId();
     }, []);
+
+    // Fetch current user's display name (used to avoid "自分" placeholder everywhere)
+    useEffect(() => {
+        if (!currentUserId) return;
+        const fetchMyName = async () => {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('name,image')
+                .eq('id', currentUserId)
+                .single();
+            if (error) return;
+            setCurrentUserName((data?.name ?? '').trim());
+            setCurrentUserImage((data?.image ?? '').trim());
+        };
+        fetchMyName();
+    }, [currentUserId]);
 
     // Load muted status for this chat (per user)
     useEffect(() => {
@@ -854,6 +955,35 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
     const messages = useMemo(() => {
         return data?.pages.flatMap(page => page.data) || [];
     }, [data]);
+
+    // For group chats, partnerName is the project title, not a user name.
+    // Build a lookup so reply previews can always show the original sender name.
+    const senderNameByMessageId = useMemo(() => {
+        const m = new Map<string, string>();
+        for (const msg of messages) {
+            const raw = msg.senderName ?? '';
+            const name =
+                raw && raw !== '自分'
+                    ? raw
+                    : (msg.sender === 'me'
+                        ? (currentUserName || raw)
+                        : (!isGroup ? partnerName : raw));
+            if (name) m.set(msg.id, name);
+        }
+        return m;
+    }, [messages, currentUserName, isGroup, partnerName]);
+
+    const senderImageByMessageId = useMemo(() => {
+        const m = new Map<string, string>();
+        for (const msg of messages) {
+            const uri =
+                (msg.sender === 'me'
+                    ? (currentUserImage || msg.senderImage || '')
+                    : (msg.senderImage || (!isGroup ? (partnerImage ?? '') : ''))).trim();
+            if (uri) m.set(msg.id, uri);
+        }
+        return m;
+    }, [messages, currentUserImage, partnerImage, isGroup]);
 
     useEffect(() => {
         const markAsRead = async () => {
@@ -1004,7 +1134,13 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
             const replyData = replyingTo ? {
                 id: replyingTo.id,
                 text: replyingTo.text || '画像',
-                senderName: replyingTo.sender === 'me' ? '自分' : partnerName,
+                // Always show the original sender's name (including myself). Never use "自分".
+                senderName:
+                    (replyingTo.senderName && replyingTo.senderName !== '自分')
+                        ? replyingTo.senderName
+                        : (replyingTo.sender === 'me'
+                            ? (currentUserName || replyingTo.senderName || '不明')
+                            : ((!isGroup ? partnerName : replyingTo.senderName) || '不明')),
                 image_url: replyingTo.image_url ?? null,
             } : null;
 
@@ -1071,7 +1207,7 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                     image_url: uploadedImageUrl || undefined,
                     sender: 'me',
                     senderId: currentUserId,
-                    senderName: '自分',
+                    senderName: currentUserName || '不明',
                     timestamp: new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }),
                     date: nowIso.split('T')[0],
                     created_at: nowIso,
@@ -1141,7 +1277,7 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                         image_url: data.image_url,
                         sender: 'me',
                         senderId: currentUserId,
-                        senderName: '自分',
+                        senderName: currentUserName || '不明',
                         timestamp: new Date(data.created_at).toLocaleTimeString('ja-JP', {
                             hour: '2-digit',
                             minute: '2-digit',
@@ -1351,6 +1487,10 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                     partnerImage={partnerImage}
                     onScrollToReply={handleScrollToReply}
                     highlightQuery={isSearchMode ? searchQuery.trim() : ''}
+                    replySenderNameById={senderNameByMessageId}
+                    replySenderImageById={senderImageByMessageId}
+                    currentUserName={currentUserName}
+                    currentUserImage={currentUserImage}
                 />
             );
         }
@@ -1616,11 +1756,22 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                                 {replyingTo && (
                                     <View style={styles.replyPreviewBar}>
                                         <View style={styles.replyPreviewContent}>
-                                            <View style={styles.replyPreviewLine} />
                                             <View>
-                                                <Text style={styles.replyPreviewSender}>
-                                                    {replyingTo.sender === 'me' ? '自分' : partnerName}への返信
-                                                </Text>
+                                                <View style={styles.replyPreviewSenderRow}>
+                                                    {!!(replyingTo.sender === 'me' ? currentUserImage : replyingTo.senderImage) && (
+                                                        <Image
+                                                            source={{ uri: replyingTo.sender === 'me' ? currentUserImage : (replyingTo.senderImage as string) }}
+                                                            style={styles.replyPreviewSenderAvatar}
+                                                        />
+                                                    )}
+                                                    <Text style={styles.replyPreviewSender}>
+                                                        {((replyingTo.senderName && replyingTo.senderName !== '自分')
+                                                            ? replyingTo.senderName
+                                                            : (replyingTo.sender === 'me'
+                                                                ? (currentUserName || replyingTo.senderName || '不明')
+                                                                : ((!isGroup ? partnerName : replyingTo.senderName) || '不明')))}への返信
+                                                    </Text>
+                                                </View>
                                                 {replyingTo.image_url ? (
                                                     <Image
                                                         source={{ uri: replyingTo.image_url }}
@@ -2104,7 +2255,7 @@ const styles = StyleSheet.create({
         borderColor: '#e5e7eb',
     },
     messageTextMe: {
-        color: 'white',
+        color: '#111827',
         fontSize: 15,
         lineHeight: 22,
     },
@@ -2112,6 +2263,16 @@ const styles = StyleSheet.create({
         color: '#1f2937',
         fontSize: 15,
         lineHeight: 22,
+    },
+    messageLinkMe: {
+        color: '#007AFF',
+        textDecorationLine: 'underline',
+        fontWeight: 'normal',
+    },
+    messageLinkOther: {
+        color: '#007AFF',
+        textDecorationLine: 'underline',
+        fontWeight: 'normal',
     },
     messageImageMe: {
         borderRadius: 12,
@@ -2190,12 +2351,16 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         flex: 1,
     },
-    replyPreviewLine: {
-        width: 4,
-        height: 36,
-        backgroundColor: '#0d9488',
-        borderRadius: 2,
-        marginRight: 12,
+    replyPreviewSenderRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    replyPreviewSenderAvatar: {
+        width: 18,
+        height: 18,
+        borderRadius: 9,
+        backgroundColor: '#e5e7eb',
     },
     replyPreviewSender: {
         fontSize: 12,
@@ -2220,28 +2385,26 @@ const styles = StyleSheet.create({
     replyContainerMe: {
         marginBottom: 8,
         padding: 8,
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        backgroundColor: '#FFFFFF',
         borderRadius: 8,
-        flexDirection: 'row',
     },
     replyContainerOther: {
         marginBottom: 8,
         padding: 8,
         backgroundColor: '#F3F4F6',
         borderRadius: 8,
+    },
+    replySenderRow: {
         flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        marginBottom: 2,
     },
-    replyBarMe: {
-        width: 3,
-        backgroundColor: 'rgba(255, 255, 255, 0.6)',
-        borderRadius: 2,
-        marginRight: 8,
-    },
-    replyBarOther: {
-        width: 3,
-        backgroundColor: '#0d9488',
-        borderRadius: 2,
-        marginRight: 8,
+    replySenderAvatar: {
+        width: 16,
+        height: 16,
+        borderRadius: 8,
+        backgroundColor: '#e5e7eb',
     },
     replyContent: {
         flex: 1,
@@ -2256,7 +2419,7 @@ const styles = StyleSheet.create({
     replySenderMe: {
         fontSize: 11,
         fontWeight: 'bold',
-        color: 'rgba(255, 255, 255, 0.9)',
+        color: '#111827',
         marginBottom: 2,
     },
     replySenderOther: {
@@ -2267,7 +2430,7 @@ const styles = StyleSheet.create({
     },
     replyTextMe: {
         fontSize: 13,
-        color: 'rgba(255, 255, 255, 0.8)',
+        color: '#4B5563',
     },
     replyTextOther: {
         fontSize: 13,
