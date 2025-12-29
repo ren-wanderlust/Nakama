@@ -459,7 +459,7 @@ const styles = StyleSheet.create({
     },
     grid: {
         flexDirection: 'column',
-        gap: 8,
+        gap: 4,
     },
     card: {
         width: '100%',

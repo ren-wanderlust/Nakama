@@ -179,7 +179,6 @@ const ProjectCard = ({ project, ownerProfile, onPress }: { project: any; ownerPr
             onPress={onPress}
             style={[
                 projectCardStyles.card,
-                { marginTop: 2, marginBottom: 4 },
                 isClosed && { backgroundColor: '#F3F4F6' }
             ]}
             padding="none"
@@ -524,7 +523,7 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
         return (
             <ModernCard
                 onPress={() => setSelectedProject(item)}
-                style={[projectCardStyles.card, { marginTop: 2, marginBottom: 4 }]}
+                style={projectCardStyles.card}
                 padding="none"
             >
                 <View style={projectCardStyles.participatingBadge}>
@@ -586,7 +585,7 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                 refreshControl={
                     <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#009688" />
                 }
-                ItemSeparatorComponent={() => <View style={{ height: 3 }} />}
+                ItemSeparatorComponent={() => <View style={{ height: 4 }} />}
                 ListEmptyComponent={
                     (activeTab === 'myProjects' ? !loadingProjects : !loadingParticipating) ? (
                         <View style={styles.emptyContainer}>
