@@ -1523,6 +1523,16 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
             >
                 <View style={{ flex: 1 }}>
                     <SafeAreaView style={styles.container}>
+                        {/* Fixed chat background (prevents watermark from shifting when keyboard/layout changes) */}
+                        {isGroup && (
+                            <View pointerEvents="none" style={styles.teamChatBackgroundLayer}>
+                                <Image
+                                    source={require('../assets/pogg_logo_orange_icon.png')}
+                                    style={styles.teamChatWatermark}
+                                    resizeMode="contain"
+                                />
+                            </View>
+                        )}
                         {/* Header */}
                         <View style={styles.header}>
                             <TouchableOpacity onPress={onBack} style={styles.backButton}>
@@ -1570,15 +1580,6 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                                 // No extra padding here; reserve space via FlatList contentContainerStyle to avoid unscrollable blank area.
                             ]}
                         >
-                            {isGroup && (
-                                <View pointerEvents="none" style={styles.teamChatWatermarkContainer}>
-                                    <Image
-                                        source={require('../assets/pogg_logo_orange_icon.png')}
-                                        style={styles.teamChatWatermark}
-                                        resizeMode="contain"
-                                    />
-                                </View>
-                            )}
                             <FlatList
                                 style={[styles.messagesList, isGroup && { backgroundColor: 'transparent' }]}
                                 ref={flatListRef}
@@ -1843,14 +1844,15 @@ const styles = StyleSheet.create({
         backgroundColor: '#F5F5F5',
     },
     teamMessagesArea: {
-        backgroundColor: 'white',
+        backgroundColor: 'transparent',
     },
     messagesList: {
         flex: 1,
         backgroundColor: '#F5F5F5',
     },
-    teamChatWatermarkContainer: {
+    teamChatBackgroundLayer: {
         ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'white',
         alignItems: 'center',
         justifyContent: 'center',
     },
