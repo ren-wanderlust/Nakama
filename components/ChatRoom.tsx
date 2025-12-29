@@ -7,6 +7,7 @@ import {
     TouchableOpacity,
     FlatList,
     KeyboardAvoidingView,
+    Keyboard,
     Platform,
     SafeAreaView,
     Alert,
@@ -15,6 +16,7 @@ import {
     Dimensions,
     Image,
     ScrollView,
+    Pressable,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -25,6 +27,7 @@ import * as Haptics from 'expo-haptics';
 import { getUserPushTokens, sendPushNotification } from '../lib/notifications';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../data/queryKeys';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useMessagesInfinite } from '../data/hooks/useMessagesInfinite';
 import { Message } from '../data/api/messages';
@@ -123,6 +126,8 @@ const isPureImageMessage = (m: Message) => {
     return !!m.image_url && text.length === 0 && !m.replyTo;
 };
 
+const SEARCH_BAR_HEIGHT = 58;
+
 const parseTimeMs = (iso?: string) => {
     if (!iso) return NaN;
     const t = new Date(iso).getTime();
@@ -142,6 +147,40 @@ const getBatchKeyFromImageUrl = (imageUrl?: string) => {
         return m?.[1] ?? null;
     }
 };
+
+async function getChatMutedStatus(params: { userId: string; type: 'dm' | 'group'; targetId: string }): Promise<boolean> {
+    try {
+        const { data, error } = await supabase
+            .from('chat_notification_settings')
+            .select('muted')
+            .eq('user_id', params.userId)
+            .eq('type', params.type)
+            .eq('target_id', params.targetId)
+            .maybeSingle();
+        if (error) throw error;
+        return !!data?.muted;
+    } catch (e) {
+        console.log('Error fetching muted status:', e);
+        return false;
+    }
+}
+
+async function setChatMutedStatus(params: { userId: string; type: 'dm' | 'group'; targetId: string; muted: boolean }): Promise<void> {
+    try {
+        const { error } = await supabase
+            .from('chat_notification_settings')
+            .upsert({
+                user_id: params.userId,
+                type: params.type,
+                target_id: params.targetId,
+                muted: params.muted,
+                updated_at: new Date().toISOString(),
+            }, { onConflict: 'user_id,type,target_id' });
+        if (error) throw error;
+    } catch (e) {
+        console.log('Error saving muted status:', e);
+    }
+}
 
 async function getTeamChatMemberIds(params: { chatRoomId: string; projectId?: string }): Promise<string[]> {
     try {
@@ -325,7 +364,8 @@ const MessageBubble = ({
     onMemberProfilePress,
     isGroup,
     partnerImage,
-    onScrollToReply
+    onScrollToReply,
+    highlightQuery,
 }: {
     message: Message,
     onReply: (msg: Message) => void,
@@ -333,7 +373,8 @@ const MessageBubble = ({
     onMemberProfilePress?: (memberId: string) => void,
     isGroup?: boolean,
     partnerImage?: string,
-    onScrollToReply?: (replyToId: string) => void
+    onScrollToReply?: (replyToId: string) => void,
+    highlightQuery?: string
 }) => {
     const isMe = message.sender === 'me';
     const swipeableRef = useRef<any>(null);
@@ -370,6 +411,30 @@ const MessageBubble = ({
         (twentyCharWidth > 0 ? twentyCharWidth + 32 : defaultMaxWidth),
         defaultMaxWidth
     );
+
+    const renderHighlightedText = (text: string, style: any) => {
+        const q = (highlightQuery ?? '').trim();
+        if (!q) return <Text style={style}>{text}</Text>;
+        if (!text) return <Text style={style}>{text}</Text>;
+
+        // Escape regex special chars
+        const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const parts = text.split(new RegExp(`(${escaped})`, 'g'));
+
+        return (
+            <Text style={style}>
+                {parts.map((part, idx) => {
+                    const isHit = part === q;
+                    if (!isHit) return <Text key={idx}>{part}</Text>;
+                    return (
+                        <Text key={idx} style={styles.searchHighlight}>
+                            {part}
+                        </Text>
+                    );
+                })}
+            </Text>
+        );
+    };
 
     // Calculate max width from reply elements and main message
     // replyContainerOverhead = Padding(8*2) + Bar(3) + Margin(8) = 27
@@ -608,7 +673,7 @@ const MessageBubble = ({
                                                     />
                                                 </TouchableOpacity>
                                             )}
-                                            {message.text ? <Text style={styles.messageTextMe}>{message.text}</Text> : null}
+                                            {message.text ? renderHighlightedText(message.text, styles.messageTextMe) : null}
                                         </LinearGradient>
                                     )}
                                 </>
@@ -674,7 +739,7 @@ const MessageBubble = ({
                                                         />
                                                     </TouchableOpacity>
                                                 )}
-                                                {message.text ? <Text style={styles.messageTextOther}>{message.text}</Text> : null}
+                                                {message.text ? renderHighlightedText(message.text, styles.messageTextOther) : null}
                                             </View>
                                         </TouchableOpacity>
                                     )}
@@ -709,14 +774,22 @@ const MessageBubble = ({
 
 export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartnerProfilePress, onMemberProfilePress, isGroup = false, onBlock, projectId, onViewProjectDetail }: ChatRoomProps) {
     const queryClient = useQueryClient();
+    const insets = useSafeAreaInsets();
     const [inputText, setInputText] = useState('');
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const [replyingTo, setReplyingTo] = useState<Message | null>(null);
     const [selectedImages, setSelectedImages] = useState<string[]>([]);
     const [isSending, setIsSending] = useState(false);
     const [imagePickerVisible, setImagePickerVisible] = useState(false);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [isChatMuted, setIsChatMuted] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [activeMatchIndex, setActiveMatchIndex] = useState(0);
+    const [isSearchMode, setIsSearchMode] = useState(false);
+    const [keyboardHeight, setKeyboardHeight] = useState(0);
     const flatListRef = useRef<FlatList>(null);
     const inputRef = useRef<TextInput>(null);
+    const searchInputRef = useRef<TextInput>(null);
 
     // Get current user ID first
     useEffect(() => {
@@ -728,6 +801,41 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
         };
         getUserId();
     }, []);
+
+    // Load muted status for this chat (per user)
+    useEffect(() => {
+        if (!currentUserId) return;
+        const type: 'dm' | 'group' = isGroup ? 'group' : 'dm';
+        const targetId = partnerId;
+        getChatMutedStatus({ userId: currentUserId, type, targetId }).then(setIsChatMuted);
+    }, [currentUserId, isGroup, partnerId]);
+
+    // (Menu modal uses native slide-up animation)
+
+    // Track keyboard height so we can keep the message list bottom aligned to the search bar.
+    useEffect(() => {
+        const showSub = Keyboard.addListener(
+            Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+            (e) => setKeyboardHeight(e.endCoordinates?.height ?? 0)
+        );
+        const hideSub = Keyboard.addListener(
+            Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+            () => setKeyboardHeight(0)
+        );
+        return () => {
+            showSub.remove();
+            hideSub.remove();
+        };
+    }, []);
+
+    const listContentStyle = useMemo(() => {
+        // NOTE: FlatList is inverted, so paddingTop acts as "bottom padding" visually.
+        const basePadding = 16;
+        // Search bar sits above keyboard. When keyboard is hidden, add safe area padding; when shown, keep it tight (no gap).
+        const searchBarBottomPad = keyboardHeight > 0 ? 0 : insets.bottom;
+        const reserve = isSearchMode ? keyboardHeight + SEARCH_BAR_HEIGHT + searchBarBottomPad : 0;
+        return [styles.listContent, { paddingTop: basePadding + reserve }];
+    }, [isSearchMode, keyboardHeight, insets.bottom]);
 
     // Use Infinite Query hook
     const {
@@ -1094,6 +1202,9 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
             // Send push notification once (direct messages only)
             try {
                 if (!isGroup) {
+                    // If recipient muted this DM (their target_id is sender_id), don't send.
+                    const muted = await getChatMutedStatus({ userId: partnerId, type: 'dm', targetId: currentUserId });
+                    if (muted) return;
                     const tokens = await getUserPushTokens(partnerId);
                     const body = content
                         ? content
@@ -1116,7 +1227,20 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                         ? content
                         : (imagesToSend.length > 0 ? '画像が送信されました' : 'メッセージが送信されました');
 
-                    for (const userId of recipients) {
+                    // Exclude users who muted this group chat
+                    let mutedUserIds: string[] = [];
+                    try {
+                        const { data, error } = await supabase
+                            .from('chat_notification_settings')
+                            .select('user_id')
+                            .eq('type', 'group')
+                            .eq('target_id', partnerId)
+                            .in('user_id', recipients)
+                            .eq('muted', true);
+                        if (!error) mutedUserIds = (data ?? []).map((r: any) => r.user_id);
+                    } catch { }
+
+                    for (const userId of recipients.filter(id => !mutedUserIds.includes(id))) {
                         const tokens = await getUserPushTokens(userId);
                         for (const token of tokens) {
                             await sendPushNotification(
@@ -1174,6 +1298,34 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
         }
     };
 
+    const scrollToMessageId = (messageId: string, opts?: { preferAboveSearchBar?: boolean }) => {
+        const index = messageListWithDates.findIndex(
+            item =>
+                (item.type === 'message' && item.message?.id === messageId) ||
+                (item.type === 'imageBatch' && item.messages?.some(m => m.id === messageId))
+        );
+        if (index !== -1 && flatListRef.current) {
+            flatListRef.current.scrollToIndex({
+                index,
+                animated: true,
+                // Keep the target message well above the keyboard/search bar when searching
+                viewPosition: opts?.preferAboveSearchBar ? 0.7 : 0.4
+            });
+        }
+    };
+
+    const searchMatches = useMemo(() => {
+        const q = searchQuery.trim();
+        if (!q) return [];
+        return messages
+            .filter(m => (m.text ?? '').includes(q))
+            .map(m => m.id);
+    }, [messages, searchQuery]);
+
+    useEffect(() => {
+        setActiveMatchIndex(0);
+    }, [searchQuery]);
+
     const renderItem = ({ item }: { item: MessageItem }) => {
         if (item.type === 'date') {
             return renderDateSeparator(item.dateLabel!);
@@ -1198,6 +1350,7 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                     isGroup={isGroup}
                     partnerImage={partnerImage}
                     onScrollToReply={handleScrollToReply}
+                    highlightQuery={isSearchMode ? searchQuery.trim() : ''}
                 />
             );
         }
@@ -1317,50 +1470,28 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
     };
 
     const handleMenuPress = () => {
-        if (isGroup) {
-            // Group chat menu - simplified
-            Alert.alert(
-                'メニュー',
-                '',
-                [
-                    {
-                        text: 'プロジェクト詳細を見る',
-                        onPress: () => {
-                            if (projectId && onViewProjectDetail) {
-                                onViewProjectDetail(projectId);
-                            }
-                        }
-                    },
-                    { text: 'キャンセル', style: 'cancel' },
-                ],
-                { cancelable: true }
-            );
-        } else {
-            // Individual chat menu
-            Alert.alert(
-                'メニュー',
-                '',
-                [
-                    { text: '相手のプロフィールを見る', onPress: onPartnerProfilePress },
-                    {
-                        text: '報告する',
-                        onPress: handleReport
-                    },
-                    {
-                        text: 'ブロックする',
-                        style: 'destructive',
-                        onPress: handleBlock
-                    },
-                    {
-                        text: 'マッチング解除',
-                        style: 'destructive',
-                        onPress: handleUnmatch
-                    },
-                    { text: 'キャンセル', style: 'cancel' },
-                ],
-                { cancelable: true }
-            );
-        }
+        setIsSidebarOpen(true);
+    };
+
+    const openSearchMode = () => {
+        setIsSidebarOpen(false);
+        setIsSearchMode(true);
+        // Focus after modal close animation
+        setTimeout(() => searchInputRef.current?.focus(), 250);
+    };
+
+    const closeSearchMode = () => {
+        setIsSearchMode(false);
+        setSearchQuery('');
+        setActiveMatchIndex(0);
+    };
+
+    const toggleMute = async () => {
+        if (!currentUserId) return;
+        const next = !isChatMuted;
+        setIsChatMuted(next);
+        const type: 'dm' | 'group' = isGroup ? 'group' : 'dm';
+        await setChatMutedStatus({ userId: currentUserId, type, targetId: partnerId, muted: next });
     };
 
     if (isMessagesLoading && !data) {
@@ -1421,13 +1552,24 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                                 </View>
                             )}
 
-                            <TouchableOpacity onPress={handleMenuPress} style={styles.menuButton}>
-                                <Ionicons name="ellipsis-horizontal" size={24} color="#374151" />
-                            </TouchableOpacity>
+                            <View style={styles.headerRightArea}>
+                                {isChatMuted && (
+                                    <Ionicons name="notifications-off-outline" size={20} color="#9ca3af" style={{ marginRight: 8 }} />
+                                )}
+                                <TouchableOpacity onPress={handleMenuPress} style={styles.menuButton}>
+                                    <Ionicons name="ellipsis-horizontal" size={24} color="#374151" />
+                                </TouchableOpacity>
+                            </View>
                         </View>
 
                         {/* Messages List */}
-                        <View style={[styles.messagesArea, isGroup && styles.teamMessagesArea]}>
+                        <View
+                            style={[
+                                styles.messagesArea,
+                                isGroup && styles.teamMessagesArea,
+                                // No extra padding here; reserve space via FlatList contentContainerStyle to avoid unscrollable blank area.
+                            ]}
+                        >
                             {isGroup && (
                                 <View pointerEvents="none" style={styles.teamChatWatermarkContainer}>
                                     <Image
@@ -1443,7 +1585,7 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                                 data={messageListWithDates}
                                 renderItem={renderItem}
                                 keyExtractor={(item) => item.id}
-                                contentContainerStyle={styles.listContent}
+                                contentContainerStyle={listContentStyle as any}
                                 inverted={true}
                                 onEndReached={() => {
                                     if (hasNextPage) fetchNextPage();
@@ -1464,108 +1606,201 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                         </View>
 
                         {/* Input Area */}
-                        <KeyboardAvoidingView
-                            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-                        >
-                            {/* Reply Preview */}
-                            {replyingTo && (
-                                <View style={styles.replyPreviewBar}>
-                                    <View style={styles.replyPreviewContent}>
-                                        <View style={styles.replyPreviewLine} />
-                                        <View>
-                                            <Text style={styles.replyPreviewSender}>
-                                                {replyingTo.sender === 'me' ? '自分' : partnerName}への返信
-                                            </Text>
-                                            {replyingTo.image_url ? (
-                                                <Image
-                                                    source={{ uri: replyingTo.image_url }}
-                                                    style={styles.replyPreviewThumb}
-                                                    resizeMode="cover"
-                                                />
-                                            ) : (
-                                                <Text style={styles.replyPreviewText} numberOfLines={1}>
-                                                    {replyingTo.text || ' '}
+                        {!isSearchMode && (
+                            <KeyboardAvoidingView
+                                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+                            >
+                                {/* Reply Preview */}
+                                {replyingTo && (
+                                    <View style={styles.replyPreviewBar}>
+                                        <View style={styles.replyPreviewContent}>
+                                            <View style={styles.replyPreviewLine} />
+                                            <View>
+                                                <Text style={styles.replyPreviewSender}>
+                                                    {replyingTo.sender === 'me' ? '自分' : partnerName}への返信
                                                 </Text>
-                                            )}
+                                                {replyingTo.image_url ? (
+                                                    <Image
+                                                        source={{ uri: replyingTo.image_url }}
+                                                        style={styles.replyPreviewThumb}
+                                                        resizeMode="cover"
+                                                    />
+                                                ) : (
+                                                    <Text style={styles.replyPreviewText} numberOfLines={1}>
+                                                        {replyingTo.text || ' '}
+                                                    </Text>
+                                                )}
+                                            </View>
                                         </View>
+                                        <TouchableOpacity onPress={() => setReplyingTo(null)} style={styles.closeReplyButton}>
+                                            <Ionicons name="close" size={20} color="#6B7280" />
+                                        </TouchableOpacity>
                                     </View>
-                                    <TouchableOpacity onPress={() => setReplyingTo(null)} style={styles.closeReplyButton}>
-                                        <Ionicons name="close" size={20} color="#6B7280" />
+                                )}
+
+                                {/* Image Preview */}
+                                {selectedImages.length > 0 && (
+                                    <View style={styles.imagePreviewBar}>
+                                        <ScrollView
+                                            horizontal
+                                            showsHorizontalScrollIndicator={false}
+                                            contentContainerStyle={styles.imagePreviewList}
+                                        >
+                                            {selectedImages.map((uri, idx) => (
+                                                <View key={`${uri}-${idx}`} style={styles.imagePreviewItem}>
+                                                    <Image
+                                                        source={{ uri }}
+                                                        style={styles.imagePreview}
+                                                    />
+                                                    <View style={styles.imagePreviewIndexBadge}>
+                                                        <Text style={styles.imagePreviewIndexText}>{idx + 1}</Text>
+                                                    </View>
+                                                    <TouchableOpacity
+                                                        onPress={() => {
+                                                            setSelectedImages(prev => prev.filter((_, i) => i !== idx));
+                                                        }}
+                                                        style={styles.closeImageButton}
+                                                    >
+                                                        <Ionicons name="close-circle" size={22} color="#ef4444" />
+                                                    </TouchableOpacity>
+                                                </View>
+                                            ))}
+                                        </ScrollView>
+                                    </View>
+                                )}
+
+                                <View style={styles.inputContainer}>
+                                    <TouchableOpacity style={styles.attachButton} onPress={handlePickImage} disabled={isSending}>
+                                        <Ionicons name="image-outline" size={24} color="#9ca3af" />
+                                    </TouchableOpacity>
+
+                                    <TextInput
+                                        ref={inputRef}
+                                        style={styles.input}
+                                        placeholder="メッセージを入力..."
+                                        value={inputText}
+                                        onChangeText={setInputText}
+                                        multiline
+                                        maxLength={1000}
+                                        editable={!isSending}
+                                    />
+
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.sendButton,
+                                            (!inputText.trim() && selectedImages.length === 0) || isSending ? styles.sendButtonDisabled : null
+                                        ]}
+                                        onPress={handleSend}
+                                        disabled={(!inputText.trim() && selectedImages.length === 0) || isSending}
+                                    >
+                                        {isSending ? (
+                                            <ActivityIndicator size="small" color="white" />
+                                        ) : (
+                                            <Ionicons
+                                                name="send"
+                                                size={20}
+                                                color={inputText.trim() || selectedImages.length > 0 ? 'white' : '#9ca3af'}
+                                            />
+                                        )}
                                     </TouchableOpacity>
                                 </View>
-                            )}
-
-                            {/* Image Preview */}
-                            {selectedImages.length > 0 && (
-                                <View style={styles.imagePreviewBar}>
-                                    <ScrollView
-                                        horizontal
-                                        showsHorizontalScrollIndicator={false}
-                                        contentContainerStyle={styles.imagePreviewList}
-                                    >
-                                        {selectedImages.map((uri, idx) => (
-                                            <View key={`${uri}-${idx}`} style={styles.imagePreviewItem}>
-                                                <Image
-                                                    source={{ uri }}
-                                                    style={styles.imagePreview}
-                                                />
-                                                <View style={styles.imagePreviewIndexBadge}>
-                                                    <Text style={styles.imagePreviewIndexText}>{idx + 1}</Text>
-                                                </View>
-                                                <TouchableOpacity
-                                                    onPress={() => {
-                                                        setSelectedImages(prev => prev.filter((_, i) => i !== idx));
-                                                    }}
-                                                    style={styles.closeImageButton}
-                                                >
-                                                    <Ionicons name="close-circle" size={22} color="#ef4444" />
-                                                </TouchableOpacity>
-                                            </View>
-                                        ))}
-                                    </ScrollView>
-                                </View>
-                            )}
-
-                            <View style={styles.inputContainer}>
-                                <TouchableOpacity style={styles.attachButton} onPress={handlePickImage} disabled={isSending}>
-                                    <Ionicons name="image-outline" size={24} color="#9ca3af" />
-                                </TouchableOpacity>
-
-                                <TextInput
-                                    ref={inputRef}
-                                    style={styles.input}
-                                    placeholder="メッセージを入力..."
-                                    value={inputText}
-                                    onChangeText={setInputText}
-                                    multiline
-                                    maxLength={1000}
-                                    editable={!isSending}
-                                />
-
-                                <TouchableOpacity
-                                    style={[
-                                        styles.sendButton,
-                                        (!inputText.trim() && selectedImages.length === 0) || isSending ? styles.sendButtonDisabled : null
-                                    ]}
-                                    onPress={handleSend}
-                                    disabled={(!inputText.trim() && selectedImages.length === 0) || isSending}
-                                >
-                                    {isSending ? (
-                                        <ActivityIndicator size="small" color="white" />
-                                    ) : (
-                                        <Ionicons
-                                            name="send"
-                                            size={20}
-                                            color={inputText.trim() || selectedImages.length > 0 ? 'white' : '#9ca3af'}
-                                        />
-                                    )}
-                                </TouchableOpacity>
-                            </View>
-                        </KeyboardAvoidingView>
+                            </KeyboardAvoidingView>
+                        )}
                     </SafeAreaView>
                 </View>
             </PanGestureHandler>
+
+            {/* Bottom Menu Modal */}
+            <Modal visible={isSidebarOpen} transparent animationType="slide" onRequestClose={() => setIsSidebarOpen(false)}>
+                <Pressable style={styles.menuOverlay} onPress={() => setIsSidebarOpen(false)}>
+                    <Pressable style={styles.bottomSheet} onPress={() => { /* absorb */ }}>
+                        <View style={styles.bottomSheetHandle}>
+                            <View style={styles.bottomSheetIndicator} />
+                        </View>
+                        <View style={styles.bottomSheetHeader}>
+                            <Text style={styles.bottomSheetTitle}>メニュー</Text>
+                            <TouchableOpacity onPress={() => setIsSidebarOpen(false)} style={styles.bottomSheetClose}>
+                                <Ionicons name="close" size={24} color="#374151" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <TouchableOpacity style={styles.bottomSheetItem} onPress={openSearchMode}>
+                            <Ionicons name="search" size={20} color="#374151" />
+                            <Text style={styles.bottomSheetItemText}>検索</Text>
+                        </TouchableOpacity>
+
+                        <View style={styles.bottomSheetDivider} />
+
+                        {/* Mute (below search) */}
+                        <TouchableOpacity style={styles.bottomSheetItem} onPress={toggleMute}>
+                            <Ionicons name={isChatMuted ? 'notifications-outline' : 'notifications-off-outline'} size={20} color="#374151" />
+                            <Text style={styles.bottomSheetItemText}>{isChatMuted ? '通知オン' : '通知オフ'}</Text>
+                        </TouchableOpacity>
+                    </Pressable>
+                </Pressable>
+            </Modal>
+
+            {/* Search Mode Bar (above keyboard) */}
+            {isSearchMode && (
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+                    style={styles.searchModeBarWrapper}
+                >
+                    {/* When keyboard is visible, keep the bar flush to keyboard (avoid corner "holes"). */}
+                    <View style={[styles.searchModeBar, { paddingBottom: keyboardHeight > 0 ? 10 : insets.bottom + 10 }]}>
+                        <TextInput
+                            ref={searchInputRef}
+                            style={styles.searchModeInput}
+                            placeholder="検索..."
+                            value={searchQuery}
+                            onChangeText={setSearchQuery}
+                            returnKeyType="search"
+                            onSubmitEditing={() => {
+                                if (searchMatches.length > 0) {
+                                scrollToMessageId(searchMatches[0], { preferAboveSearchBar: true });
+                                    setActiveMatchIndex(0);
+                                }
+                            }}
+                        />
+                        <Text style={styles.searchModeCount}>
+                        {searchQuery.trim()
+                            ? `${searchMatches.length === 0 ? 0 : (activeMatchIndex + 1)}/${searchMatches.length}`
+                            : ''}
+                        </Text>
+                        <TouchableOpacity
+                            style={[styles.searchModeNavBtn, searchMatches.length === 0 && styles.searchModeNavBtnDisabled]}
+                            disabled={searchMatches.length === 0}
+                            onPress={() => {
+                                const n = searchMatches.length;
+                                if (n === 0) return;
+                                const next = (activeMatchIndex - 1 + n) % n;
+                                setActiveMatchIndex(next);
+                            scrollToMessageId(searchMatches[next], { preferAboveSearchBar: true });
+                            }}
+                        >
+                            <Ionicons name="chevron-up" size={18} color="#111827" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.searchModeNavBtn, searchMatches.length === 0 && styles.searchModeNavBtnDisabled]}
+                            disabled={searchMatches.length === 0}
+                            onPress={() => {
+                                const n = searchMatches.length;
+                                if (n === 0) return;
+                                const next = (activeMatchIndex + 1) % n;
+                                setActiveMatchIndex(next);
+                            scrollToMessageId(searchMatches[next], { preferAboveSearchBar: true });
+                            }}
+                        >
+                            <Ionicons name="chevron-down" size={18} color="#111827" />
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.searchModeCloseBtn} onPress={closeSearchMode}>
+                            <Ionicons name="close" size={20} color="#374151" />
+                        </TouchableOpacity>
+                    </View>
+                </KeyboardAvoidingView>
+            )}
 
             <ChatImagePickerModal
                 visible={imagePickerVisible}
@@ -1649,12 +1884,140 @@ const styles = StyleSheet.create({
         flex: 1,
         flexShrink: 1, // Allow text to shrink
     },
+    headerRightArea: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
     menuButton: {
         padding: 4,
+    },
+    menuOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'transparent',
+        justifyContent: 'flex-end',
+    },
+    bottomSheet: {
+        backgroundColor: 'white',
+        paddingTop: 12,
+        paddingHorizontal: 16,
+        paddingBottom: 40,
+        borderTopLeftRadius: 18,
+        borderTopRightRadius: 18,
+        borderTopWidth: 1,
+        borderTopColor: '#e5e7eb',
+    },
+    bottomSheetHandle: {
+        alignItems: 'center',
+        paddingBottom: 8,
+    },
+    bottomSheetIndicator: {
+        width: 40,
+        height: 4,
+        backgroundColor: '#E0E0E0',
+        borderRadius: 2,
+    },
+    bottomSheetHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingBottom: 10,
+    },
+    bottomSheetTitle: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#111827',
+    },
+    bottomSheetClose: {
+        padding: 6,
+    },
+    bottomSheetSectionTitle: {
+        fontSize: 13,
+        color: '#6b7280',
+        fontWeight: '700',
+        marginBottom: 8,
+    },
+    bottomSheetDivider: {
+        height: 1,
+        backgroundColor: '#e5e7eb',
+        marginVertical: 12,
+    },
+    bottomSheetItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 12,
+        gap: 10,
+    },
+    bottomSheetItemText: {
+        fontSize: 15,
+        color: '#111827',
+        fontWeight: '600',
+    },
+    searchModeBarWrapper: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'white',
+    },
+    searchModeBar: {
+        minHeight: SEARCH_BAR_HEIGHT,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        backgroundColor: 'white',
+        borderTopWidth: 1,
+        borderTopColor: '#e5e7eb',
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+    },
+    searchModeInput: {
+        flex: 1,
+        height: 38,
+        borderWidth: 1,
+        borderColor: '#e5e7eb',
+        borderRadius: 10,
+        paddingHorizontal: 10,
+        backgroundColor: '#f9fafb',
+        color: '#111827',
+    },
+    searchModeCount: {
+        minWidth: 44,
+        textAlign: 'right',
+        fontSize: 12,
+        color: '#6b7280',
+        fontWeight: '600',
+    },
+    searchModeNavBtn: {
+        width: 34,
+        height: 34,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: '#e5e7eb',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'white',
+    },
+    searchModeNavBtnDisabled: {
+        opacity: 0.4,
+    },
+    searchModeCloseBtn: {
+        width: 34,
+        height: 34,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: '#e5e7eb',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'white',
     },
     listContent: {
         padding: 16,
         paddingBottom: 16,
+    },
+    searchHighlight: {
+        backgroundColor: '#FFF176', // 蛍光っぽい黄色
+        color: '#111827',
+        fontWeight: '700',
     },
     dateSeparatorContainer: {
         flexDirection: 'row',

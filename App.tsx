@@ -1903,6 +1903,23 @@ function AppContent() {
                 />
               )}
 
+              {/* Project Detail Modal (shown when tapping group chat header) */}
+              <Modal
+                visible={!!chatProjectDetail}
+                animationType="slide"
+                presentationStyle="pageSheet"
+                onRequestClose={() => setChatProjectDetail(null)}
+              >
+                {chatProjectDetail && currentUser && (
+                  <ProjectDetail
+                    project={chatProjectDetail}
+                    currentUser={currentUser}
+                    onClose={() => setChatProjectDetail(null)}
+                    onChat={() => setChatProjectDetail(null)}
+                    onProjectUpdated={() => setChatProjectDetail(null)}
+                  />
+                )}
+              </Modal>
             </>
           )}
         </SafeAreaProvider>
@@ -1910,7 +1927,7 @@ function AppContent() {
 
       {/* Project Detail Modal (from team chat list OR from inside chat header) */}
       <Modal
-        visible={!!chatProjectDetail}
+        visible={!!chatProjectDetail && !activeChatRoom}
         animationType="slide"
         presentationStyle="pageSheet"
         onRequestClose={() => setChatProjectDetail(null)}
