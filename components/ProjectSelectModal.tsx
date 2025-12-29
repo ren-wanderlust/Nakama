@@ -85,10 +85,8 @@ export function ProjectSelectModal({
         <TouchableOpacity style={styles.backdropTouchable} activeOpacity={1} onPress={onClose} />
 
         <Animated.View style={[styles.modalContainer, { transform: [{ translateY: slideAnim }] }]}>
-          {/* Drag Indicator */}
-          <View style={styles.dragIndicatorContainer}>
-            <View style={styles.dragIndicator} />
-          </View>
+          {/* Top cap (外形は維持しつつ、ドラッグ用の横棒は表示しない) */}
+          <View style={styles.topCap} />
 
           {/* Header */}
           <View style={styles.header}>
@@ -218,7 +216,7 @@ const styles = StyleSheet.create({
     bottom: 0,
   },
   modalContainer: {
-    backgroundColor: '#FAFAFA',
+    backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     height: '80%',
@@ -229,15 +227,11 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
   },
-  dragIndicatorContainer: {
-    alignItems: 'center',
-    paddingVertical: 12,
-  },
-  dragIndicator: {
-    width: 40,
-    height: 4,
-    backgroundColor: '#D1D5DB',
-    borderRadius: 2,
+  topCap: {
+    height: 20,
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
   },
   header: {
     flexDirection: 'row',

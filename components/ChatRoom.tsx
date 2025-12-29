@@ -1020,7 +1020,6 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                                         cachePolicy="memory-disk"
                                     />
                                     <Text style={styles.headerName} numberOfLines={2} ellipsizeMode="tail">{partnerName}</Text>
-                                    <Ionicons name="chevron-forward" size={18} color="#9CA3AF" style={{ marginLeft: 4 }} />
                                 </TouchableOpacity>
                             ) : (
                                 <View style={styles.headerInfo}>
@@ -1040,8 +1039,8 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                         </View>
 
                         {/* Messages List */}
-                        {/* Messages List */}
                         <FlatList
+                            style={{ backgroundColor: '#F5F5F5' }}
                             ref={flatListRef}
                             data={messageListWithDates}
                             renderItem={renderItem}
@@ -1151,7 +1150,7 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F5F5F5',
+        backgroundColor: 'white',
     },
     loadingContainer: {
         justifyContent: 'center',
