@@ -305,6 +305,7 @@ const MessageBubble = ({
     const [replySenderWidth, setReplySenderWidth] = useState(0);
     const [replyTextWidth, setReplyTextWidth] = useState(0);
     const [mainMessageWidth, setMainMessageWidth] = useState(0);
+    const [twentyCharWidth, setTwentyCharWidth] = useState(0);
 
     const screenWidth = Dimensions.get('window').width;
     const defaultMaxWidth = screenWidth * 0.75; // 75% of screen width
@@ -324,15 +325,13 @@ const MessageBubble = ({
         return { width, height };
     }, [imageAspectRatio, maxImageWidth, maxImageHeight]);
 
-    // Helper to format reply text (force wrap every 20 chars)
-    const formatReplyText = (text: string) => {
-        if (!text) return '';
-        const chunks = text.match(/.{1,20}/g);
-        return chunks ? chunks.join('\n') : text;
-    };
-
-    const replyText = message.replyTo?.text ? formatReplyText(message.replyTo.text) : '';
+    const replyText = message.replyTo?.text ? message.replyTo.text : '';
     const replyImageUri = message.replyTo?.image_url ?? null;
+    const bubbleMaxWidth = Math.min(
+        // 20文字分のテキスト幅 + バブル左右パディング(16*2)
+        (twentyCharWidth > 0 ? twentyCharWidth + 32 : defaultMaxWidth),
+        defaultMaxWidth
+    );
 
     // Calculate max width from reply elements and main message
     // replyContainerOverhead = Padding(8*2) + Bar(3) + Margin(8) = 27
@@ -343,7 +342,7 @@ const MessageBubble = ({
     const replyContentWidth = Math.max(replySenderWidth, replyBodyWidth) + 4;
     const totalReplyWidth = message.replyTo ? replyContentWidth + replyContainerOverhead : 0;
 
-    // IMPORTANT: Never exceed normal message max width (prevents long text from stretching the bubble off-screen)
+    // Message container max width stays normal; bubble itself is capped to 20-char width.
     const dynamicMaxWidth = defaultMaxWidth;
 
     const renderRightActions = (_progress: any, dragX: any) => {
@@ -451,6 +450,24 @@ const MessageBubble = ({
                             </Text>
                         </>
                     )}
+                    {/* Measure "20 chars" width to cap bubble width (no forced wrapping) */}
+                    <Text
+                        style={{
+                            position: 'absolute',
+                            left: -9999,
+                            opacity: 0,
+                            fontSize: 15, // messageTextMeと同じ
+                        }}
+                        onLayout={(e) => {
+                            const width = e.nativeEvent?.layout?.width;
+                            if (width && width > 0) {
+                                // Avoid jittery updates while scrolling
+                                if (Math.abs(width - twentyCharWidth) > 0.5) setTwentyCharWidth(width);
+                            }
+                        }}
+                    >
+                        {'あ'.repeat(20)}
+                    </Text>
                     {/* Measure main message width without constraints */}
                     {message.text && (
                         <Text
@@ -512,7 +529,8 @@ const MessageBubble = ({
                                             end={{ x: 1, y: 0 }}
                                             style={[
                                                 styles.bubbleGradient,
-                                                totalReplyWidth > 0 && { minWidth: Math.min(totalReplyWidth + 32, defaultMaxWidth) } // cap to normal max width
+                                                { maxWidth: bubbleMaxWidth },
+                                                totalReplyWidth > 0 && { minWidth: Math.min(totalReplyWidth + 32, bubbleMaxWidth) } // cap to bubble max width
                                             ]}
                                         >
                                             {message.replyTo && (
@@ -535,7 +553,9 @@ const MessageBubble = ({
                                                                     resizeMode="cover"
                                                                 />
                                                             ) : (
-                                                                <Text style={styles.replyTextMe}>{replyText || ' '}</Text>
+                                                                <Text style={styles.replyTextMe} numberOfLines={3} ellipsizeMode="tail">
+                                                                    {replyText || ' '}
+                                                                </Text>
                                                             )}
                                                         </View>
                                                     </View>
@@ -575,7 +595,8 @@ const MessageBubble = ({
                                             <View
                                                 style={[
                                                     styles.bubbleOther,
-                                                    totalReplyWidth > 0 && { minWidth: Math.min(totalReplyWidth + 32, defaultMaxWidth) } // cap to normal max width
+                                                    { maxWidth: bubbleMaxWidth },
+                                                    totalReplyWidth > 0 && { minWidth: Math.min(totalReplyWidth + 32, bubbleMaxWidth) } // cap to bubble max width
                                                 ]}
                                             >
                                                 {message.replyTo && (
@@ -598,7 +619,9 @@ const MessageBubble = ({
                                                                         resizeMode="cover"
                                                                     />
                                                                 ) : (
-                                                                    <Text style={styles.replyTextOther}>{replyText || ' '}</Text>
+                                                                    <Text style={styles.replyTextOther} numberOfLines={3} ellipsizeMode="tail">
+                                                                        {replyText || ' '}
+                                                                    </Text>
                                                                 )}
                                                             </View>
                                                         </View>
@@ -1345,30 +1368,41 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                         </View>
 
                         {/* Messages List */}
-                        <FlatList
-                            style={{ backgroundColor: '#F5F5F5' }}
-                            ref={flatListRef}
-                            data={messageListWithDates}
-                            renderItem={renderItem}
-                            keyExtractor={(item) => item.id}
-                            contentContainerStyle={styles.listContent}
-                            inverted={true}
-                            onEndReached={() => {
-                                if (hasNextPage) fetchNextPage();
-                            }}
-                            onEndReachedThreshold={0.5}
-                            ListFooterComponent={isFetchingNextPage ? <ActivityIndicator size="small" color="#009688" /> : null}
-                            onScrollToIndexFailed={(info) => {
-                                // If scroll fails, wait and retry
-                                setTimeout(() => {
-                                    flatListRef.current?.scrollToIndex({
-                                        index: info.index,
-                                        animated: true,
-                                        viewPosition: 0.5
-                                    });
-                                }, 100);
-                            }}
-                        />
+                        <View style={[styles.messagesArea, isGroup && styles.teamMessagesArea]}>
+                            {isGroup && (
+                                <View pointerEvents="none" style={styles.teamChatWatermarkContainer}>
+                                    <Image
+                                        source={require('../assets/pogg_logo_orange_icon.png')}
+                                        style={styles.teamChatWatermark}
+                                        resizeMode="contain"
+                                    />
+                                </View>
+                            )}
+                            <FlatList
+                                style={[styles.messagesList, isGroup && { backgroundColor: 'transparent' }]}
+                                ref={flatListRef}
+                                data={messageListWithDates}
+                                renderItem={renderItem}
+                                keyExtractor={(item) => item.id}
+                                contentContainerStyle={styles.listContent}
+                                inverted={true}
+                                onEndReached={() => {
+                                    if (hasNextPage) fetchNextPage();
+                                }}
+                                onEndReachedThreshold={0.5}
+                                ListFooterComponent={isFetchingNextPage ? <ActivityIndicator size="small" color="#009688" /> : null}
+                                onScrollToIndexFailed={(info) => {
+                                    // If scroll fails, wait and retry
+                                    setTimeout(() => {
+                                        flatListRef.current?.scrollToIndex({
+                                            index: info.index,
+                                            animated: true,
+                                            viewPosition: 0.5
+                                        });
+                                    }, 100);
+                                }}
+                            />
+                        </View>
 
                         {/* Input Area */}
                         <KeyboardAvoidingView
@@ -1509,6 +1543,27 @@ const styles = StyleSheet.create({
         backgroundColor: 'white',
         borderBottomWidth: 1,
         borderBottomColor: '#e5e7eb',
+    },
+    messagesArea: {
+        flex: 1,
+        backgroundColor: '#F5F5F5',
+    },
+    teamMessagesArea: {
+        backgroundColor: 'white',
+    },
+    messagesList: {
+        flex: 1,
+        backgroundColor: '#F5F5F5',
+    },
+    teamChatWatermarkContainer: {
+        ...StyleSheet.absoluteFillObject,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    teamChatWatermark: {
+        width: 180,
+        height: 180,
+        opacity: 0.3,
     },
     backButton: {
         padding: 4,
