@@ -351,21 +351,20 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                     style={styles.profileImage}
                 />
                 <View style={styles.profileTextColumn}>
-                    <Text style={styles.profileName}>{profile.name}</Text>
+                    <Text style={styles.profileName} numberOfLines={1}>{profile.name}</Text>
                     <View style={styles.universityContainer}>
                         <Ionicons name="school-outline" size={14} color="#9CA3AF" style={{ marginRight: 6 }} />
-                        <Text style={styles.profileUniversity}>
+                        <Text style={styles.profileUniversity} numberOfLines={1}>
                             {profile.university}
                             {profile.grade ? ` / ${profile.grade}` : ''}
                         </Text>
                     </View>
                     <View style={styles.editRow}>
                         <TouchableOpacity style={styles.editProfileButton} onPress={() => onEditProfile && onEditProfile()}>
-                            <Ionicons name="pencil" size={14} color="#009688" />
                             <Text style={styles.editProfileButtonText}>プロフィールを編集</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.settingsButton} onPress={() => setIsMenuVisible(true)}>
-                            <Ionicons name="settings-outline" size={20} color="#6B7280" />
+                        <TouchableOpacity style={styles.settingsButtonInCard} onPress={() => setIsMenuVisible(true)}>
+                            <Ionicons name="settings-outline" size={20} color="#9CA3AF" />
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -380,7 +379,7 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                 onPress={() => setActiveTab('myProjects')}
                 hapticType="selection"
             >
-                <Ionicons name="grid-outline" size={22} color={activeTab === 'myProjects' ? '#009688' : '#999'} />
+                <Ionicons name="grid-outline" size={18} color={activeTab === 'myProjects' ? '#F39800' : '#999'} />
                 <Text style={[styles.tabLabel, activeTab === 'myProjects' && styles.tabLabelActive]}>マイプロジェクト</Text>
             </HapticTouchable>
             <HapticTouchable
@@ -388,7 +387,7 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                 onPress={() => setActiveTab('participatingProjects')}
                 hapticType="selection"
             >
-                <Ionicons name="people-outline" size={22} color={activeTab === 'participatingProjects' ? '#009688' : '#999'} />
+                <Ionicons name="people-outline" size={18} color={activeTab === 'participatingProjects' ? '#F39800' : '#999'} />
                 <Text style={[styles.tabLabel, activeTab === 'participatingProjects' && styles.tabLabelActive]}>参加中</Text>
             </HapticTouchable>
         </View>
@@ -575,7 +574,7 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                 contentContainerStyle={styles.projectListContent}
                 showsVerticalScrollIndicator={false}
                 refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#009688" />
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F39800" />
                 }
                 ItemSeparatorComponent={() => <View style={{ height: 4 }} />}
                 ListEmptyComponent={
@@ -585,7 +584,7 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                                 <Ionicons
                                     name={activeTab === 'myProjects' ? "folder-open-outline" : "people-outline"}
                                     size={48}
-                                    color="#009688"
+                                    color="#F39800"
                                 />
                             </View>
                             <Text style={styles.emptyTitle}>
@@ -708,6 +707,23 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
     },
+    headerSettingsButton: {
+        width: 40,
+        height: 40,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 20,
+        backgroundColor: '#F9FAFB',
+    },
+    // Settings button inside profile card
+    settingsButtonInCard: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#F9FAFB',
+    },
     profileCard: {
         paddingVertical: 24,
         paddingHorizontal: 20,
@@ -736,7 +752,7 @@ const styles = StyleSheet.create({
     },
     profileTextColumn: {
         flex: 1,
-        gap: 8,
+        gap: 6,
     },
     profileName: {
         fontSize: 22,
@@ -762,18 +778,22 @@ const styles = StyleSheet.create({
     editProfileButton: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#F0FDF9',
-        paddingVertical: 10,
-        paddingHorizontal: 16,
-        borderRadius: 24,
-        borderWidth: 1.5,
-        borderColor: '#009688',
-        gap: 6,
+        backgroundColor: '#FFFFFF',
+        paddingVertical: 8,
+        paddingHorizontal: 14,
+        borderRadius: 18,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 1,
+        elevation: 1,
     },
     editProfileButtonText: {
-        fontSize: 13,
+        fontSize: 11,
         fontFamily: FONTS.semiBold,
-        color: '#009688',
+        color: '#4B5563',
     },
     editButton: {
         flexDirection: 'row',
@@ -791,32 +811,22 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: '#009688',
     },
-    settingsButton: {
-        width: 42,
-        height: 42,
-        borderRadius: 21,
-        borderWidth: 1.5,
-        borderColor: '#E5E7EB',
-        backgroundColor: '#FFFFFF',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
     tabsContainer: {
         flexDirection: 'row',
         marginHorizontal: 16,
         marginBottom: 12,
         backgroundColor: '#F3F4F6',
         borderRadius: 14,
-        padding: 5,
+        padding: 4,
     },
     tabItem: {
         flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 12,
+        paddingVertical: 8,
         borderRadius: 11,
-        gap: 8,
+        gap: 6,
     },
     activeTab: {
         backgroundColor: 'white',
@@ -827,12 +837,12 @@ const styles = StyleSheet.create({
         elevation: 3,
     },
     tabLabel: {
-        fontSize: 14,
+        fontSize: 13,
         color: '#9CA3AF',
         fontFamily: FONTS.medium,
     },
     tabLabelActive: {
-        color: '#009688',
+        color: '#F39800',
         fontFamily: FONTS.semiBold,
     },
     projectListContent: {

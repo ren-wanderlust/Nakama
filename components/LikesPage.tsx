@@ -947,7 +947,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                     data={filteredApplications}
                     renderItem={renderApplicationProjectCard}
                     keyExtractor={(item) => item.id}
-                    contentContainerStyle={[styles.listContent, filteredApplications.length === 0 && { flex: 1 }]}
+                    contentContainerStyle={[styles.listContent, { paddingTop: 8 }, filteredApplications.length === 0 && { flex: 1 }]}
                     showsVerticalScrollIndicator={false}
                     refreshControl={
                         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F39800" />
@@ -1847,7 +1847,7 @@ const styles = StyleSheet.create({
         justifyContent: 'flex-start',
         alignItems: 'center',
         paddingHorizontal: 16,
-        paddingVertical: 10,
+        paddingVertical: 6,
         gap: 8,
         backgroundColor: '#FFF3E0',
     },
