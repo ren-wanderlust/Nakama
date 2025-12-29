@@ -295,6 +295,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
             }
 
             // Handle team chat creation when approved
+            let teamChatCreated = false;
             if (newStatus === 'approved' && projectId) {
                 // Check if total members >= 2 (Owner + at least 1 approved applicant)
                 const { count } = await supabase
@@ -325,7 +326,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                         if (!createRoomError) {
                             // Invalidate chat rooms query to refresh the list in TalkPage
                             queryClient.invalidateQueries({ queryKey: queryKeys.chatRooms.list(session.user.id) });
-                            Alert.alert('チームチャット作成', 'メンバーが2名以上になったため、チームチャットが自動作成されました！「トーク」タブから確認できます。');
+                            teamChatCreated = true;
                         } else {
                             console.error('Error creating chat room:', createRoomError);
                         }
@@ -343,8 +344,22 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                 // Show alert for rejection
                 Alert.alert('完了', `${userName}さんを見送りしました`);
             } else if (newStatus === 'approved') {
-                // For approval, show simple alert (team chat creation has its own alert if applicable)
-                Alert.alert('完了', `${userName}さんを承認しました`);
+                // Show approval alert first, then team chat alert if applicable
+                Alert.alert(
+                    '完了',
+                    `${userName}さんを承認しました`,
+                    [{
+                        text: 'OK',
+                        onPress: () => {
+                            if (teamChatCreated) {
+                                Alert.alert(
+                                    '🎉 チームチャット作成',
+                                    'メンバーが2名以上になったため、チームチャットが自動作成されました！\n\n「トーク」タブから確認できます。'
+                                );
+                            }
+                        }
+                    }]
+                );
             }
 
             // Notify parent to update badge count
