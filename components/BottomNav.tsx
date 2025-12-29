@@ -56,8 +56,8 @@ export function BottomNav({ activeTab, onTabChange, currentUser, badges, onCreat
                             >
                                 <View style={styles.createButton}>
                                     <Svg width={45} height={45} viewBox="0 0 50 50" style={[styles.eggSvg, { transform: [{ scaleY: -1 }] }]}>
-                                    <Path
-                                        d="
+                                        <Path
+                                            d="
                                             M25 5.5
                                             C14.2 5.5, 9.2 12.2, 10.2 22.0
                                             C11.4 32.0, 16.5 40.5, 20.5 43.5
@@ -66,12 +66,12 @@ export function BottomNav({ activeTab, onTabChange, currentUser, badges, onCreat
                                             C40.8 12.2, 35.8 5.5, 25 5.5
                                             Z
                                         "
-                                        fill="white"
-                                        stroke="#F39800"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                    />
+                                            fill="white"
+                                            stroke="#F39800"
+                                            strokeWidth="2"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                        />
                                     </Svg>
 
                                     <View style={styles.plusIconContainer}>

@@ -13,6 +13,7 @@ import { useChatRooms } from '../data/hooks/useChatRooms';
 import { queryKeys } from '../data/queryKeys';
 import { ChatRoom } from '../data/api/chatRooms';
 import { getImageSource } from '../constants/DefaultImages';
+import { useAuth } from '../contexts/AuthContext';
 
 interface TalkPageProps {
     onOpenChat?: (room: ChatRoom) => void;
@@ -27,15 +28,9 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
     const [refreshing, setRefreshing] = useState(false);
     const queryClient = useQueryClient();
 
-    // Get current user ID
-    const [userId, setUserId] = useState<string | undefined>(undefined);
-    useEffect(() => {
-        const getUserId = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            setUserId(user?.id);
-        };
-        getUserId();
-    }, []);
+    // Get current user ID from auth context (synchronous)
+    const { session } = useAuth();
+    const userId = session?.user?.id;
 
     // React Query hook for chat rooms
     const chatRoomsQuery = useChatRooms(userId);

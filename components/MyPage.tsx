@@ -572,16 +572,15 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
         <SafeAreaView style={styles.container}>
             {renderHeader()}
 
+            {/* Fixed Profile Card and Tabs */}
+            {renderProfileCard()}
+            {renderTabs()}
+
+            {/* Scrollable Project List */}
             <FlatList
                 data={activeTab === 'myProjects' ? projects : participatingProjects}
                 renderItem={activeTab === 'myProjects' ? renderProjectItem : renderParticipatingProjectItem}
                 keyExtractor={(item) => item.id}
-                ListHeaderComponent={
-                    <>
-                        {renderProfileCard()}
-                        {renderTabs()}
-                    </>
-                }
                 contentContainerStyle={styles.projectListContent}
                 showsVerticalScrollIndicator={false}
                 refreshControl={
@@ -847,7 +846,8 @@ const styles = StyleSheet.create({
     },
     projectListContent: {
         paddingHorizontal: 16,
-        paddingBottom: 20,
+        paddingBottom: 100, // ボトムナビゲーション分のスペースを確保
+        paddingTop: 8,
         flexGrow: 1,
     },
     emptyContainer: {
