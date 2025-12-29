@@ -1691,19 +1691,20 @@ function AppContent() {
                 }
               }}
               onViewProject={async (projectId) => {
-                // Fetch project and show in UserProjectPage
-                const { data: project, error } = await supabase
-                  .from('projects')
-                  .select('id, owner_id')
-                  .eq('id', projectId)
-                  .single();
+                // Open project detail (same behavior as tapping header in team chat)
+                try {
+                  const { data: project, error } = await supabase
+                    .from('projects')
+                    .select('*')
+                    .eq('id', projectId)
+                    .single();
 
-                if (project && !error) {
-                  // Navigate to project owner's project page
-                  const ownerProfile = displayProfiles.find((p: Profile) => p.id === project.owner_id);
-                  if (ownerProfile) {
-                    setSelectedProfile(ownerProfile);
+                  if (error) throw error;
+                  if (project) {
+                    setChatProjectDetail(project);
                   }
+                } catch (error) {
+                  console.error('Error fetching project:', error);
                 }
               }}
               onOpenNotifications={() => setShowNotifications(true)}
@@ -1902,26 +1903,27 @@ function AppContent() {
                 />
               )}
 
-              {/* Project Detail Modal (shown when tapping group chat header) */}
-              <Modal
-                visible={!!chatProjectDetail}
-                animationType="slide"
-                presentationStyle="pageSheet"
-                onRequestClose={() => setChatProjectDetail(null)}
-              >
-                {chatProjectDetail && currentUser && (
-                  <ProjectDetail
-                    project={chatProjectDetail}
-                    currentUser={currentUser}
-                    onClose={() => setChatProjectDetail(null)}
-                    onChat={() => setChatProjectDetail(null)}
-                    onProjectUpdated={() => setChatProjectDetail(null)}
-                  />
-                )}
-              </Modal>
             </>
           )}
         </SafeAreaProvider>
+      </Modal>
+
+      {/* Project Detail Modal (from team chat list OR from inside chat header) */}
+      <Modal
+        visible={!!chatProjectDetail}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setChatProjectDetail(null)}
+      >
+        {chatProjectDetail && currentUser && (
+          <ProjectDetail
+            project={chatProjectDetail}
+            currentUser={currentUser}
+            onClose={() => setChatProjectDetail(null)}
+            onChat={() => setChatProjectDetail(null)}
+            onProjectUpdated={() => setChatProjectDetail(null)}
+          />
+        )}
       </Modal>
 
       {/* Profile Detail Modal - Rendered after ChatRoom so it appears on top */}
