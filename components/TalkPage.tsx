@@ -246,31 +246,10 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
     if (loading) {
         return (
             <View style={styles.container}>
-                {/* Header */}
+                {/* シンプルなヘッダー - チームのみ表示 */}
                 <View style={styles.header}>
-                    <View style={{ width: '100%', paddingTop: insets.top + 16, paddingBottom: 8, alignItems: 'center', backgroundColor: 'white' }}>
-                        <View style={styles.tabContainer}>
-                            <TouchableOpacity style={[styles.tabButton, styles.tabButtonActive]}>
-                                <View style={styles.tabLabelRow}>
-                                    <Text style={[styles.tabText, styles.tabTextActive]}>チーム</Text>
-                                    {teamUnreadTotal > 0 && (
-                                        <View style={styles.tabBadge}>
-                                            <Text style={styles.tabBadgeText}>{teamUnreadTotal}</Text>
-                                        </View>
-                                    )}
-                                </View>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.tabButton}>
-                                <View style={styles.tabLabelRow}>
-                                    <Text style={styles.tabText}>個人</Text>
-                                    {individualUnreadTotal > 0 && (
-                                        <View style={styles.tabBadge}>
-                                            <Text style={styles.tabBadgeText}>{individualUnreadTotal}</Text>
-                                        </View>
-                                    )}
-                                </View>
-                            </TouchableOpacity>
-                        </View>
+                    <View style={{ width: '100%', paddingTop: insets.top + 20, paddingBottom: 16, alignItems: 'center', backgroundColor: 'white' }}>
+                        <Text style={styles.headerTitle}>チームトーク</Text>
                     </View>
                 </View>
                 <ChatListSkeleton count={6} />
@@ -280,7 +259,17 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
 
     return (
         <View style={styles.container}>
-            {/* Header */}
+            {/* シンプルなヘッダー - チームのみ表示（個人タブは非表示） */}
+            <View style={styles.header}>
+                <View style={{ width: '100%', paddingTop: insets.top + 20, paddingBottom: 16, alignItems: 'center', backgroundColor: 'white' }}>
+                    <Text style={styles.headerTitle}>チームトーク</Text>
+                </View>
+            </View>
+
+            {/* チームチャットのみ表示 */}
+            {renderTeamList()}
+
+            {/* 個人タブは将来的な復活のためにコメントで残す
             <View style={styles.header}>
                 <View style={{ width: '100%', paddingTop: insets.top + 16, paddingBottom: 8, alignItems: 'center', backgroundColor: 'white' }}>
                     <View style={styles.tabContainer}>
@@ -320,7 +309,6 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
                 </View>
             </View>
 
-            {/* Content */}
             <FlatList
                 ref={talkListRef}
                 data={['team', 'individual']}
@@ -342,6 +330,7 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
                     </View>
                 )}
             />
+            */}
         </View>
     );
 }

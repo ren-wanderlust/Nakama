@@ -815,13 +815,66 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
 
     return (
         <View style={styles.container}>
-            {/* Modern Header */}
+            {/* シンプルなヘッダー - 募集/応募タブと通知ボタンを同じ行に配置 */}
             <View style={styles.header}>
-                {/* Background */}
-                <View style={[styles.headerGradient, { paddingTop: insets.top + 16, paddingBottom: 8, backgroundColor: 'white' }]}>
-                    {/* Top Level Tabs: プロジェクト / ユーザー */}
+                <View style={[styles.headerGradient, { paddingTop: insets.top + 20, paddingBottom: 16, backgroundColor: 'white' }]}>
                     <View style={styles.headerTop}>
                         <View style={styles.headerLeft} />
+                        {/* 募集/応募タブを中央に配置 */}
+                        <View style={styles.subTabContainerInHeader}>
+                            <TouchableOpacity
+                                style={[styles.subTabButton, projectTab === 'recruiting' && styles.subTabButtonActive]}
+                                onPress={() => {
+                                    setProjectTab('recruiting');
+                                    projectListRef.current?.scrollToIndex({ index: 0, animated: true });
+                                }}
+                                activeOpacity={0.7}
+                            >
+                                <Text style={[styles.subTabText, projectTab === 'recruiting' && styles.subTabTextActive]}>
+                                    募集
+                                </Text>
+                                {unreadRecruitingCount > 0 && (
+                                    <View style={styles.badge}>
+                                        <Text style={styles.badgeText}>{unreadRecruitingCount}</Text>
+                                    </View>
+                                )}
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.subTabButton, projectTab === 'applied' && styles.subTabButtonActive]}
+                                onPress={() => {
+                                    setProjectTab('applied');
+                                    projectListRef.current?.scrollToIndex({ index: 1, animated: true });
+                                }}
+                                activeOpacity={0.7}
+                            >
+                                <Text style={[styles.subTabText, projectTab === 'applied' && styles.subTabTextActive]}>
+                                    応募
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                        <View style={styles.headerRight}>
+                            {onOpenNotifications && (
+                                <TouchableOpacity
+                                    style={styles.notificationButton}
+                                    onPress={onOpenNotifications}
+                                >
+                                    <Ionicons name="notifications-outline" size={24} color="#F39800" />
+                                    {unreadNotificationsCount > 0 && (
+                                        <View style={styles.notificationBadgeDot} />
+                                    )}
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                    </View>
+                </View>
+            </View>
+
+            {/* ユーザータブは将来的な復活のためにコメントで残す
+            <View style={styles.header}>
+                <View style={[styles.headerGradient, { paddingTop: insets.top + 16, paddingBottom: 8, backgroundColor: 'white' }]}>
+                    <View style={styles.headerTop}>
+                        <View style={styles.headerLeft} />
+                        <Text style={[styles.headerTitle, { color: '#F39800', fontSize: 18, fontWeight: '600' }]}>プロジェクト</Text>
                         <View style={styles.mainTabContainer}>
                             <TouchableOpacity
                                 style={[styles.mainTabButton, mainTab === 'project' && styles.mainTabButtonActive]}
@@ -871,7 +924,6 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                 </View>
             </View>
 
-            {/* Sub Tabs with Modern Design */}
             {mainTab === 'user' ? (
                 <View style={styles.subTabContainer}>
                     <TouchableOpacity
@@ -954,8 +1006,10 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                     </TouchableOpacity>
                 </View>
             )}
+            */}
 
-            {/* Content */}
+            {/* Content - プロジェクトのみ表示 */}
+            {/* ユーザータブのコンテンツは将来的な復活のためにコメントで残す
             {mainTab === 'user' ? (
                 <FlatList
                     ref={userListRef}
@@ -981,29 +1035,32 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                     )}
                 />
             ) : (
-                <FlatList
-                    ref={projectListRef}
-                    data={projectTabs}
-                    horizontal
-                    pagingEnabled
-                    showsHorizontalScrollIndicator={false}
-                    keyExtractor={(item) => item}
-                    onMomentumScrollEnd={(e) => {
-                        const index = Math.round(e.nativeEvent.contentOffset.x / Dimensions.get('window').width);
-                        setProjectTab(projectTabs[index]);
-                    }}
-                    getItemLayout={(data, index) => (
-                        { length: Dimensions.get('window').width, offset: Dimensions.get('window').width * index, index }
-                    )}
-                    initialScrollIndex={0}
-                    renderItem={({ item }) => (
-                        <View style={{ width: Dimensions.get('window').width, flex: 1 }}>
-                            {item === 'recruiting' && renderRecruitingList()}
-                            {item === 'applied' && renderAppliedList()}
-                        </View>
-                    )}
-                />
+            */}
+            <FlatList
+                ref={projectListRef}
+                data={projectTabs}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                keyExtractor={(item) => item}
+                onMomentumScrollEnd={(e) => {
+                    const index = Math.round(e.nativeEvent.contentOffset.x / Dimensions.get('window').width);
+                    setProjectTab(projectTabs[index]);
+                }}
+                getItemLayout={(data, index) => (
+                    { length: Dimensions.get('window').width, offset: Dimensions.get('window').width * index, index }
+                )}
+                initialScrollIndex={0}
+                renderItem={({ item }) => (
+                    <View style={{ width: Dimensions.get('window').width, flex: 1 }}>
+                        {item === 'recruiting' && renderRecruitingList()}
+                        {item === 'applied' && renderAppliedList()}
+                    </View>
+                )}
+            />
+            {/* ユーザータブのクローズ括弧
             )}
+            */}
 
             {/* Project Detail Modal */}
             <Modal
@@ -1060,12 +1117,17 @@ const styles = StyleSheet.create({
         paddingVertical: 0,
     },
     headerLeft: {
-        width: 40,
+        width: 44,
     },
     headerRight: {
-        width: 56,
+        width: 44,
         alignItems: 'flex-end',
         paddingRight: 0,
+    },
+    headerTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: '#F39800',
     },
     // Main tabs (Project / User)
     mainTabContainer: {
@@ -1112,6 +1174,14 @@ const styles = StyleSheet.create({
         height: 10,
         borderRadius: 5,
         backgroundColor: '#EF4444',
+    },
+    // ヘッダー内に配置する募集/応募タブ
+    subTabContainerInHeader: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 10,
+        flex: 1,
     },
     // Sub tabs
     subTabContainer: {
