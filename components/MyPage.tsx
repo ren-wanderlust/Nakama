@@ -223,14 +223,6 @@ const ProjectCard = ({ project, ownerProfile, onPress }: { project: any; ownerPr
                         </View>
                     )}
                 </View>
-                {/* Pending notification badge */}
-                {!isClosed && project.pendingCount > 0 && (
-                    <View style={projectCardStyles.notificationBadge}>
-                        <Text style={projectCardStyles.notificationText}>
-                            {project.pendingCount}
-                        </Text>
-                    </View>
-                )}
             </View>
         </ModernCard>
     );
@@ -1060,7 +1052,7 @@ const projectCardStyles = StyleSheet.create({
     notificationBadge: {
         position: 'absolute',
         top: '50%',
-        right: 8,
+        right: 12,
         transform: [{ translateY: -10 }],
         backgroundColor: '#EF4444',
         minWidth: 20,
