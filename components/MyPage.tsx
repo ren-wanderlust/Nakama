@@ -77,99 +77,14 @@ const ProjectCard = ({ project, ownerProfile, onPress }: { project: any; ownerPr
     const iconCount = rolesWithIcons.length;
 
     // Determine layout based on icon count (same as UserProjectPage)
+    // Determine layout based on icon count (same as UserProjectPage)
     const getIconLayout = () => {
-        if (iconCount === 0) {
-            return null;
-        } else if (iconCount === 1) {
-            // Single icon in center (larger size)
-            return (
-                <View style={projectCardStyles.iconsContainer}>
-                    <View style={projectCardStyles.iconSlotCenter}>
-                        <View style={[projectCardStyles.iconCircleLarge, { backgroundColor: rolesWithIcons[0].colors.bg }]}>
-                            <Ionicons
-                                name={rolesWithIcons[0].icon as any}
-                                size={30}
-                                color={rolesWithIcons[0].colors.icon}
-                            />
-                        </View>
-                    </View>
-                </View>
-            );
-        } else if (iconCount === 2) {
-            // Two icons side by side, centered vertically
-            return (
-                <View style={projectCardStyles.iconsContainer}>
-                    <View style={projectCardStyles.iconSlotTwo}>
-                        <View style={[projectCardStyles.iconCircle, { backgroundColor: rolesWithIcons[0].colors.bg }]}>
-                            <Ionicons
-                                name={rolesWithIcons[0].icon as any}
-                                size={20}
-                                color={rolesWithIcons[0].colors.icon}
-                            />
-                        </View>
-                    </View>
-                    <View style={projectCardStyles.iconSlotTwo}>
-                        <View style={[projectCardStyles.iconCircle, { backgroundColor: rolesWithIcons[1].colors.bg }]}>
-                            <Ionicons
-                                name={rolesWithIcons[1].icon as any}
-                                size={20}
-                                color={rolesWithIcons[1].colors.icon}
-                            />
-                        </View>
-                    </View>
-                </View>
-            );
-        } else if (iconCount === 3) {
-            // Top two, bottom one centered
-            return (
-                <View style={projectCardStyles.iconsContainer}>
-                    <View style={projectCardStyles.iconSlotTop}>
-                        <View style={[projectCardStyles.iconCircle, { backgroundColor: rolesWithIcons[0].colors.bg }]}>
-                            <Ionicons
-                                name={rolesWithIcons[0].icon as any}
-                                size={20}
-                                color={rolesWithIcons[0].colors.icon}
-                            />
-                        </View>
-                    </View>
-                    <View style={projectCardStyles.iconSlotTop}>
-                        <View style={[projectCardStyles.iconCircle, { backgroundColor: rolesWithIcons[1].colors.bg }]}>
-                            <Ionicons
-                                name={rolesWithIcons[1].icon as any}
-                                size={20}
-                                color={rolesWithIcons[1].colors.icon}
-                            />
-                        </View>
-                    </View>
-                    <View style={projectCardStyles.iconSlotBottomCenter}>
-                        <View style={[projectCardStyles.iconCircle, { backgroundColor: rolesWithIcons[2].colors.bg }]}>
-                            <Ionicons
-                                name={rolesWithIcons[2].icon as any}
-                                size={20}
-                                color={rolesWithIcons[2].colors.icon}
-                            />
-                        </View>
-                    </View>
-                </View>
-            );
-        } else {
-            // Four icons in 2x2 grid
-            return (
-                <View style={projectCardStyles.iconsContainer}>
-                    {rolesWithIcons.map((item: { role: string; icon: string; colors: { bg: string; icon: string } }, i: number) => (
-                        <View key={`icon-${i}`} style={projectCardStyles.iconSlotGrid}>
-                            <View style={[projectCardStyles.iconCircle, { backgroundColor: item.colors.bg }]}>
-                                <Ionicons
-                                    name={item.icon as any}
-                                    size={20}
-                                    color={item.colors.icon}
-                                />
-                            </View>
-                        </View>
-                    ))}
-                </View>
-            );
-        }
+        return (
+            <Image
+                source={{ uri: ownerProfile.image }}
+                style={[projectCardStyles.authorIcon, { marginRight: 0 }]}
+            />
+        );
     };
 
     const isClosed = project.status === 'closed';
@@ -415,94 +330,26 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
 
         // Same icon layout logic as ProjectCard
         const getIconLayout = () => {
-            if (iconCount === 0) {
-                return null;
-            } else if (iconCount === 1) {
+            // participatingProjectsのitemにprofilesが含まれていると仮定
+            // もし含まれていなければ、プロジェクト作成者の画像を取得する必要があるが
+            // ここでは簡易的にitem.profiles?.imageを使用する
+            const imageUri = item.profiles?.image || item.owner?.image;
+
+            if (imageUri) {
                 return (
-                    <View style={projectCardStyles.iconsContainer}>
-                        <View style={projectCardStyles.iconSlotCenter}>
-                            <View style={[projectCardStyles.iconCircleLarge, { backgroundColor: rolesWithIcons[0].colors.bg }]}>
-                                <Ionicons
-                                    name={rolesWithIcons[0].icon as any}
-                                    size={30}
-                                    color={rolesWithIcons[0].colors.icon}
-                                />
-                            </View>
-                        </View>
-                    </View>
-                );
-            } else if (iconCount === 2) {
-                return (
-                    <View style={projectCardStyles.iconsContainer}>
-                        <View style={projectCardStyles.iconSlotTwo}>
-                            <View style={[projectCardStyles.iconCircle, { backgroundColor: rolesWithIcons[0].colors.bg }]}>
-                                <Ionicons
-                                    name={rolesWithIcons[0].icon as any}
-                                    size={20}
-                                    color={rolesWithIcons[0].colors.icon}
-                                />
-                            </View>
-                        </View>
-                        <View style={projectCardStyles.iconSlotTwo}>
-                            <View style={[projectCardStyles.iconCircle, { backgroundColor: rolesWithIcons[1].colors.bg }]}>
-                                <Ionicons
-                                    name={rolesWithIcons[1].icon as any}
-                                    size={20}
-                                    color={rolesWithIcons[1].colors.icon}
-                                />
-                            </View>
-                        </View>
-                    </View>
-                );
-            } else if (iconCount === 3) {
-                return (
-                    <View style={projectCardStyles.iconsContainer}>
-                        <View style={projectCardStyles.iconSlotTop}>
-                            <View style={[projectCardStyles.iconCircle, { backgroundColor: rolesWithIcons[0].colors.bg }]}>
-                                <Ionicons
-                                    name={rolesWithIcons[0].icon as any}
-                                    size={20}
-                                    color={rolesWithIcons[0].colors.icon}
-                                />
-                            </View>
-                        </View>
-                        <View style={projectCardStyles.iconSlotTop}>
-                            <View style={[projectCardStyles.iconCircle, { backgroundColor: rolesWithIcons[1].colors.bg }]}>
-                                <Ionicons
-                                    name={rolesWithIcons[1].icon as any}
-                                    size={20}
-                                    color={rolesWithIcons[1].colors.icon}
-                                />
-                            </View>
-                        </View>
-                        <View style={projectCardStyles.iconSlotBottomCenter}>
-                            <View style={[projectCardStyles.iconCircle, { backgroundColor: rolesWithIcons[2].colors.bg }]}>
-                                <Ionicons
-                                    name={rolesWithIcons[2].icon as any}
-                                    size={20}
-                                    color={rolesWithIcons[2].colors.icon}
-                                />
-                            </View>
-                        </View>
-                    </View>
-                );
-            } else {
-                return (
-                    <View style={projectCardStyles.iconsContainer}>
-                        {rolesWithIcons.map((roleItem: { role: string; icon: string; colors: { bg: string; icon: string } }, i: number) => (
-                            <View key={`icon-${i}`} style={projectCardStyles.iconSlotGrid}>
-                                <View style={[projectCardStyles.iconCircle, { backgroundColor: roleItem.colors.bg }]}>
-                                    <Ionicons
-                                        name={roleItem.icon as any}
-                                        size={20}
-                                        color={roleItem.colors.icon}
-                                    />
-                                </View>
-                            </View>
-                        ))}
-                    </View>
+                    <Image
+                        source={{ uri: imageUri }}
+                        style={[projectCardStyles.authorIcon, { marginRight: 0 }]}
+                    />
                 );
             }
+
+            // 画像がない場合のフォールバック（デフォルトアイコン）
+            return (
+                <View style={[projectCardStyles.authorIcon, { marginRight: 0, alignItems: 'center', justifyContent: 'center' }]}>
+                    <Ionicons name="person" size={24} color="#9CA3AF" />
+                </View>
+            );
         };
 
         // 作成日を取得
@@ -984,9 +831,9 @@ const projectCardStyles = StyleSheet.create({
         justifyContent: 'center',
     },
     authorIcon: {
-        width: 56,
-        height: 56,
-        borderRadius: 28,
+        width: 48,
+        height: 48,
+        borderRadius: 24,
         marginRight: 14,
         backgroundColor: '#EEE',
     },
