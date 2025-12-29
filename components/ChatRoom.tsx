@@ -143,6 +143,44 @@ const getBatchKeyFromImageUrl = (imageUrl?: string) => {
     }
 };
 
+async function getTeamChatMemberIds(params: { chatRoomId: string; projectId?: string }): Promise<string[]> {
+    try {
+        let pid = params.projectId;
+        if (!pid) {
+            const { data: room, error: roomError } = await supabase
+                .from('chat_rooms')
+                .select('project_id')
+                .eq('id', params.chatRoomId)
+                .single();
+            if (roomError) throw roomError;
+            pid = room?.project_id;
+        }
+        if (!pid) return [];
+
+        const [{ data: project, error: projectError }, { data: apps, error: appsError }] = await Promise.all([
+            supabase.from('projects').select('owner_id').eq('id', pid).single(),
+            supabase
+                .from('project_applications')
+                .select('user_id')
+                .eq('project_id', pid)
+                .eq('status', 'approved'),
+        ]);
+
+        if (projectError) throw projectError;
+        if (appsError) throw appsError;
+
+        const ids = [
+            project?.owner_id,
+            ...(apps ?? []).map((a: any) => a.user_id),
+        ].filter((x): x is string => !!x);
+
+        return Array.from(new Set(ids));
+    } catch (e) {
+        console.log('Error fetching team chat member ids:', e);
+        return [];
+    }
+}
+
 const ImageBatchBubble = ({
     messages,
     onReply,
@@ -1067,6 +1105,27 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                             body,
                             { type: 'message', senderId: currentUserId }
                         );
+                    }
+                } else {
+                    // Team chat: notify all members except myself
+                    const memberIds = await getTeamChatMemberIds({ chatRoomId: partnerId, projectId });
+                    const recipients = memberIds.filter(id => id !== currentUserId);
+                    if (recipients.length === 0) return;
+
+                    const body = content
+                        ? content
+                        : (imagesToSend.length > 0 ? '画像が送信されました' : 'メッセージが送信されました');
+
+                    for (const userId of recipients) {
+                        const tokens = await getUserPushTokens(userId);
+                        for (const token of tokens) {
+                            await sendPushNotification(
+                                token,
+                                partnerName || '新しいメッセージ',
+                                body,
+                                { type: 'message', senderId: currentUserId, chatRoomId: partnerId, isGroup: true }
+                            );
+                        }
                     }
                 }
             } catch (notifError) {
