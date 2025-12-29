@@ -103,28 +103,8 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
         <Animated.View style={[styles.container, { opacity: containerOpacity }]}>
             <StatusBar style="dark" />
 
-            {/* 背景: ログイン画面と共通の温かいグラデーション */}
-            <LinearGradient
-                colors={['#FFFFFF', '#FFF7ED', '#FFEDD5']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={StyleSheet.absoluteFillObject}
-            />
-
-            {/* 背景の装飾（薄いロゴパターン） */}
-            <View style={{
-                position: 'absolute',
-                top: -width * 0.2,
-                right: -width * 0.2,
-                opacity: 0.03,
-                transform: [{ rotate: '-15deg' }]
-            }}>
-                <Image
-                    source={require('../assets/pogg_logo_orange.png')}
-                    style={{ width: width * 0.8, height: width * 0.8 }}
-                    contentFit="contain"
-                />
-            </View>
+            {/* 背景: 白単色 */}
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: '#FFFFFF' }]} />
 
             {/* メインロゴコンテンツ */}
             <Animated.View
@@ -142,19 +122,16 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
                 {/* ロゴアイコン */}
                 <View style={styles.iconWrapper}>
                     <Image
-                        source={require('../assets/pogg_logo_orange.png')}
+                        source={require('../assets/pogg_logo_orange_icon.png')}
                         style={styles.logoIcon}
-                        contentFit="cover"
+                        contentFit="contain"
                     />
                 </View>
-
-                {/* ブランド名 */}
-                <Text style={styles.logoText}>Pogg</Text>
             </Animated.View>
 
-            {/* 下部のローディングインジケーター */}
+            {/* 下部のテキスト */}
             <View style={styles.footerContainer}>
-                <Text style={styles.tagline}>Future Leaders Community</Text>
+                <Text style={styles.tagline}>Pogg</Text>
             </View>
         </Animated.View>
     );
@@ -166,44 +143,34 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 1000,
+        backgroundColor: '#FFFFFF',
     },
     logoContainer: {
         alignItems: 'center',
         justifyContent: 'center',
+        flex: 1, // 中央配置のためにflexを使用
     },
     iconWrapper: {
-        width: 120, // ログイン画面より少し大きめ
+        width: 120,
         height: 120,
-        marginBottom: 24,
-        borderRadius: 28,
-        // アイコン自体に少し影を落とす
-        shadowColor: COLORS.primary,
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.3,
-        shadowRadius: 20,
-        elevation: 10,
-        backgroundColor: '#fff',
+        // 装飾を削除してフラットに
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     logoIcon: {
         width: '100%',
         height: '100%',
     },
-    logoText: {
-        fontSize: 42,
-        fontWeight: '800',
-        color: COLORS.text,
-        letterSpacing: -1,
-    },
     footerContainer: {
         position: 'absolute',
-        bottom: 60,
+        bottom: 50,
         alignItems: 'center',
+        width: '100%',
     },
     tagline: {
-        fontSize: 12,
-        color: '#94A3B8',
-        letterSpacing: 2,
-        textTransform: 'uppercase',
-        opacity: 0.8,
+        fontSize: 28,
+        fontWeight: '700',
+        color: '#F39800', // ブランドカラー
+        letterSpacing: 1,
     },
 });
