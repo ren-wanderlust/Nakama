@@ -490,9 +490,9 @@ function AppContent() {
     const applicationsChannel = supabase.channel('unread_applications_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'project_applications' }, (payload) => {
         if (session?.user) {
-          // ハート(いいね)バッジ更新のため、表示中（active）は即再取得まで行う
-          queryClient.invalidateQueries({ queryKey: queryKeys.projectApplications.detail(session.user.id), refetchType: 'active' });
-          queryClient.invalidateQueries({ queryKey: queryKeys.myProjects.detail(session.user.id) });
+          // ハート(いいね)バッジ更新のため、即再取得を行う (refetchQueriesを使用)
+          queryClient.refetchQueries({ queryKey: queryKeys.projectApplications.detail(session.user.id) });
+          queryClient.refetchQueries({ queryKey: queryKeys.myProjects.detail(session.user.id) });
         }
 
         // 承認(approved) になったユーザーの「参加中」を確実に更新する
@@ -560,9 +560,8 @@ function AppContent() {
           const targetUserId: string | undefined = newRow?.user_id;
 
           if (type === 'application' && targetUserId && targetUserId === session.user.id) {
-            queryClient.invalidateQueries({
+            queryClient.refetchQueries({
               queryKey: queryKeys.projectApplications.detail(session.user.id),
-              refetchType: 'active',
             });
           }
         } catch (e) {
