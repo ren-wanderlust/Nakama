@@ -265,12 +265,12 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
         <View style={styles.discordHeader}>
             {/* 背景色 + ロゴ (グラデーションを削除し、ロゴの背景色に合わせる) */}
             <View
-                style={[styles.discordBanner, { backgroundColor: '#F8B648' }]} // 推定されるロゴ背景色
+                style={[styles.discordBanner, { backgroundColor: '#FBA535' }]} // 推定されるロゴ背景色
             >
                 <View style={styles.discordBannerContent}>
                     <View style={styles.logoContainer}>
                         <Image
-                            source={require('../assets/pogg_logo_orange.png')}
+                            source={require('../assets/adaptive-icon.png')}
                             style={styles.discordBannerLogo}
                             resizeMode="contain"
                         />
@@ -844,8 +844,13 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     logoContainer: {
+        width: 64,
+        height: 64,
+        borderRadius: 16, // 角丸
+        backgroundColor: 'white', // 白背景
         alignItems: 'center',
         justifyContent: 'center',
+        ...SHADOWS.sm,
     },
     discordBannerLogo: {
         width: 48,
