@@ -263,12 +263,9 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
     // Discord風ヘッダー
     const renderDiscordHeader = () => (
         <View style={styles.discordHeader}>
-            {/* グラデーション背景 + ロゴ */}
-            <LinearGradient
-                colors={['#FFCC80', '#FB8C00']} // 明るめのオレンジグラデーション
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.discordBanner}
+            {/* 背景色 + ロゴ (グラデーションを削除し、ロゴの背景色に合わせる) */}
+            <View
+                style={[styles.discordBanner, { backgroundColor: '#F8B648' }]} // 推定されるロゴ背景色
             >
                 <View style={styles.discordBannerContent}>
                     <View style={styles.logoContainer}>
@@ -280,7 +277,7 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                     </View>
                     <Text style={styles.discordBannerText}>Pogg</Text>
                 </View>
-            </LinearGradient>
+            </View>
 
             {/* 設定アイコン（右上） */}
             <TouchableOpacity
@@ -847,20 +844,15 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     logoContainer: {
-        width: 32,
-        height: 32,
-        borderRadius: 8, // 角丸
-        backgroundColor: 'white', // 白背景
         alignItems: 'center',
         justifyContent: 'center',
-        ...SHADOWS.sm,
     },
     discordBannerLogo: {
-        width: 20,
-        height: 20,
+        width: 48,
+        height: 48,
     },
     discordBannerText: {
-        fontSize: 22,
+        fontSize: 34,
         fontWeight: '700',
         color: 'white',
         letterSpacing: 0.5,
