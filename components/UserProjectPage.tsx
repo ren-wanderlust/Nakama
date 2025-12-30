@@ -104,94 +104,81 @@ const ProjectCard = ({ project, onPress, index = 0 }: { project: Project; onPres
         ]).start();
     }, [index]);
 
-    // Get roles with icons and colors, limit to 4
-    const rolesWithIcons = project.required_roles
-        ?.slice(0, 4)
-        .map(role => ({
-            role,
-            icon: ROLE_ICONS[role] || 'help-circle-outline',
-            colors: ROLE_COLORS[role] || { bg: '#F3F4F6', icon: '#6B7280' }
-        })) || [];
+    // オーナー情報
+    const projectData = project as any;
+    const ownerImage = projectData.profiles?.image || projectData.owner?.image;
+    const ownerName = projectData.profiles?.name || projectData.owner?.name || '不明';
+    const coverImage = projectData.cover_image;
 
-    const iconCount = rolesWithIcons.length;
-
-    // Determine layout based on icon count
-    const getIconLayout = () => {
-        const projectData = project as any;
-        const ownerImage = projectData.profiles?.image || projectData.owner?.image;
-
-        if (ownerImage) {
-            return (
-                <Image
-                    source={{ uri: ownerImage }}
-                    style={{
-                        width: 48,
-                        height: 48,
-                        borderRadius: 24,
-                        backgroundColor: '#EEE',
-                    }}
-                />
-            );
-        }
-
-        return (
-            <View style={{
-                width: 48,
-                height: 48,
-                borderRadius: 24,
-                backgroundColor: '#EEE',
-                alignItems: 'center',
-                justifyContent: 'center'
-            }}>
-                <Ionicons name="person" size={24} color="#9CA3AF" />
-            </View>
-        );
-    };
+    // モックのサムネイル画像（色のバリエーション）- カバー画像がない場合に使用
+    const mockColors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F'];
+    const mockColor = mockColors[index % mockColors.length];
 
     return (
         <Animated.View style={{
             opacity: fadeAnim,
             transform: [{ translateY: slideAnim }]
         }}>
-            <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.85}>
-                <View style={styles.cardInner}>
-                    {/* Role Icons Container */}
-                    {getIconLayout()}
+            <TouchableOpacity style={styles.cardNew} onPress={onPress} activeOpacity={0.85}>
+                {/* 左側: サムネイル画像 */}
+                <View style={[styles.cardThumbnail, !coverImage && { backgroundColor: mockColor }]}>
+                    {coverImage ? (
+                        <Image
+                            source={{ uri: coverImage }}
+                            style={styles.cardThumbnailImage}
+                            resizeMode="cover"
+                        />
+                    ) : (
+                        <Ionicons name="image-outline" size={36} color="rgba(255,255,255,0.5)" />
+                    )}
+                </View>
 
-                    {/* Card Content */}
-                    <View style={styles.cardContent}>
-                        {/* Title Row - タイトルと作成日を横並び */}
-                        <View style={styles.titleRow}>
-                            <Text style={styles.cardTitle} numberOfLines={1}>{project.title}</Text>
-                            <Text style={styles.timeAgoText}>{timeAgo}</Text>
-                        </View>
-
-                        {/* Tagline */}
-                        {project.tagline && (
-                            <Text style={styles.cardTagline} numberOfLines={1}>{project.tagline}</Text>
-                        )}
-
-                        {/* Tags - Theme + Content Tags */}
-                        {((project.tags && project.tags.length > 0) || (project.content_tags && project.content_tags.length > 0)) && (
-                            <View style={styles.tagsRow}>
-                                {/* Theme Tag (大枠) */}
-                                {project.tags?.slice(0, 1).map((tag, index) => (
-                                    <View key={`theme-${index}`} style={styles.themeTag}>
-                                        <Text style={styles.themeTagText}>{tag}</Text>
-                                    </View>
-                                ))}
-                                {/* Content Tags - 最大4つまで */}
-                                {project.content_tags?.slice(0, 4).map((tag, index) => (
-                                    <View key={`content-${index}`} style={styles.tag}>
-                                        <Text style={styles.tagText}>{tag}</Text>
-                                    </View>
-                                ))}
-                                {/* 省略表示 */}
-                                {(project.content_tags?.length || 0) > 4 && (
-                                    <Text style={styles.moreTagsText}>...</Text>
-                                )}
+                {/* 右側: コンテンツ */}
+                <View style={styles.cardContentNew}>
+                    {/* オーナー情報 */}
+                    <View style={styles.cardOwnerRow}>
+                        {ownerImage ? (
+                            <Image
+                                source={{ uri: ownerImage }}
+                                style={styles.cardOwnerAvatar}
+                            />
+                        ) : (
+                            <View style={[styles.cardOwnerAvatar, { backgroundColor: '#E5E7EB', alignItems: 'center', justifyContent: 'center' }]}>
+                                <Ionicons name="person" size={12} color="#9CA3AF" />
                             </View>
                         )}
+                        <Text style={styles.cardOwnerName} numberOfLines={1}>{ownerName}</Text>
+                        <Text style={styles.cardTimeAgo}>{timeAgo}</Text>
+                    </View>
+
+                    {/* タイトル */}
+                    <Text style={styles.cardTitleNew} numberOfLines={2}>{project.title}</Text>
+
+                    {/* タグライン/説明 */}
+                    {project.tagline && (
+                        <Text style={styles.cardTaglineNew} numberOfLines={1}>{project.tagline}</Text>
+                    )}
+
+                    {/* 下部: タグ + 統計 */}
+                    <View style={styles.cardBottomRow}>
+                        {/* タグ */}
+                        <View style={styles.cardTagsRow}>
+                            {project.tags?.slice(0, 1).map((tag, idx) => (
+                                <View key={`theme-${idx}`} style={styles.themeTag}>
+                                    <Text style={styles.themeTagText}>{tag}</Text>
+                                </View>
+                            ))}
+                            {project.content_tags?.slice(0, 2).map((tag, idx) => (
+                                <View key={`content-${idx}`} style={styles.tag}>
+                                    <Text style={styles.tagText}>{tag}</Text>
+                                </View>
+                            ))}
+                        </View>
+                        {/* 統計（モック） */}
+                        <View style={styles.cardStatsRow}>
+                            <Ionicons name="people-outline" size={12} color="#9CA3AF" />
+                            <Text style={styles.cardStatText}>{projectData.max_members || '?'}</Text>
+                        </View>
                     </View>
                 </View>
             </TouchableOpacity>
@@ -664,5 +651,89 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 3 },
         shadowOpacity: 0.27,
         shadowRadius: 4.65,
+    },
+    // 新しいツイキャス風カードスタイル
+    cardNew: {
+        flexDirection: 'row',
+        backgroundColor: 'white',
+        borderRadius: 12,
+        overflow: 'hidden',
+        marginBottom: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+        elevation: 3,
+    },
+    cardThumbnail: {
+        width: 120,
+        height: 120,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    cardThumbnailImage: {
+        width: '100%',
+        height: '100%',
+    },
+    cardContentNew: {
+        flex: 1,
+        padding: 12,
+        justifyContent: 'space-between',
+    },
+    cardOwnerRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 6,
+    },
+    cardOwnerAvatar: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        marginRight: 6,
+    },
+    cardOwnerName: {
+        flex: 1,
+        fontSize: 12,
+        fontFamily: FONTS.medium,
+        color: '#6B7280',
+    },
+    cardTimeAgo: {
+        fontSize: 11,
+        fontFamily: FONTS.regular,
+        color: '#9CA3AF',
+    },
+    cardTitleNew: {
+        fontSize: 15,
+        fontFamily: FONTS.bold,
+        color: '#111827',
+        lineHeight: 20,
+        marginBottom: 4,
+    },
+    cardTaglineNew: {
+        fontSize: 12,
+        fontFamily: FONTS.regular,
+        color: '#6B7280',
+        lineHeight: 16,
+        marginBottom: 6,
+    },
+    cardBottomRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    cardTagsRow: {
+        flexDirection: 'row',
+        gap: 4,
+        flex: 1,
+    },
+    cardStatsRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    cardStatText: {
+        fontSize: 11,
+        fontFamily: FONTS.regular,
+        color: '#9CA3AF',
     },
 });
