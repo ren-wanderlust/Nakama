@@ -223,7 +223,14 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
             // プロジェクト作成/更新
             if (project) {
                 // Update
-                coverImageUrl = await uploadCoverImage(project.id);
+                // 新しい画像が選択された場合のみアップロード
+                if (coverImageUri && !coverImageUri.startsWith('https://')) {
+                    // ローカル画像（新しく選択した）の場合はアップロード
+                    coverImageUrl = await uploadCoverImage(project.id);
+                } else {
+                    // 既存のURLまたはnullをそのまま使用
+                    coverImageUrl = coverImageUri;
+                }
 
                 const projectData = {
                     owner_id: currentUser.id,
