@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { HapticButton } from './HapticButton';
 import { COLORS, RADIUS, SPACING, SHADOWS } from '../constants/DesignSystem';
 
-type EmptyStateVariant = 'default' | 'search' | 'chat' | 'likes' | 'projects' | 'notifications';
+type EmptyStateVariant = 'default' | 'search' | 'chat' | 'likes' | 'projects' | 'notifications' | 'applicants' | 'myprojects' | 'applications';
 
 interface EmptyStateProps {
     variant?: EmptyStateVariant;
@@ -17,7 +17,7 @@ interface EmptyStateProps {
     style?: ViewStyle;
 }
 
-// Variant configurations
+// Variant configurations - アプリのテーマカラー（オレンジ系）で統一
 const VARIANT_CONFIG: Record<EmptyStateVariant, {
     icon: keyof typeof Ionicons.glyphMap;
     gradient: [string, string];
@@ -25,33 +25,51 @@ const VARIANT_CONFIG: Record<EmptyStateVariant, {
 }> = {
     default: {
         icon: 'folder-open-outline',
-        gradient: ['#F3F4F6', '#E5E7EB'],
-        iconColor: '#9CA3AF',
+        gradient: ['#FFF3E0', '#FFE0B2'],
+        iconColor: '#F39800',
     },
     search: {
         icon: 'search-outline',
-        gradient: ['#E0F2F1', '#B2DFDB'],
-        iconColor: '#009688',
+        gradient: ['#FFF3E0', '#FFE0B2'],
+        iconColor: '#F39800',
     },
     chat: {
         icon: 'chatbubbles-outline',
-        gradient: ['#EDE9FE', '#DDD6FE'],
-        iconColor: '#8B5CF6',
+        gradient: ['#FFF3E0', '#FFE0B2'],
+        iconColor: '#F39800',
     },
     likes: {
         icon: 'heart-outline',
-        gradient: ['#FCE7F3', '#FBCFE8'],
-        iconColor: '#EC4899',
+        gradient: ['#FFF3E0', '#FFE0B2'],
+        iconColor: '#F39800',
     },
     projects: {
         icon: 'rocket-outline',
-        gradient: ['#DBEAFE', '#BFDBFE'],
-        iconColor: '#3B82F6',
+        gradient: ['#FFF3E0', '#FFE0B2'],
+        iconColor: '#F39800',
     },
     notifications: {
         icon: 'notifications-outline',
-        gradient: ['#FEF3C7', '#FDE68A'],
-        iconColor: '#F59E0B',
+        gradient: ['#FFF3E0', '#FFE0B2'],
+        iconColor: '#F39800',
+    },
+    // 募集タブ用 - 応募者がいない時
+    applicants: {
+        icon: 'people-outline',
+        gradient: ['#FFF3E0', '#FFE0B2'],
+        iconColor: '#F39800',
+    },
+    // マイプロジェクト用
+    myprojects: {
+        icon: 'folder-open-outline',
+        gradient: ['#FFF3E0', '#FFE0B2'],
+        iconColor: '#F39800',
+    },
+    // 応募タブ用 - 応募したプロジェクトがない時
+    applications: {
+        icon: 'briefcase-outline',
+        gradient: ['#FFF3E0', '#FFE0B2'],
+        iconColor: '#F39800',
     },
 };
 
@@ -339,6 +357,87 @@ export function UsersEmptyState({ onReset }: { onReset?: () => void }) {
             description="まだ登録しているユーザーがいないか、フィルター条件に一致するユーザーがいません"
             actionLabel={onReset ? "フィルターをリセット" : undefined}
             onAction={onReset}
+        />
+    );
+}
+
+/**
+ * 募集タブ - 応募者がいない場合のエンプティステート
+ */
+export function ApplicantsEmptyState({ projectName }: { projectName?: string }) {
+    return (
+        <EmptyState
+            variant="applicants"
+            title={projectName ? 'このプロジェクトへの応募者はまだいません' : '応募者はまだいません'}
+            description={projectName
+                ? '別のプロジェクトを選択するか、しばらくお待ちください'
+                : 'プロジェクトを作成すると、応募者がここに表示されます'}
+        />
+    );
+}
+
+/**
+ * 応募タブ - 応募したプロジェクトがない場合のエンプティステート
+ */
+export function ApplicationsEmptyState({ filter }: { filter?: 'all' | 'approved' | 'pending' | 'rejected' }) {
+    const getTexts = () => {
+        switch (filter) {
+            case 'approved':
+                return {
+                    title: '参加決定のプロジェクトはありません',
+                    description: '全ての応募を表示するには「すべて」をタップしてください',
+                };
+            case 'pending':
+                return {
+                    title: '承認待ちのプロジェクトはありません',
+                    description: '全ての応募を表示するには「すべて」をタップしてください',
+                };
+            case 'rejected':
+                return {
+                    title: '見送りのプロジェクトはありません',
+                    description: '全ての応募を表示するには「すべて」をタップしてください',
+                };
+            default:
+                return {
+                    title: '応募したプロジェクトはありません',
+                    description: '気になるプロジェクトに応募してみましょう',
+                };
+        }
+    };
+
+    const texts = getTexts();
+
+    return (
+        <EmptyState
+            variant="applications"
+            title={texts.title}
+            description={texts.description}
+        />
+    );
+}
+
+/**
+ * マイプロジェクト - プロジェクトがない場合のエンプティステート
+ */
+export function MyProjectsEmptyState({ type }: { type: 'myProjects' | 'participatingProjects' }) {
+    const config = type === 'myProjects'
+        ? {
+            icon: 'folder-open-outline' as const,
+            title: 'プロジェクトはまだありません',
+            description: 'プロジェクトを作成して公開しましょう',
+        }
+        : {
+            icon: 'people-outline' as const,
+            title: '参加中のプロジェクトはありません',
+            description: '気になるプロジェクトに応募してみましょう',
+        };
+
+    return (
+        <EmptyState
+            variant="myprojects"
+            icon={config.icon}
+            title={config.title}
+            description={config.description}
         />
     );
 }
