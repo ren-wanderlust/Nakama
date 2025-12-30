@@ -14,7 +14,7 @@ import { useProjectApplications } from '../data/hooks/useProjectApplications';
 import { useMyProjects } from '../data/hooks/useMyProjects';
 import { queryKeys } from '../data/queryKeys';
 import { ProfileListSkeleton, ProjectListSkeleton } from './Skeleton';
-import { LikesEmptyState } from './EmptyState';
+import { LikesEmptyState, ApplicantsEmptyState, ApplicationsEmptyState } from './EmptyState';
 import { translateTag } from '../constants/TagConstants';
 import { FONTS } from '../constants/DesignSystem';
 import { ProjectDetail } from './ProjectDetail';
@@ -797,19 +797,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
         const pendingApps = filteredRecruitingApps.filter(a => a.status === 'pending');
 
         const RecruitingEmptyComponent = () => (
-            <View style={styles.emptyContainer}>
-                <Ionicons name="people-outline" size={64} color="#d1d5db" />
-                <Text style={styles.emptyText}>
-                    {selectedRecruitingProject
-                        ? 'このプロジェクトへの応募者はまだいません'
-                        : '応募者はまだいません'}
-                </Text>
-                <Text style={styles.emptySubText}>
-                    {selectedRecruitingProject
-                        ? '別のプロジェクトを選択するか、しばらくお待ちください'
-                        : 'プロジェクトを作成すると、応募者がここに表示されます'}
-                </Text>
-            </View>
+            <ApplicantsEmptyState projectName={selectedRecruitingProject?.title} />
         );
 
         return (
@@ -890,23 +878,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
         const filteredApplications = getFilteredAndSortedApplications();
 
         const AppliedEmptyComponent = () => (
-            <View style={styles.emptyContainer}>
-                <Ionicons name="briefcase-outline" size={64} color="#d1d5db" />
-                <Text style={styles.emptyText}>
-                    {appliedFilter === 'all'
-                        ? '応募したプロジェクトはありません'
-                        : appliedFilter === 'approved'
-                            ? '参加決定のプロジェクトはありません'
-                            : appliedFilter === 'pending'
-                                ? '承認待ちのプロジェクトはありません'
-                                : '見送りのプロジェクトはありません'}
-                </Text>
-                <Text style={styles.emptySubText}>
-                    {appliedFilter === 'all'
-                        ? '気になるプロジェクトに応募してみましょう'
-                        : `全ての応募を表示するには「すべて」をタップしてください`}
-                </Text>
-            </View>
+            <ApplicationsEmptyState filter={appliedFilter} />
         );
 
         // Filter button component

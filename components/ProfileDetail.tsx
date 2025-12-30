@@ -319,22 +319,26 @@ export function ProfileDetail({ profile, onBack, onLike, onChat, isLiked, onBloc
 
             </ScrollView >
 
-            {/* Footer Action Button */}
-            <View style={styles.footer}>
-                {isMatched ? (
-                    <HapticTouchable style={styles.chatButton} onPress={onChat} hapticType="medium">
-                        <Ionicons name="chatbubble" size={20} color="white" />
-                        <Text style={styles.chatButtonText}>メッセージを送る</Text>
-                    </HapticTouchable>
-                ) : (
-                    <AnimatedLikeButton
-                        isLiked={isLiked}
-                        onPress={onLike}
-                        showLabel={true}
-                        style={{ width: '100%' }}
-                    />
-                )}
-            </View>
+            {/* Footer Action Button - GitHubリンクがある場合のみ表示 */}
+            {profile.githubUrl && (
+                <View style={styles.footer}>
+                    <TouchableOpacity
+                        style={styles.githubFooterButton}
+                        onPress={() => {
+                            const url = profile.githubUrl!.startsWith('http')
+                                ? profile.githubUrl!
+                                : `https://${profile.githubUrl}`;
+                            import('react-native').then(({ Linking }) => {
+                                Linking.openURL(url);
+                            });
+                        }}
+                        activeOpacity={0.8}
+                    >
+                        <Ionicons name="logo-github" size={22} color="white" />
+                        <Text style={styles.githubFooterButtonText}>GitHubを見る</Text>
+                    </TouchableOpacity>
+                </View>
+            )}
 
             {/* Report Modal */}
             <Modal
@@ -688,6 +692,30 @@ const styles = StyleSheet.create({
         elevation: 6,
     },
     chatButtonText: {
+        color: 'white',
+        fontSize: 18,
+        fontWeight: 'bold',
+        letterSpacing: 0.5,
+    },
+    githubFooterButton: {
+        backgroundColor: '#1F2937',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 16,
+        borderRadius: 100,
+        width: '100%',
+        gap: 10,
+        shadowColor: "#1F2937",
+        shadowOffset: {
+            width: 0,
+            height: 4,
+        },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 6,
+    },
+    githubFooterButtonText: {
         color: 'white',
         fontSize: 18,
         fontWeight: 'bold',

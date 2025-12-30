@@ -623,6 +623,96 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
         );
     };
 
+    // メンバーキック処理
+    const handleKickMember = (applicant: Applicant) => {
+        if (currentUser?.id !== project.owner_id) return;
+
+        Alert.alert(
+            'メンバーを削除',
+            `${applicant.user.name}さんをプロジェクトから削除しますか？\n\nこの操作を実行すると、メンバーはチームチャットからも除外されます。`,
+            [
+                { text: 'キャンセル', style: 'cancel' },
+                {
+                    text: '削除する',
+                    style: 'destructive',
+                    onPress: () => {
+                        // 2段階確認
+                        Alert.alert(
+                            '最終確認',
+                            `本当に${applicant.user.name}さんを削除してよろしいですか？`,
+                            [
+                                { text: 'やめる', style: 'cancel' },
+                                {
+                                    text: '削除する',
+                                    style: 'destructive',
+                                    onPress: () => executeKickMember(applicant)
+                                }
+                            ]
+                        );
+                    }
+                }
+            ]
+        );
+    };
+
+    const executeKickMember = async (applicant: Applicant) => {
+        try {
+            // 1. プロジェクト応募を rejected に変更（削除ではなく履歴を残す）
+            const { error: removeError } = await supabase
+                .from('project_applications')
+                .update({ status: 'rejected' })
+                .eq('id', applicant.id);
+
+            if (removeError) throw removeError;
+
+            // 2. 通知を送信
+            await supabase
+                .from('notifications')
+                .insert({
+                    user_id: applicant.user_id,
+                    sender_id: currentUser?.id,
+                    project_id: project.id,
+                    type: 'kicked',
+                    title: 'プロジェクトからの除外',
+                    content: `「${project.title}」からオーナーにより除外されました。`,
+                    image_url: project.image_url || currentUser?.image
+                });
+
+            // 3. プッシュ通知を送信
+            try {
+                const tokens = await getUserPushTokens(applicant.user_id);
+                for (const token of tokens) {
+                    await sendPushNotification(
+                        token,
+                        'プロジェクトからの除外',
+                        `「${project.title}」からオーナーにより除外されました。`,
+                        { type: 'kicked', projectId: project.id }
+                    );
+                }
+            } catch (pushError) {
+                console.log('Push notification error:', pushError);
+            }
+
+            // 4. React Query のキャッシュを更新
+            if (applicant.user_id) {
+                queryClient.invalidateQueries({ queryKey: queryKeys.participatingProjects.detail(applicant.user_id), refetchType: 'active' });
+                queryClient.invalidateQueries({ queryKey: queryKeys.chatRooms.list(applicant.user_id), refetchType: 'active' });
+            }
+            if (currentUser?.id) {
+                queryClient.invalidateQueries({ queryKey: queryKeys.projectApplications.recruiting(currentUser.id) });
+                queryClient.invalidateQueries({ queryKey: queryKeys.chatRooms.list(currentUser.id), refetchType: 'active' });
+            }
+
+            Alert.alert('完了', `${applicant.user.name}さんをプロジェクトから削除しました`);
+            fetchApplicants();
+
+            if (onProjectUpdated) onProjectUpdated();
+        } catch (error) {
+            console.error('Error kicking member:', error);
+            Alert.alert('エラー', 'メンバーの削除に失敗しました');
+        }
+    };
+
     const formatDate = (dateString?: string | null) => {
         if (!dateString) return '期限なし';
         const date = new Date(dateString);
@@ -721,6 +811,9 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                         <Text style={styles.sectionTitle}>
                             参加メンバー ({applicants.filter(a => a.status === 'approved').length}人)
                         </Text>
+                        {currentUser?.id === project.owner_id && applicants.filter(a => a.status === 'approved').length > 0 && (
+                            <Text style={styles.kickHintText}>長押しでメンバーを削除できます</Text>
+                        )}
                         {applicants.filter(a => a.status === 'approved').length > 0 ? (
                             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.applicantsList}>
                                 {applicants.filter(a => a.status === 'approved').map((applicant) => (
@@ -728,6 +821,12 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                                         key={applicant.id}
                                         style={styles.applicantItem}
                                         onPress={() => fetchMemberProfile(applicant.user_id)}
+                                        onLongPress={() => {
+                                            if (currentUser?.id === project.owner_id) {
+                                                handleKickMember(applicant);
+                                            }
+                                        }}
+                                        delayLongPress={500}
                                         activeOpacity={0.7}
                                         disabled={loadingProfile === applicant.user_id}
                                     >
@@ -1077,6 +1176,12 @@ const styles = StyleSheet.create({
         color: '#9CA3AF',
         fontStyle: 'italic',
         marginTop: 8,
+    },
+    kickHintText: {
+        fontSize: 11,
+        color: '#EF4444',
+        marginBottom: 8,
+        fontStyle: 'italic',
     },
     // New pending application card styles
     pendingCardsList: {

@@ -11,6 +11,7 @@ import { HapticTouchable, triggerHaptic } from './HapticButton';
 import { SHADOWS, FONTS } from '../constants/DesignSystem';
 import { ModernCard, ModernButton } from './ModernComponents';
 import { getImageSource } from '../constants/DefaultImages';
+import { MyProjectsEmptyState } from './EmptyState';
 
 interface MyPageProps {
     profile: Profile;
@@ -426,23 +427,7 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                 ItemSeparatorComponent={() => <View style={{ height: 4 }} />}
                 ListEmptyComponent={
                     (activeTab === 'myProjects' ? !loadingProjects : !loadingParticipating) ? (
-                        <View style={styles.emptyContainer}>
-                            <View style={styles.emptyIconContainer}>
-                                <Ionicons
-                                    name={activeTab === 'myProjects' ? "folder-open-outline" : "people-outline"}
-                                    size={48}
-                                    color="#F39800"
-                                />
-                            </View>
-                            <Text style={styles.emptyTitle}>
-                                {activeTab === 'myProjects' ? 'プロジェクトはまだありません' : '参加中のプロジェクトはありません'}
-                            </Text>
-                            <Text style={styles.emptySubText}>
-                                {activeTab === 'myProjects'
-                                    ? 'プロジェクトを作成して公開しましょう'
-                                    : '気になるプロジェクトに応募してみましょう'}
-                            </Text>
-                        </View>
+                        <MyProjectsEmptyState type={activeTab} />
                     ) : null
                 }
             />
@@ -697,32 +682,6 @@ const styles = StyleSheet.create({
         paddingBottom: 100, // ボトムナビゲーション分のスペースを確保
         paddingTop: 8,
         flexGrow: 1,
-    },
-    emptyContainer: {
-        alignItems: 'center',
-        paddingTop: 60,
-        paddingHorizontal: 20,
-    },
-    emptyIconContainer: {
-        width: 90,
-        height: 90,
-        borderRadius: 45,
-        borderWidth: 2,
-        borderColor: 'black',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 16,
-    },
-    emptyTitle: {
-        fontSize: 20,
-        fontFamily: FONTS.bold,
-        color: 'black',
-        marginBottom: 8,
-    },
-    emptySubText: {
-        fontSize: 14,
-        color: '#6B7280',
-        textAlign: 'center',
     },
     menuOverlay: {
         flex: 1,

@@ -69,7 +69,14 @@ const ProjectCard = ({ project, onPress, index = 0 }: { project: Project; onPres
         : '';
     const createdDate = new Date(project.created_at);
     const daysAgo = Math.floor((Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
-    const timeAgo = daysAgo === 0 ? '今日' : daysAgo === 1 ? '昨日' : `${daysAgo}日前`;
+    // 3日以内は相対表示、4日以上は日付形式
+    const timeAgo = daysAgo === 0
+        ? '今日'
+        : daysAgo === 1
+            ? '昨日'
+            : daysAgo <= 3
+                ? `${daysAgo}日前`
+                : `${createdDate.getMonth() + 1}/${createdDate.getDate()}`;
 
     // 登場アニメーション用
     const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -153,8 +160,11 @@ const ProjectCard = ({ project, onPress, index = 0 }: { project: Project; onPres
 
                     {/* Card Content */}
                     <View style={styles.cardContent}>
-                        {/* Title */}
-                        <Text style={styles.cardTitle} numberOfLines={1}>{project.title}</Text>
+                        {/* Title Row - タイトルと作成日を横並び */}
+                        <View style={styles.titleRow}>
+                            <Text style={styles.cardTitle} numberOfLines={1}>{project.title}</Text>
+                            <Text style={styles.timeAgoText}>{timeAgo}</Text>
+                        </View>
 
                         {/* Tagline */}
                         {project.tagline && (
@@ -472,6 +482,12 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         gap: 2,
     },
+    titleRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        gap: 8,
+    },
     cardTitleContainer: {
         height: 44, // Fixed height for 2 lines (22 * 2)
         justifyContent: 'center',
@@ -484,6 +500,7 @@ const styles = StyleSheet.create({
         marginBottom: 6,
     },
     cardTitle: {
+        flex: 1,
         fontSize: 17,
         fontFamily: FONTS.bold,
         color: '#111827',
@@ -525,9 +542,19 @@ const styles = StyleSheet.create({
     tagsRow: {
         flexDirection: 'row',
         flexWrap: 'nowrap', // 1行に収める
+        alignItems: 'center',
         gap: 4,
         marginTop: 4,
         overflow: 'hidden',
+    },
+    timeAgoContainer: {
+        marginLeft: 'auto', // 右端に配置
+        paddingLeft: 8,
+    },
+    timeAgoText: {
+        fontSize: 10,
+        fontFamily: FONTS.regular,
+        color: '#9CA3AF',
     },
     tag: {
         backgroundColor: '#F3F4F6',
