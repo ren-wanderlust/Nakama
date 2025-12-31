@@ -261,54 +261,46 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
         return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
     };
 
-    // Discord風ヘッダー（グラデーション拡張）
+    // Discord風プロフィールデザイン
     const renderDiscordHeader = () => (
-        <LinearGradient
-            colors={['#F7B555', '#F7B555', '#FFF3E0']}
-            locations={[0, 0.5, 1]}
-            style={styles.discordHeader}
-        >
-            {/* ロゴ部分 */}
-            <View style={styles.discordBannerContent}>
-                <Text style={styles.discordBannerText}>Pogg</Text>
+        <View style={styles.discordHeader}>
+            {/* 上部背景エリア (カバー画像的役割) */}
+            <View style={styles.headerCoverArea}>
+                {/* 右上の設定ボタン */}
+                <TouchableOpacity style={styles.headerSettingsIconBtn} onPress={() => setIsMenuVisible(true)}>
+                    <Ionicons name="settings-outline" size={24} color="white" />
+                </TouchableOpacity>
             </View>
 
-            {/* 設定アイコン（右上） */}
-            <TouchableOpacity
-                style={styles.discordSettingsBtn}
-                onPress={() => setIsMenuVisible(true)}
-            >
-                <Ionicons name="settings-outline" size={20} color="#555" />
-            </TouchableOpacity>
+            {/* プロフィールコンテンツ */}
+            <View style={styles.profileContentContainer}>
+                {/* アバター（カバーに少し被せる） */}
+                <View style={styles.avatarContainer}>
+                    <Image
+                        source={getImageSource(profile.image)}
+                        style={styles.avatarImage}
+                    />
+                    <View style={styles.onlineStatus} />
+                </View>
 
-            {/* アバター（左側に大きく配置） */}
-            <View style={styles.discordAvatarWrapper}>
-                <Image
-                    source={getImageSource(profile.image)}
-                    style={styles.discordAvatar}
-                />
+                {/* ユーザー情報 */}
+                <View style={styles.userInfoSection}>
+                    <Text style={styles.userNameText}>{profile.name}</Text>
+                    <Text style={styles.userHandleText}>
+                        {profile.university} {profile.grade ? `| ${profile.grade}` : ''}
+                    </Text>
+                </View>
+
+                {/* プロフィール編集ボタン */}
+                <TouchableOpacity
+                    style={styles.editProfileButtonLarge}
+                    onPress={() => onEditProfile && onEditProfile()}
+                >
+                    <Ionicons name="pencil" size={16} color="white" style={{ marginRight: 8 }} />
+                    <Text style={styles.editProfileButtonTextLarge}>プロフィール編集</Text>
+                </TouchableOpacity>
             </View>
-
-            {/* プロフィール情報 */}
-            <View style={styles.discordProfileInfo}>
-                <Text style={styles.discordProfileName}>{profile.name}</Text>
-                <Text style={styles.discordProfileHandle}>
-                    {profile.university}{profile.grade ? ` / ${profile.grade}` : ''}
-                </Text>
-                <Text style={styles.memberSinceText}>
-                    {formatRegistrationDate()}からメンバー
-                </Text>
-            </View>
-
-            {/* プロフィール編集ボタン - アウトラインスタイルに変更 */}
-            <TouchableOpacity
-                style={styles.discordEditButton}
-                onPress={() => onEditProfile && onEditProfile()}
-            >
-                <Ionicons name="pencil" size={14} color="#F57C00" style={{ marginRight: 6 }} />
-                <Text style={styles.discordEditButtonText}>プロフィール編集</Text>
-            </TouchableOpacity>
-        </LinearGradient>
+        </View>
     );
 
     const renderTabs = () => (
@@ -583,14 +575,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
     },
-    headerSettingsButton: {
-        width: 40,
-        height: 40,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderRadius: 20,
-        backgroundColor: '#F9FAFB',
-    },
     // Settings button inside profile card
     settingsButtonInCard: {
         width: 32,
@@ -631,10 +615,10 @@ const styles = StyleSheet.create({
         gap: 6,
     },
     profileName: {
-        fontSize: 22,
+        fontSize: 17,
         fontFamily: FONTS.bold,
         color: '#111827',
-        letterSpacing: -0.5,
+        lineHeight: 22,
     },
     universityContainer: {
         flexDirection: 'row',
@@ -765,98 +749,86 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     discordHeader: {
-        paddingTop: 60, // ステータスバーエリアをカバー
-        paddingBottom: 8, // タブとの間隔を縮める
+        backgroundColor: 'white',
+        marginBottom: 8,
     },
-    discordBannerContent: {
+    headerCoverArea: {
+        height: 120,
+        backgroundColor: '#F57C00', // オレンジのカバー背景
+        width: '100%',
         flexDirection: 'row',
+        justifyContent: 'flex-end',
+        paddingTop: 50, // ステータスバー考慮
+        paddingHorizontal: 16,
+    },
+    headerSettingsIconBtn: {
+        width: 40,
+        height: 40,
         alignItems: 'center',
         justifyContent: 'center',
-        paddingBottom: 20,
-        gap: 8,
+        backgroundColor: 'rgba(0,0,0,0.2)',
+        borderRadius: 20,
     },
-    logoContainer: {
-        width: 64,
-        height: 64,
-        alignItems: 'center',
-        justifyContent: 'center',
+    profileContentContainer: {
+        paddingHorizontal: 20,
+        marginTop: -50, // アバターをカバーに食い込ませる
     },
-    discordBannerLogo: {
-        width: 48,
-        height: 48,
-    },
-    discordBannerText: {
-        fontSize: 40,
-        fontWeight: '700',
-        color: 'white',
-        letterSpacing: 0.5,
-        fontFamily: FONTS.bold,
-        marginTop: 10,
-    },
-    discordSettingsBtn: {
-        position: 'absolute',
-        top: 60, // ステータスバー + paddingTop
-        right: 16,
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: 'rgba(255,255,255,0.9)', // 半透明白
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 10,
-        ...SHADOWS.sm,
-    },
-    discordAvatarWrapper: {
-        marginLeft: 24,
+    avatarContainer: {
+        position: 'relative',
         marginBottom: 12,
+        alignSelf: 'flex-start', // 左寄せ
     },
-    discordAvatar: {
-        width: 96,
-        height: 96,
-        borderRadius: 48,
-        borderWidth: 4,
-        borderColor: 'white', // 背景との境界を白く
+    avatarImage: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        borderWidth: 6,
+        borderColor: 'white', // 白い枠線で背景と分離
         backgroundColor: '#FFF3E0',
     },
-    discordProfileInfo: {
-        paddingHorizontal: 24,
-        marginBottom: 20,
+    onlineStatus: {
+        position: 'absolute',
+        bottom: 6,
+        right: 6,
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        backgroundColor: '#4CAF50', // オンライン状態の緑丸
+        borderWidth: 4,
+        borderColor: 'white',
     },
-    discordProfileName: {
-        fontSize: 24,
+    userInfoSection: {
+        marginBottom: 20,
+        alignItems: 'flex-start', // 左寄せ
+    },
+    userNameText: {
+        fontSize: 26,
         fontWeight: 'bold',
         color: '#111827',
-        marginBottom: 4,
         fontFamily: FONTS.bold,
+        marginBottom: 4,
     },
-    discordProfileHandle: {
+    userHandleText: {
         fontSize: 14,
         color: '#6B7280',
-        fontFamily: FONTS.medium,
-    },
-    memberSinceText: {
-        fontSize: 12,
-        color: '#9CA3AF',
         fontFamily: FONTS.regular,
-        marginTop: 4,
     },
-    discordEditButton: {
+    editProfileButtonLarge: {
+        backgroundColor: '#F57C00', // ブランドカラー
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        marginHorizontal: 24,
-        paddingVertical: 10,
-        borderRadius: 20, // 丸みを強く
-        backgroundColor: 'white',
-        borderWidth: 1.5,
-        borderColor: '#FFB74D', // 薄めのオレンジ枠
+        paddingVertical: 12,
+        borderRadius: 24, // 角丸
+        width: '100%',
+        marginBottom: 20,
         ...SHADOWS.sm,
     },
-    discordEditButtonText: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#F57C00', // 濃い目のオレンジ文字
-        fontFamily: FONTS.semiBold,
+    editProfileButtonTextLarge: {
+        color: 'white',
+        fontSize: 15,
+        fontWeight: 'bold',
+        fontFamily: FONTS.bold,
     },
     stickyHeaderWrapper: {
         backgroundColor: '#FFF3E0', // 背景色と同じ
