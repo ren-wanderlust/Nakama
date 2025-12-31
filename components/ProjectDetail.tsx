@@ -11,6 +11,7 @@ import { getRoleColors, getRoleIcon } from '../constants/RoleConstants';
 import { getImageSource } from '../constants/DefaultImages';
 import { queryKeys } from '../data/queryKeys';
 import { buildSystemMessage } from '../constants/SystemMessage';
+import { getThemeTagColor, getThemeTagTextColor } from '../constants/ThemeConstants';
 
 interface Project {
     id: string;
@@ -391,6 +392,7 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
 
 
     const updateApplicantStatus = async (applicationId: string, newStatus: 'approved' | 'rejected', userName: string) => {
+        Alert.alert('Debug 1', `Start: status=${newStatus}, user=${userName}`);
         try {
             const { error } = await supabase
                 .from('project_applications')
@@ -443,6 +445,7 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
 
             let teamChatCreated = false;
             if (newStatus === 'approved') {
+                Alert.alert('Debug 2', 'In approved block');
                 // 承認されたユーザーの「参加中」を即時更新（実行者ではなく対象ユーザー）
                 if (applicant?.user_id) {
                     queryClient.invalidateQueries({ queryKey: queryKeys.participatingProjects.detail(applicant.user_id), refetchType: 'active' });
@@ -456,6 +459,7 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                     .eq('status', 'approved');
 
                 const totalMembers = (count || 0) + 1; // +1 for owner
+                Alert.alert('Debug 3', `count=${count}, totalMembers=${totalMembers}`);
 
                 if (totalMembers >= 2) {
                     // Check if chat room already exists
@@ -473,6 +477,7 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                     }
 
                     let chatRoomId: string | null = existingRoom?.id ?? null;
+                    console.log('[SystemMessage] existingRoomId:', existingRoom?.id);
 
                     if (!existingRoom) {
                         // Create team chat room
@@ -501,16 +506,19 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                     // NOTE: 既存スキーマを変えずに表示を「システム」扱いにするため、contentにプレフィックスを付ける
                     if (chatRoomId && currentUser?.id) {
                         const systemText = `${userName}がプロジェクトに参加しました`;
+                        console.log('[SystemMessage] Inserting message. chatRoomId:', chatRoomId, 'sender:', currentUser.id);
                         const { error: systemMsgError } = await supabase
                             .from('messages')
                             .insert({
                                 sender_id: currentUser.id,
-                                receiver_id: currentUser.id, // グループチャットの既存実装に合わせる
+                                receiver_id: null, // グループチャットなので null
                                 chat_room_id: chatRoomId,
                                 content: buildSystemMessage(systemText),
                             });
                         if (systemMsgError) {
-                            console.error('Error inserting system message:', systemMsgError);
+                            Alert.alert('Debug Error', `Insert error: ${JSON.stringify(systemMsgError)}`);
+                        } else {
+                            Alert.alert('Debug 4', 'Insert success');
                         }
                         // チャット一覧/未読を即時更新
                         queryClient.invalidateQueries({ queryKey: queryKeys.chatRooms.list(currentUser.id), refetchType: 'active' });
@@ -1035,240 +1043,224 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
 
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
                 <View style={styles.infoContainer}>
-                    <Text style={styles.title}>{project.title}</Text>
+                    {/* 募集期限（募集メンバーより上 / 右上） */}
+                    <View style={styles.topRightRow}>
+                        <View style={styles.deadlineBadgeSmall}>
+                            <Ionicons name="time-outline" size={14} color="#B91C1C" />
+                            <Text style={styles.deadlineTextSmall}>期限: {formatDate(project.deadline)}</Text>
+                        </View>
+                    </View>
 
                     {/* Tagline */}
                     {project.tagline && (
                         <Text style={styles.tagline}>{project.tagline}</Text>
                     )}
 
-                    <View style={styles.metaRow}>
-                        <TouchableOpacity
-                            style={styles.ownerRow}
-                            onPress={() => fetchMemberProfile(project.owner_id)}
-                            activeOpacity={0.7}
-                            disabled={loadingProfile === project.owner_id}
-                        >
-                            <Image
-                                source={getImageSource(owner?.image)}
-                                style={styles.ownerImage}
-                            />
-                            <View style={styles.ownerInfo}>
-                                <Text style={styles.ownerLabel}>発起人</Text>
-                                <Text style={styles.ownerName}>{owner?.name} ({owner?.university})</Text>
-                            </View>
-                            {loadingProfile === project.owner_id ? (
-                                <ActivityIndicator size="small" color="#009688" />
-                            ) : (
-                                <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
-                            )}
-                        </TouchableOpacity>
+                    <Text style={styles.title}>仮プロジェクト名：{project.title}</Text>
 
-                        <View style={styles.deadlineBadge}>
-                            <Ionicons name="time-outline" size={16} color="#B91C1C" />
-                            <Text style={styles.deadlineText}>期限: {formatDate(project.deadline)}</Text>
-                        </View>
+                    <View style={[styles.divider, styles.dividerTight]} />
 
-                        {/* コミット量・ゴール・期間を表示 */}
-                        {(project.commitment_level || project.goal || project.duration) && (
-                            <View style={styles.projectDetailsContainer}>
-                                {project.commitment_level && (
-                                    <View style={styles.projectDetailItem}>
-                                        <View style={styles.projectDetailIconContainer}>
-                                            <Ionicons name="time" size={16} color="#3B82F6" />
-                                        </View>
-                                        <View style={styles.projectDetailContent}>
-                                            <Text style={styles.projectDetailLabel}>求めるコミット量</Text>
-                                            <Text style={styles.projectDetailValue}>{project.commitment_level}</Text>
-                                        </View>
-                                    </View>
-                                )}
-                                {project.goal && (
-                                    <View style={styles.projectDetailItem}>
-                                        <View style={styles.projectDetailIconContainer}>
-                                            <Ionicons name="flag" size={16} color="#10B981" />
-                                        </View>
-                                        <View style={styles.projectDetailContent}>
-                                            <Text style={styles.projectDetailLabel}>ゴール</Text>
-                                            <Text style={styles.projectDetailValue}>{project.goal}</Text>
-                                        </View>
-                                    </View>
-                                )}
-                                {project.duration && (
-                                    <View style={styles.projectDetailItem}>
-                                        <View style={styles.projectDetailIconContainer}>
-                                            <Ionicons name="hourglass" size={16} color="#8B5CF6" />
-                                        </View>
-                                        <View style={styles.projectDetailContent}>
-                                            <Text style={styles.projectDetailLabel}>期間</Text>
-                                            <Text style={styles.projectDetailValue}>{project.duration}</Text>
-                                        </View>
-                                    </View>
-                                )}
-                            </View>
-                        )}
-                    </View>
-
-                    {/* Applicants Section */}
-                    {/* Approved Members Section */}
-                    <View style={styles.applicantsSection}>
-                        <Text style={styles.sectionTitle}>
-                            参加メンバー ({applicants.filter(a => a.status === 'approved').length}人)
-                        </Text>
-                        {currentUser?.id === project.owner_id && applicants.filter(a => a.status === 'approved').length > 0 && (
-                            <Text style={styles.kickHintText}>長押しでメンバーを削除できます</Text>
-                        )}
-                        {applicants.filter(a => a.status === 'approved').length > 0 ? (
-                            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.applicantsList}>
-                                {applicants.filter(a => a.status === 'approved').map((applicant) => (
-                                    <TouchableOpacity
-                                        key={applicant.id}
-                                        style={styles.applicantItem}
-                                        onPress={() => fetchMemberProfile(applicant.user_id)}
-                                        onLongPress={() => {
-                                            if (currentUser?.id === project.owner_id) {
-                                                handleKickMember(applicant);
-                                            }
-                                        }}
-                                        delayLongPress={500}
-                                        activeOpacity={0.7}
-                                        disabled={loadingProfile === applicant.user_id}
-                                    >
-                                        {loadingProfile === applicant.user_id ? (
-                                            <View style={[styles.applicantImage, styles.applicantImageLoading]}>
-                                                <ActivityIndicator size="small" color="#009688" />
+                    {/* 募集メンバー（プロジェクト名の下 / 横スクロール） */}
+                    {project.required_roles && project.required_roles.length > 0 && (
+                        <View style={styles.recruitmentRow}>
+                            <Text style={styles.recruitmentLabel}>募集：</Text>
+                            <ScrollView
+                                horizontal
+                                showsHorizontalScrollIndicator={false}
+                                contentContainerStyle={styles.recruitmentTagsContent}
+                                style={styles.recruitmentTagsScroll}
+                            >
+                                {project.required_roles.map((role, index) => {
+                                    const roleColors = getRoleColors(role);
+                                    const roleIcon = getRoleIcon(role);
+                                    return (
+                                        <View
+                                            key={`role-top-${index}`}
+                                            style={[
+                                                styles.roleTag,
+                                                { backgroundColor: roleColors.bg, borderColor: roleColors.border }
+                                            ]}
+                                        >
+                                            <View style={[styles.roleTagIcon, { backgroundColor: roleColors.bg }]}>
+                                                <Ionicons name={roleIcon as any} size={12} color={roleColors.icon} />
                                             </View>
-                                        ) : (
-                                            <Image
-                                                source={getImageSource(applicant.user.image)}
-                                                style={styles.applicantImage}
-                                            />
-                                        )}
-                                        <Text style={styles.applicantName} numberOfLines={1}>
-                                            {applicant.user.name}
-                                        </Text>
-                                    </TouchableOpacity>
-                                ))}
+                                            <Text style={[styles.roleTagText, { color: roleColors.icon }]}>{role}</Text>
+                                        </View>
+                                    );
+                                })}
                             </ScrollView>
-                        ) : (
-                            <Text style={styles.noApplicantsText}>まだ参加メンバーはいません</Text>
-                        )}
-                    </View>
+                        </View>
+                    )}
 
-                    {/* Pending Applications Section (Owner Only) */}
-                    {currentUser?.id === project.owner_id && (
-                        <View style={styles.applicantsSection}>
-                            <Text style={styles.sectionTitle}>
-                                申請中のメンバー ({applicants.filter(a => a.status === 'pending').length}人)
-                            </Text>
-                            {applicants.filter(a => a.status === 'pending').length > 0 ? (
-                                <View style={styles.pendingCardsList}>
-                                    {applicants.filter(a => a.status === 'pending').map((applicant) => (
-                                        <View key={applicant.id} style={styles.pendingCard}>
-                                            <View style={styles.pendingCardHeader}>
-                                                <Image
-                                                    source={getImageSource(applicant.user.image)}
-                                                    style={styles.pendingCardImage}
-                                                />
-                                                <View style={styles.pendingCardInfo}>
-                                                    <Text style={styles.pendingCardName} numberOfLines={1}>
-                                                        {applicant.user.name}
-                                                    </Text>
-                                                    <Text style={styles.pendingCardUniversity} numberOfLines={1}>
-                                                        {applicant.user.university || '所属なし'}
-                                                    </Text>
-                                                </View>
-                                            </View>
-                                            <View style={styles.pendingCardActions}>
-                                                <TouchableOpacity
-                                                    style={styles.rejectButton}
-                                                    onPress={() => handleRejectConfirmation(applicant.id, applicant.user.name)}
-                                                >
-                                                    <Ionicons name="close" size={18} color="#EF4444" />
-                                                    <Text style={styles.rejectButtonText}>棄却</Text>
-                                                </TouchableOpacity>
-                                                <TouchableOpacity
-                                                    style={styles.approveButton}
-                                                    onPress={() => updateApplicantStatus(applicant.id, 'approved', applicant.user.name)}
-                                                >
-                                                    <Ionicons name="checkmark" size={18} color="white" />
-                                                    <Text style={styles.approveButtonText}>承認</Text>
-                                                </TouchableOpacity>
-                                            </View>
-                                        </View>
-                                    ))}
+                    {/* コミット量・ゴール・期間を表示 */}
+                    {(project.commitment_level || project.goal || project.duration) && (
+                        <View style={styles.projectDetailsContainer}>
+                            {project.commitment_level && (
+                                <View style={styles.projectDetailItem}>
+                                    <View style={styles.projectDetailIconContainer}>
+                                        <Ionicons name="time" size={16} color="#3B82F6" />
+                                    </View>
+                                    <View style={styles.projectDetailContent}>
+                                        <Text style={styles.projectDetailLabel}>求めるコミット量</Text>
+                                        <Text style={styles.projectDetailValue}>{project.commitment_level}</Text>
+                                    </View>
                                 </View>
-                            ) : (
-                                <Text style={styles.noApplicantsText}>現在、申請はありません</Text>
+                            )}
+                            {project.goal && (
+                                <View style={styles.projectDetailItem}>
+                                    <View style={styles.projectDetailIconContainer}>
+                                        <Ionicons name="flag" size={16} color="#10B981" />
+                                    </View>
+                                    <View style={styles.projectDetailContent}>
+                                        <Text style={styles.projectDetailLabel}>ゴール</Text>
+                                        <Text style={styles.projectDetailValue}>{project.goal}</Text>
+                                    </View>
+                                </View>
+                            )}
+                            {project.duration && (
+                                <View style={styles.projectDetailItem}>
+                                    <View style={styles.projectDetailIconContainer}>
+                                        <Ionicons name="hourglass" size={16} color="#8B5CF6" />
+                                    </View>
+                                    <View style={styles.projectDetailContent}>
+                                        <Text style={styles.projectDetailLabel}>期間</Text>
+                                        <Text style={styles.projectDetailValue}>{project.duration}</Text>
+                                    </View>
+                                </View>
                             )}
                         </View>
                     )}
+
+                    {/* Applicants Section */}
+                    {/* 参加メンバー（横一列） */}
+                    <View style={styles.membersRow}>
+                        <Text style={styles.membersLabel}>メンバー：</Text>
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={styles.membersScrollContent}
+                            style={styles.membersScroll}
+                        >
+                            {/* オーナー（オレンジ枠 + "オーナー" テキスト） */}
+                            <TouchableOpacity
+                                style={styles.ownerMemberChip}
+                                onPress={() => fetchMemberProfile(project.owner_id)}
+                                activeOpacity={0.7}
+                                disabled={loadingProfile === project.owner_id}
+                            >
+                                <Image source={getImageSource(owner?.image)} style={styles.ownerChipAvatar} />
+                                <Text style={styles.ownerChipText}>オーナー</Text>
+                            </TouchableOpacity>
+
+                            {applicants.filter(a => a.status === 'approved').map((applicant) => (
+                                <TouchableOpacity
+                                    key={applicant.id}
+                                    style={styles.memberAvatarButton}
+                                    onPress={() => fetchMemberProfile(applicant.user_id)}
+                                    onLongPress={() => {
+                                        if (currentUser?.id === project.owner_id) {
+                                            handleKickMember(applicant);
+                                        }
+                                    }}
+                                    delayLongPress={500}
+                                    activeOpacity={0.7}
+                                    disabled={loadingProfile === applicant.user_id}
+                                >
+                                    {loadingProfile === applicant.user_id ? (
+                                        <View style={[styles.memberAvatar, styles.memberAvatarLoading]}>
+                                            <ActivityIndicator size="small" color="#009688" />
+                                        </View>
+                                    ) : (
+                                        <Image source={getImageSource(applicant.user.image)} style={styles.memberAvatar} />
+                                    )}
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    </View>
+
+                    {/* 内容（テーマタグ + 内容タグをまとめて表示 / 横一列・横スクロール） */}
+                    {
+                        (!!project.tags?.length || !!project.content_tags?.length) && (
+                            <View style={styles.themeContentRow}>
+                                <Text style={styles.themeContentLabel}>内容：</Text>
+                                <ScrollView
+                                    horizontal
+                                    showsHorizontalScrollIndicator={false}
+                                    contentContainerStyle={styles.themeContentScrollContent}
+                                    style={styles.themeContentScroll}
+                                >
+                                    {!!project.tags?.length && project.tags.map((tag, index) => (
+                                        <View key={`theme-inline-${index}`} style={[styles.themeTag, { backgroundColor: getThemeTagColor(tag) }]}>
+                                            <Text style={[styles.themeTagText, { color: getThemeTagTextColor(tag) }]}>{tag}</Text>
+                                        </View>
+                                    ))}
+                                    {!!project.content_tags?.length && project.content_tags.map((tag, index) => (
+                                        <View key={`content-inline-${index}`} style={styles.contentTag}>
+                                            <Text style={styles.contentTagText}>{tag}</Text>
+                                        </View>
+                                    ))}
+                                </ScrollView>
+                            </View>
+                        )
+                    }
 
                     <View style={styles.divider} />
 
-                    {/* Tags Section */}
-                    {((project.required_roles && project.required_roles.length > 0) || (project.tags && project.tags.length > 0) || (project.content_tags && project.content_tags.length > 0)) && (
-                        <View>
-                            <View style={styles.tagsSection}>
-                                {project.required_roles && project.required_roles.length > 0 && (
-                                    <View style={styles.tagGroup}>
-                                        <Text style={styles.tagLabel}>募集メンバー</Text>
-                                        <View style={styles.tagContainer}>
-                                            {project.required_roles.map((role, index) => {
-                                                const roleColors = getRoleColors(role);
-                                                const roleIcon = getRoleIcon(role);
-                                                return (
-                                                    <View
-                                                        key={`role-${index}`}
-                                                        style={[
-                                                            styles.roleTag,
-                                                            { backgroundColor: roleColors.bg, borderColor: roleColors.border }
-                                                        ]}
-                                                    >
-                                                        <View style={[styles.roleTagIcon, { backgroundColor: roleColors.bg }]}>
-                                                            <Ionicons name={roleIcon as any} size={14} color={roleColors.icon} />
-                                                        </View>
-                                                        <Text style={[styles.roleTagText, { color: roleColors.icon }]}>{role}</Text>
-                                                    </View>
-                                                );
-                                            })}
-                                        </View>
-                                    </View>
-                                )}
-
-                                {project.tags && project.tags.length > 0 && (
-                                    <View style={styles.tagGroup}>
-                                        <Text style={styles.tagLabel}>テーマ</Text>
-                                        <View style={styles.tagContainer}>
-                                            {project.tags.map((tag, index) => (
-                                                <View key={`theme-${index}`} style={styles.themeTag}>
-                                                    <Text style={styles.themeTagText}>{tag}</Text>
-                                                </View>
-                                            ))}
-                                        </View>
-                                    </View>
-                                )}
-
-                                {project.content_tags && project.content_tags.length > 0 && (
-                                    <View style={styles.tagGroup}>
-                                        <Text style={styles.tagLabel}>内容タグ</Text>
-                                        <View style={styles.tagContainer}>
-                                            {project.content_tags.map((tag, index) => (
-                                                <View key={`content-${index}`} style={styles.contentTag}>
-                                                    <Text style={styles.contentTagText}>{tag}</Text>
-                                                </View>
-                                            ))}
-                                        </View>
-                                    </View>
-                                )}
-                            </View>
-                            <View style={styles.divider} />
-                        </View>
-                    )}
-
+                    {/* 詳細 */}
                     <Text style={styles.sectionTitle}>プロジェクト詳細</Text>
                     <Text style={styles.description}>{project.description}</Text>
-                </View>
+
+                    {/* Pending Applications Section (Owner Only) - 詳細の下に残す */}
+                    {
+                        currentUser?.id === project.owner_id && (
+                            <View style={styles.applicantsSection}>
+                                <Text style={styles.sectionTitle}>
+                                    申請中のメンバー ({applicants.filter(a => a.status === 'pending').length}人)
+                                </Text>
+                                {applicants.filter(a => a.status === 'pending').length > 0 ? (
+                                    <View style={styles.pendingCardsList}>
+                                        {applicants.filter(a => a.status === 'pending').map((applicant) => (
+                                            <View key={applicant.id} style={styles.pendingCard}>
+                                                <View style={styles.pendingCardHeader}>
+                                                    <Image
+                                                        source={getImageSource(applicant.user.image)}
+                                                        style={styles.pendingCardImage}
+                                                    />
+                                                    <View style={styles.pendingCardInfo}>
+                                                        <Text style={styles.pendingCardName} numberOfLines={1}>
+                                                            {applicant.user.name}
+                                                        </Text>
+                                                        <Text style={styles.pendingCardUniversity} numberOfLines={1}>
+                                                            {applicant.user.university || '所属なし'}
+                                                        </Text>
+                                                    </View>
+                                                </View>
+                                                <View style={styles.pendingCardActions}>
+                                                    <TouchableOpacity
+                                                        style={styles.rejectButton}
+                                                        onPress={() => handleRejectConfirmation(applicant.id, applicant.user.name)}
+                                                    >
+                                                        <Ionicons name="close" size={18} color="#EF4444" />
+                                                        <Text style={styles.rejectButtonText}>棄却</Text>
+                                                    </TouchableOpacity>
+                                                    <TouchableOpacity
+                                                        style={styles.approveButton}
+                                                        onPress={() => updateApplicantStatus(applicant.id, 'approved', applicant.user.name)}
+                                                    >
+                                                        <Ionicons name="checkmark" size={18} color="white" />
+                                                        <Text style={styles.approveButtonText}>承認</Text>
+                                                    </TouchableOpacity>
+                                                </View>
+                                            </View>
+                                        ))}
+                                    </View>
+                                ) : (
+                                    <Text style={styles.noApplicantsText}>現在、申請はありません</Text>
+                                )}
+                            </View>
+                        )
+                    }
+                </View >
                 <View style={{ height: 100 }} />
             </ScrollView >
 
@@ -1385,21 +1377,171 @@ const styles = StyleSheet.create({
     },
     infoContainer: {
         padding: 24,
-        paddingTop: 100,
+        // ヘッダー（閉じるボタン）との干渉を避けつつ、最上部の余白を詰める
+        paddingTop: 45,
         backgroundColor: 'white',
     },
     title: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#111827',
-        marginBottom: 8,
-        lineHeight: 32,
-    },
-    tagline: {
         fontSize: 16,
         color: '#6B7280',
         lineHeight: 24,
+        marginBottom: 10,
+    },
+    tagline: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: '#111827',
+        marginBottom: 6,
+        lineHeight: 32,
+    },
+    recruitmentRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
         marginBottom: 16,
+    },
+    topRightRow: {
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        marginBottom: 8,
+    },
+    recruitmentLabel: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#374151',
+    },
+    recruitmentTagsScroll: {
+        flexGrow: 0,
+        flexShrink: 1,
+    },
+    recruitmentTagsContent: {
+        alignItems: 'center',
+        gap: 8,
+        paddingRight: 8,
+    },
+    deadlineBadgeSmall: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FEF2F2',
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 100,
+        gap: 4,
+    },
+    deadlineTextSmall: {
+        fontSize: 12,
+        color: '#B91C1C',
+        fontWeight: '600',
+    },
+    ownerCompactRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    ownerPrefix: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#374151',
+        marginRight: 8,
+    },
+    ownerCompactTouchable: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flexShrink: 1,
+        minWidth: 0,
+    },
+    ownerCompactImage: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        marginRight: 8,
+    },
+    ownerCompactName: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#374151',
+        flexShrink: 1,
+    },
+    membersRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 16,
+        gap: 8,
+    },
+    membersLabel: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#374151',
+    },
+    membersScroll: {
+        flexGrow: 0,
+        flexShrink: 1,
+    },
+    membersScrollContent: {
+        alignItems: 'center',
+        gap: 10,
+        paddingRight: 8,
+    },
+    ownerMemberChip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 999,
+        borderWidth: 2,
+        borderColor: '#F39800',
+        backgroundColor: 'rgba(243, 152, 0, 0.06)',
+    },
+    ownerChipAvatar: {
+        width: 22,
+        height: 22,
+        borderRadius: 11,
+        borderWidth: 1,
+        borderColor: '#FDE0B2',
+        backgroundColor: '#F3F4F6',
+    },
+    ownerChipText: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#F39800',
+    },
+    memberAvatarButton: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        overflow: 'hidden',
+    },
+    memberAvatar: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        backgroundColor: '#F3F4F6',
+    },
+    memberAvatarLoading: {
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    themeContentRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    themeContentScroll: {
+        flexGrow: 0,
+    },
+    themeContentScrollContent: {
+        alignItems: 'center',
+        gap: 8,
+        paddingRight: 8,
+    },
+    themeContentLabel: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#374151',
+        marginRight: 2,
     },
     metaRow: {
         flexDirection: 'row',
@@ -1566,6 +1708,10 @@ const styles = StyleSheet.create({
         backgroundColor: '#F3F4F6',
         marginBottom: 24,
     },
+    dividerTight: {
+        // 内容タグ（themeContentRow）→ 下の線 と同じ余白に揃える
+        marginBottom: 16,
+    },
     tagsSection: {
         marginBottom: 24,
         gap: 16,
@@ -1587,43 +1733,43 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#E0F2F1',
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 16,
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 14,
         borderWidth: 1,
         borderColor: '#B2DFDB',
     },
     roleTagIcon: {
-        width: 22,
-        height: 22,
-        borderRadius: 6,
+        width: 18,
+        height: 18,
+        borderRadius: 5,
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: 6,
     },
     roleTagText: {
-        fontSize: 13,
+        fontSize: 12,
         fontWeight: '600',
     },
     themeTag: {
         backgroundColor: '#3B82F6',
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 8,
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 7,
     },
     themeTagText: {
-        fontSize: 13,
+        fontSize: 12,
         fontWeight: '600',
         color: 'white',
     },
     contentTag: {
         backgroundColor: '#F3F4F6',
-        paddingHorizontal: 10,
-        paddingVertical: 5,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
         borderRadius: 6,
     },
     contentTagText: {
-        fontSize: 13,
+        fontSize: 12,
         color: '#4B5563',
         fontWeight: '500',
     },

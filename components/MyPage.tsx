@@ -13,6 +13,7 @@ import { SHADOWS, FONTS } from '../constants/DesignSystem';
 import { ModernCard, ModernButton } from './ModernComponents';
 import { getImageSource } from '../constants/DefaultImages';
 import { MyProjectsEmptyState } from './EmptyState';
+import { getThemeTagColor, getThemeTagTextColor } from '../constants/ThemeConstants';
 
 interface MyPageProps {
     profile: Profile;
@@ -65,10 +66,26 @@ const ROLE_ID_TO_LABEL: { [key: string]: string } = {
     'creator': 'クリエイター',
 };
 
+const getTimeAgoText = (createdAt?: string) => {
+    if (!createdAt) return '';
+    const createdDate = new Date(createdAt);
+    if (Number.isNaN(createdDate.getTime())) return '';
+    const daysAgo = Math.floor((Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
+    // 3日以内は相対表示、4日以上は日付形式
+    return daysAgo === 0
+        ? '今日'
+        : daysAgo === 1
+            ? '昨日'
+            : daysAgo <= 3
+                ? `${daysAgo}日前`
+                : `${createdDate.getMonth() + 1}/${createdDate.getDate()}`;
+};
+
 // UserProjectPageと同じProjectCardコンポーネント（自分のプロジェクト用）- サムネイル式
 const ProjectCard = ({ project, ownerProfile, onPress }: { project: any; ownerProfile: Profile; onPress: () => void }) => {
     const isClosed = project.status === 'closed';
     const coverImage = project.cover_image;
+    const timeAgo = getTimeAgoText(project?.created_at);
 
     // デフォルトカバー画像
     const defaultCoverImage = require('../assets/default-project-cover.png');
@@ -97,7 +114,15 @@ const ProjectCard = ({ project, ownerProfile, onPress }: { project: any; ownerPr
 
             {/* 右側: コンテンツ */}
             <View style={projectCardStyles.cardContentNew}>
-                {/* オーナー情報 */}
+                {/* タイトル */}
+                <Text style={projectCardStyles.cardTitleNew} numberOfLines={1}>{project.title}</Text>
+
+                {/* タグライン/説明 */}
+                {project.tagline && (
+                    <Text style={projectCardStyles.cardTaglineNew} numberOfLines={2}>{project.tagline}</Text>
+                )}
+
+                {/* オーナー情報（タグラインの下） */}
                 <View style={projectCardStyles.cardOwnerRow}>
                     {ownerProfile.image ? (
                         <Image
@@ -110,23 +135,16 @@ const ProjectCard = ({ project, ownerProfile, onPress }: { project: any; ownerPr
                         </View>
                     )}
                     <Text style={projectCardStyles.cardOwnerName} numberOfLines={1}>{ownerProfile.name}</Text>
+                    {!!timeAgo && <Text style={projectCardStyles.cardTimeAgo}>{timeAgo}</Text>}
                 </View>
-
-                {/* タイトル */}
-                <Text style={projectCardStyles.cardTitleNew} numberOfLines={1}>{project.title}</Text>
-
-                {/* タグライン/説明 */}
-                {project.tagline && (
-                    <Text style={projectCardStyles.cardTaglineNew} numberOfLines={2}>{project.tagline}</Text>
-                )}
 
                 {/* 下部: タグ + 統計 */}
                 <View style={projectCardStyles.cardBottomRow}>
                     {/* タグ */}
                     <View style={projectCardStyles.cardTagsRow}>
                         {project.tags?.slice(0, 1).map((tag: string, idx: number) => (
-                            <View key={`theme-${idx}`} style={projectCardStyles.themeTag}>
-                                <Text style={projectCardStyles.themeTagText}>{tag}</Text>
+                            <View key={`theme-${idx}`} style={[projectCardStyles.themeTag, { backgroundColor: getThemeTagColor(tag) }]}>
+                                <Text style={[projectCardStyles.themeTagText, { color: getThemeTagTextColor(tag) }]}>{tag}</Text>
                             </View>
                         ))}
                         {project.content_tags?.slice(0, 2).map((tag: string, idx: number) => (
@@ -137,8 +155,8 @@ const ProjectCard = ({ project, ownerProfile, onPress }: { project: any; ownerPr
                     </View>
                     {/* 統計 */}
                     <View style={projectCardStyles.cardStatsRow}>
-                        <Ionicons name="people-outline" size={12} color="#9CA3AF" />
-                        <Text style={projectCardStyles.cardStatText}>{project.max_members || '?'}</Text>
+                        <Ionicons name="document-text-outline" size={12} color="#9CA3AF" />
+                        <Text style={projectCardStyles.cardStatText}>{project.pendingCount ?? 0}</Text>
                     </View>
                 </View>
             </View>
@@ -383,6 +401,7 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
         const coverImage = item.cover_image;
         const ownerImage = item.profiles?.image || item.owner?.image;
         const ownerName = item.profiles?.name || item.owner?.name || '不明';
+        const timeAgo = getTimeAgoText(item?.created_at);
 
         // デフォルトカバー画像
         const defaultCoverImage = require('../assets/default-project-cover.png');
@@ -409,7 +428,15 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
 
                 {/* 右側: コンテンツ */}
                 <View style={projectCardStyles.cardContentNew}>
-                    {/* オーナー情報 */}
+                    {/* タイトル */}
+                    <Text style={projectCardStyles.cardTitleNew} numberOfLines={1}>{item.title}</Text>
+
+                    {/* タグライン/説明 */}
+                    {item.tagline && (
+                        <Text style={projectCardStyles.cardTaglineNew} numberOfLines={2}>{item.tagline}</Text>
+                    )}
+
+                    {/* オーナー情報（タグラインの下） */}
                     <View style={projectCardStyles.cardOwnerRow}>
                         {ownerImage ? (
                             <Image
@@ -422,23 +449,16 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                             </View>
                         )}
                         <Text style={projectCardStyles.cardOwnerName} numberOfLines={1}>{ownerName}</Text>
+                        {!!timeAgo && <Text style={projectCardStyles.cardTimeAgo}>{timeAgo}</Text>}
                     </View>
-
-                    {/* タイトル */}
-                    <Text style={projectCardStyles.cardTitleNew} numberOfLines={1}>{item.title}</Text>
-
-                    {/* タグライン/説明 */}
-                    {item.tagline && (
-                        <Text style={projectCardStyles.cardTaglineNew} numberOfLines={2}>{item.tagline}</Text>
-                    )}
 
                     {/* 下部: タグ + 統計 */}
                     <View style={projectCardStyles.cardBottomRow}>
                         {/* タグ */}
                         <View style={projectCardStyles.cardTagsRow}>
                             {item.tags?.slice(0, 1).map((tag: string, idx: number) => (
-                                <View key={`theme-${idx}`} style={projectCardStyles.themeTag}>
-                                    <Text style={projectCardStyles.themeTagText}>{tag}</Text>
+                                <View key={`theme-${idx}`} style={[projectCardStyles.themeTag, { backgroundColor: getThemeTagColor(tag) }]}>
+                                    <Text style={[projectCardStyles.themeTagText, { color: getThemeTagTextColor(tag) }]}>{tag}</Text>
                                 </View>
                             ))}
                             {item.content_tags?.slice(0, 2).map((tag: string, idx: number) => (
@@ -449,8 +469,8 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                         </View>
                         {/* 統計 */}
                         <View style={projectCardStyles.cardStatsRow}>
-                            <Ionicons name="people-outline" size={12} color="#9CA3AF" />
-                            <Text style={projectCardStyles.cardStatText}>{item.max_members || '?'}</Text>
+                        <Ionicons name="document-text-outline" size={12} color="#9CA3AF" />
+                        <Text style={projectCardStyles.cardStatText}>{item.pendingCount ?? 0}</Text>
                         </View>
                     </View>
                 </View>
@@ -1289,22 +1309,28 @@ const projectCardStyles = StyleSheet.create({
         marginBottom: 6,
     },
     cardOwnerAvatar: {
-        width: 24,
-        height: 24,
-        borderRadius: 12,
+        width: 22,
+        height: 22,
+        borderRadius: 11,
         marginRight: 6,
     },
     cardOwnerName: {
-        flex: 1,
-        fontSize: 12,
+        flexShrink: 1,
+        marginRight: 8,
+        fontSize: 11,
         fontFamily: FONTS.medium,
         color: '#6B7280',
     },
+    cardTimeAgo: {
+        fontSize: 10,
+        fontFamily: FONTS.regular,
+        color: '#9CA3AF',
+    },
     cardTitleNew: {
-        fontSize: 15,
+        fontSize: 16,
         fontFamily: FONTS.bold,
         color: '#111827',
-        lineHeight: 20,
+        lineHeight: 21,
         marginBottom: 4,
     },
     cardTaglineNew: {

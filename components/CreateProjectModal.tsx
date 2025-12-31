@@ -20,6 +20,7 @@ import { Profile, Theme } from '../types';
 import { HapticTouchable, triggerHaptic } from './HapticButton';
 import { SHADOWS } from '../constants/DesignSystem';
 import { ROLES, ANYONE_ROLE } from '../constants/RoleConstants';
+import { THEMES } from '../constants/ThemeConstants';
 
 interface CreateProjectModalProps {
     currentUser: Profile;
@@ -99,14 +100,7 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
         '誰でも': { bg: '#E8F5E9', icon: '#388E3C' },        // Green
     };
 
-    const THEMES = [
-        { id: 'theme-1', title: '個人開発', color: '#3B82F6', bgColor: '#EFF6FF' },        // Blue
-        { id: 'theme-2', title: '起業', color: '#8B5CF6', bgColor: '#F5F3FF' },            // Purple
-        { id: 'theme-3', title: 'クリエイティブ', color: '#EC4899', bgColor: '#FDF2F8' },  // Pink
-        { id: 'theme-4', title: 'コミュニティづくり', color: '#F97316', bgColor: '#FFF7ED' }, // Orange
-        { id: 'theme-5', title: '教育', color: '#10B981', bgColor: '#ECFDF5' },            // Green
-        { id: 'theme-6', title: 'コンテスト', color: '#EF4444', bgColor: '#FEF2F2' },      // Red
-    ];
+    // THEMES は constants/ThemeConstants.ts に集約
 
     const toggleRole = (role: string) => {
         // 単純なトグル: 全てのロールを自由に選択可能

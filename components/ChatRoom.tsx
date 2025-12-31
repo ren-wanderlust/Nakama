@@ -2296,10 +2296,10 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
     },
     systemMessageTime: {
-        fontSize: 14,
-        color: 'white',
+        fontSize: 12,
+        color: '#9CA3AF',
         marginBottom: 6,
-        fontWeight: '600',
+        fontWeight: '500',
     },
     systemMessageBubble: {
         backgroundColor: '#BDBDBD',
@@ -2309,10 +2309,10 @@ const styles = StyleSheet.create({
         maxWidth: '100%',
     },
     systemMessageText: {
-        fontSize: 14,
+        fontSize: 13,
         color: 'white',
         textAlign: 'center',
-        fontWeight: '600',
+        fontWeight: '500',
     },
     // LINE-style avatar for partner messages
     messageAvatarContainer: {

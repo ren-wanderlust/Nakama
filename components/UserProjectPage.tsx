@@ -16,6 +16,7 @@ import { RADIUS, COLORS, SHADOWS, SPACING, AVATAR, FONTS } from '../constants/De
 import { ProjectsEmptyState } from './EmptyState';
 import { translateTag } from '../constants/TagConstants';
 import { getImageSource } from '../constants/DefaultImages';
+import { getThemeTagColor, getThemeTagTextColor } from '../constants/ThemeConstants';
 
 interface Project {
     id: string;
@@ -35,6 +36,7 @@ interface Project {
         image: string;
         university: string;
     };
+    pendingCount?: number; // 参加申請数（pending）
 }
 
 interface UserProjectPageProps {
@@ -130,7 +132,15 @@ const ProjectCard = ({ project, onPress, index = 0 }: { project: Project; onPres
 
                 {/* 右側: コンテンツ */}
                 <View style={styles.cardContentNew}>
-                    {/* オーナー情報 */}
+                    {/* タイトル */}
+                    <Text style={styles.cardTitleNew} numberOfLines={1}>{project.title}</Text>
+
+                    {/* タグライン/説明 */}
+                    {project.tagline && (
+                        <Text style={styles.cardTaglineNew} numberOfLines={2}>{project.tagline}</Text>
+                    )}
+
+                    {/* オーナー情報（タグラインの下） */}
                     <View style={styles.cardOwnerRow}>
                         {ownerImage ? (
                             <Image
@@ -146,21 +156,13 @@ const ProjectCard = ({ project, onPress, index = 0 }: { project: Project; onPres
                         <Text style={styles.cardTimeAgo}>{timeAgo}</Text>
                     </View>
 
-                    {/* タイトル */}
-                    <Text style={styles.cardTitleNew} numberOfLines={1}>{project.title}</Text>
-
-                    {/* タグライン/説明 */}
-                    {project.tagline && (
-                        <Text style={styles.cardTaglineNew} numberOfLines={2}>{project.tagline}</Text>
-                    )}
-
                     {/* 下部: タグ + 統計 */}
                     <View style={styles.cardBottomRow}>
                         {/* タグ */}
                         <View style={styles.cardTagsRow}>
                             {project.tags?.slice(0, 1).map((tag, idx) => (
-                                <View key={`theme-${idx}`} style={styles.themeTag}>
-                                    <Text style={styles.themeTagText}>{tag}</Text>
+                                <View key={`theme-${idx}`} style={[styles.themeTag, { backgroundColor: getThemeTagColor(tag) }]}>
+                                    <Text style={[styles.themeTagText, { color: getThemeTagTextColor(tag) }]}>{tag}</Text>
                                 </View>
                             ))}
                             {project.content_tags?.slice(0, 2).map((tag, idx) => (
@@ -171,8 +173,8 @@ const ProjectCard = ({ project, onPress, index = 0 }: { project: Project; onPres
                         </View>
                         {/* 統計（モック） */}
                         <View style={styles.cardStatsRow}>
-                            <Ionicons name="people-outline" size={12} color="#9CA3AF" />
-                            <Text style={styles.cardStatText}>{projectData.max_members || '?'}</Text>
+                            <Ionicons name="document-text-outline" size={12} color="#9CA3AF" />
+                            <Text style={styles.cardStatText}>{projectData.pendingCount ?? 0}</Text>
                         </View>
                     </View>
                 </View>
@@ -681,27 +683,28 @@ const styles = StyleSheet.create({
         marginBottom: 6,
     },
     cardOwnerAvatar: {
-        width: 24,
-        height: 24,
-        borderRadius: 12,
+        width: 22,
+        height: 22,
+        borderRadius: 11,
         marginRight: 6,
     },
     cardOwnerName: {
-        flex: 1,
-        fontSize: 12,
+        flexShrink: 1,
+        marginRight: 8,
+        fontSize: 11,
         fontFamily: FONTS.medium,
         color: '#6B7280',
     },
     cardTimeAgo: {
-        fontSize: 11,
+        fontSize: 10,
         fontFamily: FONTS.regular,
         color: '#9CA3AF',
     },
     cardTitleNew: {
-        fontSize: 15,
+        fontSize: 16,
         fontFamily: FONTS.bold,
         color: '#111827',
-        lineHeight: 20,
+        lineHeight: 21,
         marginBottom: 4,
     },
     cardTaglineNew: {

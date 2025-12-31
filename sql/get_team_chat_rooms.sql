@@ -68,7 +68,7 @@ begin
   latest_messages as (
     select distinct on (m.chat_room_id)
       m.chat_room_id,
-      m.content as last_message_content,
+      replace(m.content, '__system__', '') as last_message_content,
       m.created_at as last_message_created_at,
       m.image_url as last_message_image_url,
       m.sender_id as last_message_sender_id,

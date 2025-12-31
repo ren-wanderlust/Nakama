@@ -15,6 +15,7 @@ import { queryKeys } from '../data/queryKeys';
 import { ChatRoom } from '../data/api/chatRooms';
 import { getImageSource } from '../constants/DefaultImages';
 import { useAuth } from '../contexts/AuthContext';
+import { getThemeTagColor, getThemeTagTextColor } from '../constants/ThemeConstants';
 
 // 探すページと同じ「カバー画像未設定時の色」ロジック
 const PROJECT_COVER_FALLBACK_COLORS = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F'];
@@ -266,8 +267,8 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject, onOpenNotif
                                         <View style={styles.projectThemeSlot}>
                                             <View style={styles.projectTagRow}>
                                                 {!!themeTag && (
-                                                    <View style={styles.projectThemeTag}>
-                                                        <Text style={styles.projectThemeTagText}>{themeTag}</Text>
+                                                    <View style={[styles.projectThemeTag, { backgroundColor: getThemeTagColor(themeTag) }]}>
+                                                        <Text style={[styles.projectThemeTagText, { color: getThemeTagTextColor(themeTag) }]}>{themeTag}</Text>
                                                     </View>
                                                 )}
                                                 {isOwner && (
