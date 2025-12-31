@@ -311,33 +311,6 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
         </LinearGradient>
     );
 
-    // Discord風セクション
-    const renderSectionItem = (
-        icon: string,
-        label: string,
-        rightContent?: React.ReactNode,
-        onPress?: () => void,
-        showChevron: boolean = true
-    ) => (
-        <TouchableOpacity
-            style={styles.discordSectionItem}
-            onPress={onPress}
-            disabled={!onPress}
-            activeOpacity={onPress ? 0.7 : 1}
-        >
-            <View style={styles.discordSectionLeft}>
-                <Ionicons name={icon as any} size={20} color="#6B7280" style={{ marginRight: 12 }} />
-                <Text style={styles.discordSectionLabel}>{label}</Text>
-            </View>
-            <View style={styles.discordSectionRight}>
-                {rightContent}
-                {showChevron && onPress && (
-                    <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
-                )}
-            </View>
-        </TouchableOpacity>
-    );
-
     const renderTabs = () => (
         <View style={styles.tabsContainer}>
             <HapticTouchable
@@ -463,35 +436,23 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                 <View style={styles.stickyHeaderWrapper}>
                     {/* ステータスバー避け用スペーサー */}
                     <View style={styles.stickyHeaderSpacer} />
-                    <View style={styles.discordSectionsContainer}>
+                    <View style={styles.horizontalTabsContainer}>
                         {/* マイプロジェクト */}
                         <TouchableOpacity
-                            style={[styles.discordSectionItem, activeTab === 'myProjects' && styles.discordSectionItemActive]}
+                            style={[styles.horizontalTabItem, activeTab === 'myProjects' && styles.horizontalTabItemActive]}
                             onPress={() => setActiveTab('myProjects')}
                         >
-                            <View style={styles.discordSectionLeft}>
-                                <Ionicons name="grid-outline" size={20} color={activeTab === 'myProjects' ? '#F57C00' : '#6B7280'} />
-                                <Text style={[styles.discordSectionLabel, activeTab === 'myProjects' && styles.discordSectionLabelActive]}>マイプロジェクト</Text>
-                            </View>
-                            <View style={styles.discordSectionRight}>
-                                <Text style={styles.discordSectionCount}>{projects.length}</Text>
-                                <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
-                            </View>
+                            <Ionicons name="grid-outline" size={18} color={activeTab === 'myProjects' ? 'white' : '#E5A33D'} />
+                            <Text style={[styles.horizontalTabLabel, activeTab === 'myProjects' && styles.horizontalTabLabelActive]}>マイプロジェクト</Text>
                         </TouchableOpacity>
 
                         {/* 参加中プロジェクト */}
                         <TouchableOpacity
-                            style={[styles.discordSectionItem, activeTab === 'participatingProjects' && styles.discordSectionItemActive]}
+                            style={[styles.horizontalTabItem, activeTab === 'participatingProjects' && styles.horizontalTabItemActive]}
                             onPress={() => setActiveTab('participatingProjects')}
                         >
-                            <View style={styles.discordSectionLeft}>
-                                <Ionicons name="people-outline" size={20} color={activeTab === 'participatingProjects' ? '#F57C00' : '#6B7280'} />
-                                <Text style={[styles.discordSectionLabel, activeTab === 'participatingProjects' && styles.discordSectionLabelActive]}>参加中プロジェクト</Text>
-                            </View>
-                            <View style={styles.discordSectionRight}>
-                                <Text style={styles.discordSectionCount}>{participatingProjects.length}</Text>
-                                <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
-                            </View>
+                            <Ionicons name="people-outline" size={18} color={activeTab === 'participatingProjects' ? 'white' : '#E5A33D'} />
+                            <Text style={[styles.horizontalTabLabel, activeTab === 'participatingProjects' && styles.horizontalTabLabelActive]}>参加中</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -904,47 +865,41 @@ const styles = StyleSheet.create({
         height: 50, // ステータスバーの高さ分
         backgroundColor: '#FFF3E0',
     },
-    discordSectionsContainer: {
+    // 横並びタブスタイル
+    horizontalTabsContainer: {
+        flexDirection: 'row',
         backgroundColor: 'white',
         marginHorizontal: 16,
-        borderRadius: 16,
-        paddingVertical: 8,
+        borderRadius: 12,
+        padding: 4,
         ...SHADOWS.sm,
         marginBottom: 12,
-        overflow: 'hidden',
     },
-    discordSectionItem: {
+    horizontalTabItem: {
+        flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 20,
-        paddingVertical: 14,
+        justifyContent: 'center',
+        paddingVertical: 12,
+        paddingHorizontal: 12,
+        borderRadius: 24,
+        gap: 6,
+        backgroundColor: 'white',
+        borderWidth: 1,
+        borderColor: '#E5A33D',
     },
-    discordSectionLeft: {
-        flexDirection: 'row',
-        alignItems: 'center',
+    horizontalTabItemActive: {
+        backgroundColor: '#E5A33D',
+        borderColor: '#E5A33D',
     },
-    discordSectionRight: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
+    horizontalTabLabel: {
+        fontSize: 14,
+        color: '#E5A33D',
+        fontFamily: FONTS.medium,
     },
-    discordSectionLabel: {
-        fontSize: 15,
-        color: '#111827',
-        marginLeft: 12,
-    },
-    discordSectionLabelActive: {
-        color: '#F57C00',
-        fontWeight: '600',
-    },
-    discordSectionItemActive: {
-        backgroundColor: '#FFF8F0',
-    },
-    discordSectionCount: {
-        fontSize: 15,
-        color: '#6B7280',
-        fontWeight: '500',
+    horizontalTabLabelActive: {
+        color: 'white',
+        fontFamily: FONTS.semiBold,
     },
     discordSectionMeta: {
         fontSize: 14,
