@@ -102,9 +102,10 @@ export function UserProjectPage({ currentUser, onChat, sortOrder = 'recommended'
     const [selectedProject, setSelectedProject] = useState<Project | null>(null);
     const queryClient = useQueryClient();
     const { session } = useAuth();
+    const userId = session?.user?.id;
 
     // React Query hook - ブロックユーザーのプロジェクトを除外
-    const projectsQuery = useProjectsList(sortOrder, session?.user?.id);
+    const projectsQuery = useProjectsList(sortOrder, userId);
     const projects: Project[] = projectsQuery.data || [];
     const loading = projectsQuery.isLoading;
 
@@ -119,20 +120,24 @@ export function UserProjectPage({ currentUser, onChat, sortOrder = 'recommended'
         const projectsChannel = supabase
             .channel('public:projects')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'projects' }, () => {
-                queryClient.invalidateQueries({ queryKey: queryKeys.projects.list(sortOrder) });
+                queryClient.invalidateQueries({ queryKey: queryKeys.projects.list(sortOrder, userId), refetchType: 'active' });
             })
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'projects' }, () => {
-                queryClient.invalidateQueries({ queryKey: queryKeys.projects.list(sortOrder) });
+                queryClient.invalidateQueries({ queryKey: queryKeys.projects.list(sortOrder, userId), refetchType: 'active' });
             })
             .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'projects' }, () => {
-                queryClient.invalidateQueries({ queryKey: queryKeys.projects.list(sortOrder) });
+                queryClient.invalidateQueries({ queryKey: queryKeys.projects.list(sortOrder, userId), refetchType: 'active' });
+            })
+            // 参加申請数(pendingCount)は project_applications の変更で変わるため、ここでも更新する
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'project_applications' }, () => {
+                queryClient.invalidateQueries({ queryKey: queryKeys.projects.list(sortOrder, userId), refetchType: 'active' });
             })
             .subscribe();
 
         return () => {
             supabase.removeChannel(projectsChannel);
         };
-    }, [sortOrder, queryClient]);
+    }, [sortOrder, userId, queryClient]);
 
     const handleCreatePress = () => {
         if (!currentUser) {
