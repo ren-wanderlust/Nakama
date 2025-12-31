@@ -280,7 +280,6 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                         source={getImageSource(profile.image)}
                         style={styles.avatarImage}
                     />
-                    <View style={styles.onlineStatus} />
                 </View>
 
                 {/* ユーザー情報 */}
@@ -750,7 +749,7 @@ const styles = StyleSheet.create({
     },
     discordHeader: {
         backgroundColor: 'white',
-        marginBottom: 8,
+        // marginBottomを削除して隙間をなくす
     },
     headerCoverArea: {
         height: 120,
@@ -772,6 +771,7 @@ const styles = StyleSheet.create({
     profileContentContainer: {
         paddingHorizontal: 20,
         marginTop: -50, // アバターをカバーに食い込ませる
+        paddingBottom: 20, // 下部の余白
     },
     avatarContainer: {
         position: 'relative',
@@ -783,7 +783,7 @@ const styles = StyleSheet.create({
         height: 100,
         borderRadius: 50,
         borderWidth: 6,
-        borderColor: 'white', // 白い枠線で背景と分離
+        borderColor: 'white',
         backgroundColor: '#FFF3E0',
     },
     onlineStatus: {
@@ -793,7 +793,7 @@ const styles = StyleSheet.create({
         width: 24,
         height: 24,
         borderRadius: 12,
-        backgroundColor: '#4CAF50', // オンライン状態の緑丸
+        backgroundColor: '#4CAF50',
         borderWidth: 4,
         borderColor: 'white',
     },
@@ -814,14 +814,14 @@ const styles = StyleSheet.create({
         fontFamily: FONTS.regular,
     },
     editProfileButtonLarge: {
-        backgroundColor: '#F57C00', // ブランドカラー
+        backgroundColor: '#F57C00',
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         paddingVertical: 12,
-        borderRadius: 24, // 角丸
+        borderRadius: 24,
         width: '100%',
-        marginBottom: 20,
+        // marginBottom: 20, // 不要な余白を削除
         ...SHADOWS.sm,
     },
     editProfileButtonTextLarge: {
@@ -831,21 +831,26 @@ const styles = StyleSheet.create({
         fontFamily: FONTS.bold,
     },
     stickyHeaderWrapper: {
-        backgroundColor: '#FFF3E0', // 背景色と同じ
+        backgroundColor: 'white', // 背景を白にしてプロフィールと一体化
+        paddingBottom: 8, // 下部に少し余白
+        borderBottomLeftRadius: 24, // 下部を丸くしてカード感を出す
+        borderBottomRightRadius: 24,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 2,
     },
     stickyHeaderSpacer: {
-        height: 50, // ステータスバーの高さ分
-        backgroundColor: '#FFF3E0',
+        height: 0, // スペーサー不要（通常スクロール内に入るため）
     },
     // 横並びタブスタイル
     horizontalTabsContainer: {
         flexDirection: 'row',
-        backgroundColor: 'white',
+        backgroundColor: 'white', // 背景白
         marginHorizontal: 16,
-        borderRadius: 12,
+        // borderRadius, shadowなどを削除してフラットに
         padding: 4,
-        ...SHADOWS.sm,
-        marginBottom: 12,
     },
     horizontalTabItem: {
         flex: 1,
