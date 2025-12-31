@@ -1060,8 +1060,14 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                     {project.required_roles && project.required_roles.length > 0 && (
                         <View style={styles.recruitmentRow}>
                             <Text style={styles.recruitmentLabel}>募集：</Text>
-                            <View style={styles.recruitmentTagsContainer}>
-                                {project.required_roles?.slice(0, 5).map((role, index) => {
+                            <ScrollView
+                                horizontal
+                                nestedScrollEnabled
+                                showsHorizontalScrollIndicator={false}
+                                style={styles.recruitmentTagsScroll}
+                                contentContainerStyle={styles.recruitmentTagsContainer}
+                            >
+                                {project.required_roles?.map((role, index) => {
                                     const roleColors = getRoleColors(role);
                                     const roleIcon = getRoleIcon(role);
                                     return (
@@ -1079,49 +1085,7 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                                         </View>
                                     );
                                 })}
-                                {project.required_roles && project.required_roles.length > 5 && (
-                                    <Text style={styles.moreTagsDotsInline}>...</Text>
-                                )}
-                            </View>
-                        </View>
-                    )}
-
-                    {/* コミット量・ゴール・期間を表示 */}
-                    {(project.commitment_level || project.goal || project.duration) && (
-                        <View style={styles.projectDetailsContainer}>
-                            {project.commitment_level && (
-                                <View style={styles.projectDetailItem}>
-                                    <View style={styles.projectDetailIconContainer}>
-                                        <Ionicons name="time" size={16} color="#3B82F6" />
-                                    </View>
-                                    <View style={styles.projectDetailContent}>
-                                        <Text style={styles.projectDetailLabel}>求めるコミット量</Text>
-                                        <Text style={styles.projectDetailValue}>{project.commitment_level}</Text>
-                                    </View>
-                                </View>
-                            )}
-                            {project.goal && (
-                                <View style={styles.projectDetailItem}>
-                                    <View style={styles.projectDetailIconContainer}>
-                                        <Ionicons name="flag" size={16} color="#10B981" />
-                                    </View>
-                                    <View style={styles.projectDetailContent}>
-                                        <Text style={styles.projectDetailLabel}>ゴール</Text>
-                                        <Text style={styles.projectDetailValue}>{project.goal}</Text>
-                                    </View>
-                                </View>
-                            )}
-                            {project.duration && (
-                                <View style={styles.projectDetailItem}>
-                                    <View style={styles.projectDetailIconContainer}>
-                                        <Ionicons name="hourglass" size={16} color="#8B5CF6" />
-                                    </View>
-                                    <View style={styles.projectDetailContent}>
-                                        <Text style={styles.projectDetailLabel}>期間</Text>
-                                        <Text style={styles.projectDetailValue}>{project.duration}</Text>
-                                    </View>
-                                </View>
-                            )}
+                            </ScrollView>
                         </View>
                     )}
 
@@ -1129,7 +1093,13 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                     {/* 参加メンバー（横一列） */}
                     <View style={styles.membersRow}>
                         <Text style={styles.membersLabel}>メンバー：</Text>
-                        <View style={styles.membersRowContent}>
+                        <ScrollView
+                            horizontal
+                            nestedScrollEnabled
+                            showsHorizontalScrollIndicator={false}
+                            style={styles.membersRowScroll}
+                            contentContainerStyle={styles.membersRowContent}
+                        >
                             {/* オーナー */}
                             <TouchableOpacity
                                 style={styles.ownerMemberChip}
@@ -1141,7 +1111,7 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                                 <Text style={styles.ownerChipText}>オーナー</Text>
                             </TouchableOpacity>
 
-                            {applicants.filter(a => a.status === 'approved').slice(0, 8).map((applicant) => (
+                            {applicants.filter(a => a.status === 'approved').map((applicant) => (
                                 <TouchableOpacity
                                     key={applicant.id}
                                     style={styles.memberAvatarButton}
@@ -1158,10 +1128,7 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                                     )}
                                 </TouchableOpacity>
                             ))}
-                            {applicants.filter(a => a.status === 'approved').length > 8 && (
-                                <Text style={styles.moreTagsDotsInline}>...</Text>
-                            )}
-                        </View>
+                        </ScrollView>
                     </View>
 
                     {/* 内容（テーマタグ + 内容タグをまとめて表示 / 横一列・横スクロール） */}
@@ -1172,8 +1139,7 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                                 <ScrollView
                                     horizontal
                                     showsHorizontalScrollIndicator={false}
-                                    contentContainerStyle={styles.themeContentScrollContent}
-                                    style={styles.themeContentScroll}
+                                    contentContainerStyle={styles.themeContentRowContent}
                                 >
                                     {!!project.tags?.length && project.tags.map((tag, index) => (
                                         <View key={`theme-inline-${index}`} style={[styles.themeTag, { backgroundColor: getThemeTagColor(tag) }]}>
@@ -1191,58 +1157,92 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                     }
                     <View style={styles.divider} />
 
+                    {/* ゴール（プロジェクト詳細の前） */}
+                    {project.goal && (
+                        <>
+                            <Text style={styles.sectionTitle}>ゴール</Text>
+                            <Text style={styles.description}>{project.goal}</Text>
+                            <View style={styles.sectionSpacer} />
+                        </>
+                    )}
+
                     {/* 詳細 */}
                     <Text style={styles.sectionTitle}>プロジェクト詳細</Text>
                     <Text style={styles.description}>{project.description}</Text>
 
+                    {/* 求めるコミット量・期間（プロジェクト詳細のあと） */}
+                    {(project.commitment_level || project.duration) && (
+                        <>
+                            {project.commitment_level && (
+                                <>
+                                    <View style={styles.sectionSpacer} />
+                                    <Text style={styles.sectionTitle}>求めるコミット量</Text>
+                                    <Text style={styles.description}>{project.commitment_level}</Text>
+                                </>
+                            )}
+                            {project.duration && (
+                                <>
+                                    <View style={styles.sectionSpacer} />
+                                    <Text style={styles.sectionTitle}>期間</Text>
+                                    <Text style={styles.description}>{project.duration}</Text>
+                                </>
+                            )}
+                        </>
+                    )}
+
                     {/* Pending Applications Section (Owner Only) - 詳細の下に残す */}
                     {
                         currentUser?.id === project.owner_id && (
-                            <View style={styles.applicantsSection}>
-                                <Text style={styles.sectionTitle}>
-                                    申請中のメンバー ({applicants.filter(a => a.status === 'pending').length}人)
-                                </Text>
-                                {applicants.filter(a => a.status === 'pending').length > 0 ? (
-                                    <View style={styles.pendingCardsList}>
-                                        {applicants.filter(a => a.status === 'pending').map((applicant) => (
-                                            <View key={applicant.id} style={styles.pendingCard}>
-                                                <View style={styles.pendingCardHeader}>
-                                                    <Image
-                                                        source={getImageSource(applicant.user.image)}
-                                                        style={styles.pendingCardImage}
-                                                    />
-                                                    <View style={styles.pendingCardInfo}>
-                                                        <Text style={styles.pendingCardName} numberOfLines={1}>
-                                                            {applicant.user.name}
-                                                        </Text>
-                                                        <Text style={styles.pendingCardUniversity} numberOfLines={1}>
-                                                            {applicant.user.university || '所属なし'}
-                                                        </Text>
+                            <>
+                                {/* 上のコンテンツと区切って表示 */}
+                                <View style={styles.ownerApplicantsDivider} />
+
+                                <View style={styles.applicantsSection}>
+                                    <Text style={styles.sectionTitle}>
+                                        申請中のメンバー ({applicants.filter(a => a.status === 'pending').length}人)
+                                    </Text>
+                                    {applicants.filter(a => a.status === 'pending').length > 0 ? (
+                                        <View style={styles.pendingCardsList}>
+                                            {applicants.filter(a => a.status === 'pending').map((applicant) => (
+                                                <View key={applicant.id} style={styles.pendingCard}>
+                                                    <View style={styles.pendingCardHeader}>
+                                                        <Image
+                                                            source={getImageSource(applicant.user.image)}
+                                                            style={styles.pendingCardImage}
+                                                        />
+                                                        <View style={styles.pendingCardInfo}>
+                                                            <Text style={styles.pendingCardName} numberOfLines={1}>
+                                                                {applicant.user.name}
+                                                            </Text>
+                                                            <Text style={styles.pendingCardUniversity} numberOfLines={1}>
+                                                                {applicant.user.university || '所属なし'}
+                                                            </Text>
+                                                        </View>
+                                                    </View>
+                                                    <View style={styles.pendingCardActions}>
+                                                        <TouchableOpacity
+                                                            style={styles.rejectButton}
+                                                            onPress={() => handleRejectConfirmation(applicant.id, applicant.user.name)}
+                                                        >
+                                                            <Ionicons name="close" size={18} color="#EF4444" />
+                                                            <Text style={styles.rejectButtonText}>棄却</Text>
+                                                        </TouchableOpacity>
+                                                        <TouchableOpacity
+                                                            style={styles.approveButton}
+                                                            onPress={() => updateApplicantStatus(applicant.id, 'approved', applicant.user.name)}
+                                                        >
+                                                            <Ionicons name="checkmark" size={18} color="white" />
+                                                            <Text style={styles.approveButtonText}>承認</Text>
+                                                        </TouchableOpacity>
                                                     </View>
                                                 </View>
-                                                <View style={styles.pendingCardActions}>
-                                                    <TouchableOpacity
-                                                        style={styles.rejectButton}
-                                                        onPress={() => handleRejectConfirmation(applicant.id, applicant.user.name)}
-                                                    >
-                                                        <Ionicons name="close" size={18} color="#EF4444" />
-                                                        <Text style={styles.rejectButtonText}>棄却</Text>
-                                                    </TouchableOpacity>
-                                                    <TouchableOpacity
-                                                        style={styles.approveButton}
-                                                        onPress={() => updateApplicantStatus(applicant.id, 'approved', applicant.user.name)}
-                                                    >
-                                                        <Ionicons name="checkmark" size={18} color="white" />
-                                                        <Text style={styles.approveButtonText}>承認</Text>
-                                                    </TouchableOpacity>
-                                                </View>
-                                            </View>
-                                        ))}
-                                    </View>
-                                ) : (
-                                    <Text style={styles.noApplicantsText}>現在、申請はありません</Text>
-                                )}
-                            </View>
+                                            ))}
+                                        </View>
+                                    ) : (
+                                        <Text style={styles.noApplicantsText}>現在、申請はありません</Text>
+                                    )}
+                                </View>
+                            </>
                         )
                     }
                 </View >
@@ -1399,6 +1399,9 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
+        paddingRight: 8, // 末尾が切れないように
+    },
+    recruitmentTagsScroll: {
         flex: 1,
         minWidth: 0,
     },
@@ -1460,6 +1463,9 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 10,
+        paddingRight: 8, // 末尾が切れないように
+    },
+    membersRowScroll: {
         flex: 1,
         minWidth: 0,
     },
@@ -1693,6 +1699,15 @@ const styles = StyleSheet.create({
         height: 1,
         backgroundColor: '#F3F4F6',
         marginBottom: 24,
+    },
+    ownerApplicantsDivider: {
+        height: 1,
+        backgroundColor: '#F3F4F6',
+        marginTop: 24,
+        marginBottom: 24,
+    },
+    sectionSpacer: {
+        height: 16,
     },
     dividerTight: {
         // 内容タグ（themeContentRow）→ 下の線 と同じ余白に揃える
