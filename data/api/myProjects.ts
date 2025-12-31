@@ -5,6 +5,7 @@ export interface Project {
   title: string;
   description: string;
   image_url: string | null;
+  cover_image?: string | null;
   owner_id: string;
   created_at: string;
   deadline?: string | null;
@@ -73,6 +74,7 @@ export async function fetchParticipatingProjects(userId: string): Promise<any[]>
         description,
         tagline,
         image_url,
+        cover_image,
         owner_id,
         created_at,
         deadline,

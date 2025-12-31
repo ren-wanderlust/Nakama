@@ -52,6 +52,12 @@ export const queryKeys = {
     detail: (userId: string) => [...queryKeys.participatingProjects.all, userId] as const,
   },
 
+  // プロジェクト参加メンバー（プロジェクトID配列単位）
+  projectMembers: {
+    all: ['projectMembers'] as const,
+    list: (projectIdsKey: string) => [...queryKeys.projectMembers.all, projectIdsKey] as const,
+  },
+
   // 受信いいね（ユーザー単位）
   receivedLikes: {
     all: ['receivedLikes'] as const,

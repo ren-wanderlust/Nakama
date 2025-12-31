@@ -1,19 +1,24 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, FlatList, Image, Dimensions } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, FlatList, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../lib/supabase';
 import { ChatListSkeleton } from './Skeleton';
 import { SimpleRefreshControl } from './CustomRefreshControl';
-import { RADIUS, COLORS, SPACING, AVATAR, FONTS, SHADOWS } from '../constants/DesignSystem';
-import { ChatEmptyState, EmptyState } from './EmptyState';
+import { COLORS, SPACING, FONTS, SHADOWS } from '../constants/DesignSystem';
+import { EmptyState } from './EmptyState';
 import { useQueryClient } from '@tanstack/react-query';
 import { useChatRooms } from '../data/hooks/useChatRooms';
+import { useMyProjects, useParticipatingProjects } from '../data/hooks/useMyProjects';
+import { useProjectMembers } from '../data/hooks/useProjectMembers';
 import { queryKeys } from '../data/queryKeys';
 import { ChatRoom } from '../data/api/chatRooms';
 import { getImageSource } from '../constants/DefaultImages';
 import { useAuth } from '../contexts/AuthContext';
+
+// 探すページと同じ「カバー画像未設定時の色」ロジック
+const PROJECT_COVER_FALLBACK_COLORS = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F'];
+// オーナータグ内の画像は表示しない（要件）
 
 interface TalkPageProps {
     onOpenChat?: (room: ChatRoom) => void;
@@ -26,8 +31,6 @@ interface TalkPageProps {
 
 export function TalkPage({ onOpenChat, onViewProfile, onViewProject, onOpenNotifications, unreadNotificationsCount = 0, hideHeader = false }: TalkPageProps) {
     const insets = useSafeAreaInsets();
-    const [talkTab, setTalkTab] = useState<'individual' | 'team'>('team');
-    const talkListRef = useRef<FlatList>(null);
     const [refreshing, setRefreshing] = useState(false);
     const queryClient = useQueryClient();
 
@@ -38,11 +41,21 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject, onOpenNotif
     // React Query hook for chat rooms
     const chatRoomsQuery = useChatRooms(userId);
     const chatRooms: ChatRoom[] = chatRoomsQuery.data || [];
-    const loading = chatRoomsQuery.isLoading;
+    const myProjectsQuery = useMyProjects(userId);
+    const participatingProjectsQuery = useParticipatingProjects(userId);
+
+    const baseLoading =
+        chatRoomsQuery.isLoading ||
+        myProjectsQuery.isLoading ||
+        participatingProjectsQuery.isLoading;
 
     const onRefresh = async () => {
         setRefreshing(true);
-        await chatRoomsQuery.refetch();
+        await Promise.all([
+            chatRoomsQuery.refetch(),
+            myProjectsQuery.refetch(),
+            participatingProjectsQuery.refetch(),
+        ]);
         setRefreshing(false);
     };
 
@@ -82,10 +95,33 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject, onOpenNotif
             })
             .subscribe();
 
+        // Subscribe to project participation changes (approved members)
+        const projectApplicationsSubscription = supabase
+            .channel('public:project_applications')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'project_applications' }, () => {
+                queryClient.invalidateQueries({ queryKey: queryKeys.participatingProjects.detail(userId) });
+                queryClient.invalidateQueries({ queryKey: queryKeys.chatRooms.list(userId) });
+                queryClient.invalidateQueries({ queryKey: queryKeys.projectMembers.all });
+            })
+            .subscribe();
+
+        // Subscribe to projects updates (title/image changes reflect on dashboard)
+        const projectsSubscription = supabase
+            .channel('public:projects')
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'projects' }, () => {
+                queryClient.invalidateQueries({ queryKey: queryKeys.myProjects.detail(userId) });
+                queryClient.invalidateQueries({ queryKey: queryKeys.participatingProjects.detail(userId) });
+                queryClient.invalidateQueries({ queryKey: queryKeys.chatRooms.list(userId) });
+                queryClient.invalidateQueries({ queryKey: queryKeys.projectMembers.all });
+            })
+            .subscribe();
+
         return () => {
             supabase.removeChannel(messageSubscription);
             supabase.removeChannel(likesSubscription);
             supabase.removeChannel(chatRoomsSubscription);
+            supabase.removeChannel(projectApplicationsSubscription);
+            supabase.removeChannel(projectsSubscription);
         };
     }, [userId, queryClient]);
 
@@ -97,148 +133,216 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject, onOpenNotif
         .filter(room => room.type === 'individual')
         .reduce((sum, room) => sum + (room.unreadCount || 0), 0);
 
+    const dashboardItems = useMemo(() => {
+        const myProjects = myProjectsQuery.data || [];
+        const participating = participatingProjectsQuery.data || [];
 
-    const renderIndividualList = () => {
-        const individualRooms = chatRooms.filter(r => r.type === 'individual');
+        // 参加中プロジェクト = 自分の作成 + 承認参加（重複除去）
+        const projectMap = new Map<string, any>();
+        [...participating, ...myProjects].forEach((p: any) => {
+            if (!p?.id) return;
+            projectMap.set(p.id, p);
+        });
+        const projects = Array.from(projectMap.values());
 
-        if (individualRooms.length > 0) {
-            return (
-                <FlatList
-                    data={individualRooms}
-                    keyExtractor={(item) => item.id}
-                    renderItem={({ item }) => (
-                        <TouchableOpacity
-                            style={styles.card}
-                            onPress={() => onOpenChat?.(item)}
-                            activeOpacity={0.85}
-                        >
-                            <View style={styles.cardInner}>
-                                {/* Avatar - Tappable for profile */}
-                                <TouchableOpacity
-                                    style={styles.avatarContainer}
-                                    onPress={() => onViewProfile?.(item.partnerId)}
-                                    activeOpacity={0.7}
-                                >
-                                    <Image
-                                        source={getImageSource(item.partnerImage)}
-                                        style={styles.avatar}
-                                    />
-                                </TouchableOpacity>
-
-                                {/* Content */}
-                                <View style={styles.content}>
-                                    <View style={styles.topRow}>
-                                        <View style={styles.nameContainer}>
-                                            <Text style={styles.name}>{item.partnerName}</Text>
-                                        </View>
-                                        <Text style={styles.timestamp}>{item.timestamp}</Text>
-                                    </View>
-
-                                    <View style={styles.messageRow}>
-                                        <Text style={styles.lastMessage} numberOfLines={1}>
-                                            {item.lastMessage}
-                                        </Text>
-                                    </View>
-                                </View>
-
-                                {item.unreadCount > 0 ? (
-                                    <View style={styles.unreadBadge}>
-                                        <Text style={styles.unreadText}>{item.unreadCount}</Text>
-                                    </View>
-                                ) : (
-                                    <Ionicons
-                                        name="chevron-forward"
-                                        size={20}
-                                        color="#9ca3af"
-                                        style={styles.chevronIcon}
-                                    />
-                                )}
-                            </View>
-                        </TouchableOpacity>
-                    )}
-                    contentContainerStyle={styles.listContent}
-                    refreshControl={
-                        <SimpleRefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-                    }
-                />
-            );
-        } else {
-            return <ChatEmptyState />;
-        }
-    };
-
-    const renderTeamList = () => {
         const teamRooms = chatRooms.filter(r => r.type === 'group');
+        const roomByProjectId = new Map<string, ChatRoom>();
+        teamRooms.forEach((r) => {
+            if (r.projectId) roomByProjectId.set(r.projectId, r);
+        });
 
-        if (teamRooms.length > 0) {
-            return (
-                <FlatList
-                    data={teamRooms}
-                    keyExtractor={(item) => item.id}
-                    renderItem={({ item }) => (
-                        <TouchableOpacity
-                            style={styles.card}
-                            onPress={() => onOpenChat?.(item)}
-                            activeOpacity={0.85}
-                        >
-                            <View style={styles.cardInner}>
-                                {/* Avatar - Tappable for project detail */}
-                                <TouchableOpacity
-                                    style={styles.avatarContainer}
-                                    onPress={() => item.projectId && onViewProject?.(item.projectId)}
-                                    activeOpacity={0.7}
-                                >
-                                    <Image
-                                        source={getImageSource(item.partnerImage)}
-                                        style={styles.avatar}
-                                    />
-                                    <View style={styles.groupBadgeOverlay}>
-                                        <Ionicons name="people" size={12} color="white" />
-                                    </View>
-                                </TouchableOpacity>
+        const items = projects.map((project) => ({
+            project,
+            room: roomByProjectId.get(project.id),
+        }));
 
-                                {/* Content */}
-                                <View style={styles.content}>
-                                    <View style={styles.topRow}>
-                                        <View style={styles.nameContainer}>
-                                            <Text style={styles.name}>{item.partnerName}</Text>
-                                        </View>
-                                        <Text style={styles.timestamp}>{item.timestamp}</Text>
-                                    </View>
+        // 最新メッセージ順（無い場合はプロジェクト作成日）
+        items.sort((a, b) => {
+            const aTime = a.room?.rawTimestamp || a.project?.created_at || '1970-01-01T00:00:00.000Z';
+            const bTime = b.room?.rawTimestamp || b.project?.created_at || '1970-01-01T00:00:00.000Z';
+            return new Date(bTime).getTime() - new Date(aTime).getTime();
+        });
 
-                                    <View style={styles.messageRow}>
-                                        <Text style={styles.lastMessage} numberOfLines={1}>
-                                            {item.lastMessage}
-                                        </Text>
-                                    </View>
-                                </View>
+        return items;
+    }, [myProjectsQuery.data, participatingProjectsQuery.data, chatRooms]);
 
-                                {item.unreadCount > 0 ? (
-                                    <View style={styles.unreadBadge}>
-                                        <Text style={styles.unreadText}>{item.unreadCount}</Text>
-                                    </View>
-                                ) : (
-                                    <Ionicons name="chevron-forward" size={20} color="#9ca3af" style={styles.chevronIcon} />
-                                )}
-                            </View>
-                        </TouchableOpacity>
-                    )}
-                    contentContainerStyle={styles.listContent}
-                    refreshControl={
-                        <SimpleRefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-                    }
-                />
-            );
-        } else {
+    const dashboardProjectIds = useMemo(
+        () => dashboardItems.map((x) => x.project?.id).filter((id): id is string => !!id),
+        [dashboardItems]
+    );
+
+    const projectMembersQuery = useProjectMembers(dashboardProjectIds);
+    const projectMembersMap = projectMembersQuery.data || {};
+    const loading = baseLoading || projectMembersQuery.isLoading;
+
+    const renderProjectDashboard = () => {
+        const filteredDashboardItems = dashboardItems.filter((it) => {
+            const members = projectMembersMap[it.project.id] || [];
+            // owner + approved の合計が2人以上のものだけ表示
+            return members.length >= 2;
+        });
+
+        if (filteredDashboardItems.length === 0) {
             return (
                 <EmptyState
                     variant="chat"
-                    icon="people-outline"
-                    title="まだチームチャットがありません"
-                    description="2人以上のメンバーが承認されると、自動的にチームチャットが作成されます"
+                    icon="grid-outline"
+                    title="まだチームがありません"
+                    description="メンバーが2人以上になると、ここにプロジェクトダッシュボードが表示されます"
                 />
             );
         }
+
+        return (
+            <FlatList
+                data={filteredDashboardItems}
+                keyExtractor={(item) => item.project.id}
+                renderItem={({ item, index }) => {
+                    const project = item.project;
+                    const room = item.room;
+
+                    const senderName = room?.lastSenderName || 'システム';
+                    const senderImage = room?.lastSenderImage || '';
+                    const lastMessage = room?.lastMessage || 'まだメッセージがありません';
+                    const timestamp = room?.timestamp || '';
+                    const unreadCount = room?.unreadCount || 0;
+                    const coverImage = (project as any)?.cover_image as string | null | undefined;
+                    const fallbackColor = PROJECT_COVER_FALLBACK_COLORS[index % PROJECT_COVER_FALLBACK_COLORS.length];
+                    const themeTag = (project as any)?.tags?.[0] as string | undefined;
+                    const members = projectMembersMap[project.id] || [];
+                    const maxMembersToShow = 5;
+                    const shownMembers = members.slice(0, maxMembersToShow);
+                    const remainingCount = members.length - shownMembers.length;
+                    const isSystemMessage = !room?.lastSenderId && !room?.lastSenderImage && !room?.lastSenderName;
+                    const isOwner = !!userId && (project as any)?.owner_id === userId;
+
+                    const openChatOrProject = () => {
+                        if (room) {
+                            onOpenChat?.(room);
+                        } else {
+                            onViewProject?.(project.id);
+                        }
+                    };
+
+                    return (
+                        <TouchableOpacity
+                            style={styles.projectCard}
+                            onPress={openChatOrProject}
+                            activeOpacity={0.88}
+                        >
+                            {/* 上段: さがすページのカードサイズ（左: cover / 右: タイトル・テーマ・詳細のみ） */}
+                            <View style={styles.projectTopSection}>
+                                <View style={[styles.projectCardThumbnail, !coverImage && { backgroundColor: fallbackColor }]}>
+                                    {coverImage ? (
+                                        <Image source={{ uri: coverImage }} style={styles.projectCardThumbnailImage} resizeMode="cover" />
+                                    ) : (
+                                        <Ionicons name="image-outline" size={36} color="rgba(255,255,255,0.5)" />
+                                    )}
+                                </View>
+
+                                <View style={styles.projectTopRight}>
+                                    <View style={styles.projectTopUpper}>
+                                        <Text style={styles.projectTitle} numberOfLines={2}>
+                                            {project.title}
+                                        </Text>
+
+                                        <View style={styles.memberRow}>
+                                            {shownMembers.map((m, i) => (
+                                                <Image
+                                                    key={`${project.id}:${m.id}`}
+                                                    source={getImageSource(m.image)}
+                                                    style={[styles.memberAvatar, i !== 0 && styles.memberAvatarOverlap]}
+                                                />
+                                            ))}
+                                            {remainingCount > 0 && (
+                                                <View style={[styles.memberMoreBadge, shownMembers.length > 0 && styles.memberAvatarOverlap]}>
+                                                    <Text style={styles.memberMoreText}>{`+${remainingCount}`}</Text>
+                                                </View>
+                                            )}
+                                        </View>
+                                    </View>
+
+                                    <View style={styles.projectTopBottomRow}>
+                                        <View style={styles.projectThemeSlot}>
+                                            <View style={styles.projectTagRow}>
+                                                {!!themeTag && (
+                                                    <View style={styles.projectThemeTag}>
+                                                        <Text style={styles.projectThemeTagText}>{themeTag}</Text>
+                                                    </View>
+                                                )}
+                                                {isOwner && (
+                                                    <View style={styles.projectOwnerTag}>
+                                                        <Text style={styles.projectOwnerTagText}>オーナー</Text>
+                                                    </View>
+                                                )}
+                                            </View>
+                                        </View>
+
+                                        <TouchableOpacity
+                                            style={styles.detailButton}
+                                            onPress={() => onViewProject?.(project.id)}
+                                            activeOpacity={0.85}
+                                        >
+                                            <Text style={styles.detailButtonText}>詳細</Text>
+                                            <Ionicons name="chevron-forward" size={14} color="#F39800" />
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+                            </View>
+
+                            {/* 下段: チャットUI（カード全幅。メンバーボタンは未実装） */}
+                            <View style={styles.projectBottomSection}>
+                                <View style={styles.chatRow}>
+                                    <View style={styles.chatLeftGroup}>
+                                        {isSystemMessage ? (
+                                            <View style={styles.systemMessageRow}>
+                                                <Text style={styles.lastMessage} numberOfLines={1}>
+                                                    {lastMessage}
+                                                </Text>
+                                                <Text style={styles.timestamp}>{timestamp}</Text>
+                                            </View>
+                                        ) : (
+                                            <>
+                                                <Image source={getImageSource(senderImage)} style={styles.senderAvatar} />
+
+                                                <View style={styles.chatContent}>
+                                                    <View style={styles.chatTopRow}>
+                                                        <Text style={styles.senderName} numberOfLines={1}>
+                                                            {senderName}
+                                                        </Text>
+                                                        <Text style={styles.timestamp}>{timestamp}</Text>
+                                                    </View>
+
+                                                    <Text style={styles.lastMessage} numberOfLines={1}>
+                                                        {lastMessage}
+                                                    </Text>
+                                                </View>
+                                            </>
+                                        )}
+                                    </View>
+
+                                    <View style={styles.chatRightAccessory}>
+                                        {unreadCount > 0 ? (
+                                            <View style={styles.unreadBadge}>
+                                                <Text style={styles.unreadText}>{unreadCount}</Text>
+                                            </View>
+                                        ) : (
+                                            <Ionicons name="chevron-forward" size={20} color="#9ca3af" style={styles.chevronIcon} />
+                                        )}
+                                    </View>
+                                </View>
+                            </View>
+                        </TouchableOpacity>
+                    );
+                }}
+                contentContainerStyle={[
+                    styles.listContent,
+                    // BottomNav（absolute）に隠れないように十分な下余白を確保
+                    { paddingBottom: 120 + Math.max(insets.bottom, 0) },
+                ]}
+                refreshControl={<SimpleRefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+            />
+        );
     };
 
     // Header is now rendered in App.tsx to avoid animation
@@ -260,7 +364,7 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject, onOpenNotif
             {renderHeader()}
 
             {/* チームチャットのみ表示 */}
-            {renderTeamList()}
+            {renderProjectDashboard()}
 
             {/* 個人タブは将来的な復活のためにコメントで残す
             <View style={styles.header}>
@@ -428,101 +532,221 @@ const styles = StyleSheet.create({
         padding: 16,
         paddingTop: 8,
         paddingBottom: 20,
-        gap: 6,
+        // gap は使わず、カード側の marginBottom で揃える（探すページと同じ）
     },
-    card: {
-        width: '100%',
-        borderRadius: 16,
-        overflow: 'hidden',
-        ...SHADOWS.lg,
-    },
-    cardInner: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 16,
+    // 探すページ（UserProjectPage）の cardNew と同サイズ感に揃える
+    projectCard: {
         backgroundColor: 'white',
-        borderRadius: 16,
+        borderRadius: 12,
+        overflow: 'hidden',
+        marginBottom: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+        elevation: 3,
     },
-    avatarContainer: {
-        position: 'relative',
-        marginRight: SPACING.md,
+    projectTopSection: {
+        flexDirection: 'row',
+        height: 108, // 上段の縦幅を約0.9倍（120 * 0.9）
     },
-    avatar: {
-        width: AVATAR.xl.size - 8,
-        height: AVATAR.xl.size - 8,
-        borderRadius: (AVATAR.xl.size - 8) / 2,
+    projectCardThumbnail: {
+        width: 108,
+        height: 108,
+        alignItems: 'center',
+        justifyContent: 'center',
         backgroundColor: COLORS.background.tertiary,
     },
-    onlineBadge: {
-        position: 'absolute',
-        bottom: 2,
-        right: 2,
-        width: 12,
-        height: 12,
-        borderRadius: 6,
-        backgroundColor: '#22c55e', // green-500
-        borderWidth: 2,
-        borderColor: 'white',
+    projectCardThumbnailImage: {
+        width: '100%',
+        height: '100%',
     },
-    content: {
+    projectTopRight: {
         flex: 1,
-        marginRight: 8,
-    },
-    topRow: {
-        flexDirection: 'row',
+        padding: 12,
+        flexDirection: 'column',
+        alignItems: 'stretch',
         justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        marginBottom: 4,
+        gap: 10,
     },
-    nameContainer: {
-        flexDirection: 'row',
-        alignItems: 'baseline',
-        gap: 8,
+    projectTopUpper: {
         flex: 1,
+        gap: 8,
+        minHeight: 0,
     },
-    rightInfo: {
-        alignItems: 'flex-end',
-        justifyContent: 'flex-start',
-        gap: 6,
-    },
-    name: {
-        fontSize: 16,
+    projectTitle: {
+        fontSize: 15,
         fontFamily: FONTS.bold,
         color: '#111827',
     },
-    details: {
+    memberRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingLeft: 2,
+        minHeight: 22,
+    },
+    memberAvatar: {
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        backgroundColor: COLORS.background.tertiary,
+        borderWidth: 1.5,
+        borderColor: 'white',
+    },
+    memberAvatarOverlap: {
+        marginLeft: -6,
+    },
+    memberMoreBadge: {
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        backgroundColor: '#E5E7EB',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1.5,
+        borderColor: 'white',
+    },
+    memberMoreText: {
+        fontSize: 10,
+        fontFamily: FONTS.bold,
+        color: '#6B7280',
+    },
+    projectTopBottomRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+        justifyContent: 'space-between',
+        gap: 10,
+    },
+    projectThemeSlot: {
+        flex: 1,
+        alignItems: 'flex-start',
+        justifyContent: 'flex-end',
+    },
+    projectTagRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        flexWrap: 'nowrap',
+    },
+    projectThemeTag: {
+        alignSelf: 'flex-start',
+        backgroundColor: '#3B82F6',
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 4,
+    },
+    projectThemeTagText: {
+        fontSize: 10,
+        fontFamily: FONTS.semiBold,
+        color: '#FFFFFF',
+    },
+    // 「詳細」ボタンと同系（枠線/白背景/オレンジ文字）だが、themeタグと同サイズ
+    projectOwnerTag: {
+        alignSelf: 'flex-start',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 4,
+        backgroundColor: '#F39800',
+    },
+    projectOwnerTagText: {
+        fontSize: 10,
+        fontFamily: FONTS.semiBold,
+        color: 'white',
+    },
+    detailButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#F39800',
+        backgroundColor: 'white',
+    },
+    detailButtonText: {
         fontSize: 12,
-        fontFamily: FONTS.regular,
-        color: '#6b7280',
+        fontFamily: FONTS.bold,
+        color: '#F39800',
+    },
+    projectBottomSection: {
+        borderTopWidth: 1,
+        borderTopColor: '#F3F4F6',
+        paddingHorizontal: 12,
+        paddingVertical: 7, // 下段（チャットUI）の縦幅のみ少し縮める
+    },
+    chatRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    chatLeftGroup: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        marginLeft: 6, // 下段のアイコン/ユーザー名/メッセージを僅かに右へ
+        flex: 1,
+        paddingRight: 8,
+    },
+    chatRightAccessory: {
+        alignItems: 'flex-end',
+        justifyContent: 'center',
+    },
+    systemMessageRow: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingTop: 2, // 通常のテキスト位置とバランスを揃える
+    },
+    senderAvatar: {
+        width: 34,
+        height: 34,
+        borderRadius: 17,
+        backgroundColor: COLORS.background.tertiary,
+    },
+    chatContent: {
+        flex: 1,
+        marginRight: 6,
+        paddingTop: 2, // スクショのようにテキストが僅かに下がるバランスに
+        // 縦の中央揃えはしない（自然な上詰め）
+        justifyContent: 'flex-start',
+    },
+    chatTopRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: 1,
+        gap: 10,
+    },
+    senderName: {
+        flex: 1,
+        fontSize: 13,
+        lineHeight: 18,
+        fontFamily: FONTS.bold,
+        color: '#111827',
     },
     timestamp: {
-        fontSize: 12,
+        fontSize: 10,
         fontFamily: FONTS.regular,
         color: '#9ca3af',
     },
-    unrepliedBadge: {
-        fontSize: 11,
-        fontFamily: FONTS.bold,
-        color: '#FF5252',
-        marginTop: 4,
-    },
-    messageRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
     lastMessage: {
         flex: 1,
-        fontSize: 14,
+        fontSize: 12,
+        lineHeight: 16,
         fontFamily: FONTS.regular,
         color: '#4b5563',
         marginRight: 8,
     },
     unreadBadge: {
         backgroundColor: '#009688', // Brand color (Green)
-        minWidth: 22,
-        height: 22,
-        borderRadius: 11,
+        minWidth: 24,
+        height: 24,
+        borderRadius: 12,
         alignItems: 'center',
         justifyContent: 'center',
         paddingHorizontal: 6,
@@ -552,18 +776,5 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#9ca3af',
         textAlign: 'center',
-    },
-    groupBadgeOverlay: {
-        position: 'absolute',
-        bottom: 0,
-        right: 0,
-        backgroundColor: '#009688', // Brand color
-        width: 20,
-        height: 20,
-        borderRadius: 10,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderWidth: 1.5,
-        borderColor: 'white',
     },
 });
