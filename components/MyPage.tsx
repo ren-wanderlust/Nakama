@@ -771,7 +771,7 @@ const styles = StyleSheet.create({
     profileContentContainer: {
         paddingHorizontal: 20,
         marginTop: -50, // アバターをカバーに食い込ませる
-        paddingBottom: 20, // 下部の余白
+        paddingBottom: 8, // 下部の余白を縮小
     },
     avatarContainer: {
         position: 'relative',
