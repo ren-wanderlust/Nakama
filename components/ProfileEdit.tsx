@@ -50,7 +50,7 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
 
     // その他テキスト
     const [otherRoleText, setOtherRoleText] = useState('');
-    const [otherSeekingText, setOtherSeekingText] = useState('');
+
 
     // 役割オプション（RoleConstantsと統一）
     const roleOptions = [
@@ -61,14 +61,7 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
         { id: 'その他', label: 'その他' },
     ];
 
-    // 探している仲間オプション（RoleConstantsと統一）
-    const seekingOptions = [
-        { id: 'エンジニア', label: 'エンジニア' },
-        { id: 'デザイナー', label: 'デザイナー' },
-        { id: 'マーケター', label: 'マーケター' },
-        { id: 'クリエイター', label: 'クリエイター' },
-        { id: 'その他', label: 'その他' },
-    ];
+
 
     // 学年オプション
     const gradeOptions = [
@@ -201,10 +194,7 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
                 ? [...skills.filter(s => s !== 'その他'), otherRoleText.trim()]
                 : skills;
 
-            // Prepare seeking roles array
-            const finalSeekingRoles = seekingRoles.includes('その他') && otherSeekingText.trim()
-                ? [...seekingRoles.filter(s => s !== 'その他'), otherSeekingText.trim()]
-                : seekingRoles;
+
 
             const { error } = await supabase
                 .from('profiles')
@@ -214,7 +204,7 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
                     grade: grade || null,
                     bio: bio,
                     skills: finalSkills,
-                    seeking_roles: finalSeekingRoles,
+                    seeking_roles: seekingRoles,
                     image: uploadedImageUrl,
                     github_url: githubUrl.trim() || null,
                 })
@@ -231,7 +221,7 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
                 grade,
                 bio,
                 skills: finalSkills,
-                seekingRoles: finalSeekingRoles,
+                seekingRoles: seekingRoles,
                 image: uploadedImageUrl,
                 githubUrl: githubUrl.trim() || undefined,
             });
@@ -365,62 +355,6 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
                                 </View>
                             </View>
 
-                            {/* Bio Card */}
-                            <View style={styles.card}>
-                                <View style={styles.cardHeader}>
-                                    <View style={[styles.cardIconContainer, { backgroundColor: '#FEF3C7' }]}>
-                                        <Ionicons name="chatbubble" size={18} color="#F59E0B" />
-                                    </View>
-                                    <Text style={styles.cardTitle}>自己紹介</Text>
-                                    <View style={styles.optionalBadge}>
-                                        <Text style={styles.optionalText}>任意</Text>
-                                    </View>
-                                </View>
-
-                                <TextInput
-                                    value={bio}
-                                    onChangeText={(text) => {
-                                        if (text.length <= maxBioLength) {
-                                            setBio(text);
-                                        }
-                                    }}
-                                    placeholder="例: スタートアップでエンジニア経験あり"
-                                    placeholderTextColor="#9CA3AF"
-                                    style={styles.bioInput}
-                                    maxLength={maxBioLength}
-                                    multiline={true}
-                                    textAlignVertical="top"
-                                    numberOfLines={4}
-                                />
-                                <Text style={styles.characterCount}>
-                                    {bioLength} / {maxBioLength}
-                                </Text>
-                            </View>
-
-                            {/* GitHub URL Card */}
-                            <View style={styles.card}>
-                                <View style={styles.cardHeader}>
-                                    <View style={[styles.cardIconContainer, { backgroundColor: '#1F2937' }]}>
-                                        <Ionicons name="logo-github" size={18} color="white" />
-                                    </View>
-                                    <Text style={styles.cardTitle}>GitHub</Text>
-                                    <View style={styles.optionalBadge}>
-                                        <Text style={styles.optionalText}>任意</Text>
-                                    </View>
-                                </View>
-
-                                <TextInput
-                                    value={githubUrl}
-                                    onChangeText={setGithubUrl}
-                                    placeholder="https://github.com/username"
-                                    placeholderTextColor="#9CA3AF"
-                                    style={styles.input}
-                                    autoCapitalize="none"
-                                    autoCorrect={false}
-                                    keyboardType="url"
-                                />
-                            </View>
-
                             {/* Your Role Card */}
                             <View style={styles.card}>
                                 <View style={styles.cardHeader}>
@@ -477,61 +411,62 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
                                 )}
                             </View>
 
-                            {/* Seeking Roles Card */}
+                            {/* Bio Card */}
                             <View style={styles.card}>
                                 <View style={styles.cardHeader}>
-                                    <View style={[styles.cardIconContainer, { backgroundColor: '#FCE7F3' }]}>
-                                        <Ionicons name="people" size={18} color="#EC4899" />
+                                    <View style={[styles.cardIconContainer, { backgroundColor: '#FEF3C7' }]}>
+                                        <Ionicons name="chatbubble" size={18} color="#F59E0B" />
                                     </View>
-                                    <Text style={styles.cardTitle}>探している仲間</Text>
+                                    <Text style={styles.cardTitle}>自己紹介</Text>
+                                    <View style={styles.optionalBadge}>
+                                        <Text style={styles.optionalText}>任意</Text>
+                                    </View>
                                 </View>
-                                <Text style={styles.cardDescription}>
-                                    あなたが探している仲間を選択してください（複数選択可能）
+
+                                <TextInput
+                                    value={bio}
+                                    onChangeText={(text) => {
+                                        if (text.length <= maxBioLength) {
+                                            setBio(text);
+                                        }
+                                    }}
+                                    placeholder="例: スタートアップでエンジニア経験あり"
+                                    placeholderTextColor="#9CA3AF"
+                                    style={styles.bioInput}
+                                    maxLength={maxBioLength}
+                                    multiline={true}
+                                    textAlignVertical="top"
+                                    numberOfLines={4}
+                                />
+                                <Text style={styles.characterCount}>
+                                    {bioLength} / {maxBioLength}
                                 </Text>
+                            </View>
 
-                                <View style={styles.chipContainer}>
-                                    {seekingOptions.map((option) => {
-                                        const isSelected = seekingRoles.includes(option.id);
-                                        const roleColors = getRoleColors(option.label);
-                                        const roleIcon = getRoleIcon(option.label);
-                                        return (
-                                            <TouchableOpacity
-                                                key={option.id}
-                                                onPress={() => handleToggle(option.id, seekingRoles, setSeekingRoles)}
-                                                style={[
-                                                    styles.chip,
-                                                    isSelected && { backgroundColor: roleColors.bg, borderColor: roleColors.border }
-                                                ]}
-                                            >
-                                                <View style={[styles.chipIconCircle, isSelected && { backgroundColor: roleColors.bg }]}>
-                                                    <Ionicons name={roleIcon as any} size={16} color={isSelected ? roleColors.icon : '#6B7280'} />
-                                                </View>
-                                                <Text style={[
-                                                    styles.chipText,
-                                                    isSelected && { color: roleColors.icon, fontWeight: '600' }
-                                                ]}>
-                                                    {option.label}
-                                                </Text>
-                                                {isSelected && (
-                                                    <Ionicons name="checkmark-circle" size={16} color={roleColors.icon} style={styles.chipCheck} />
-                                                )}
-                                            </TouchableOpacity>
-                                        );
-                                    })}
+                            {/* GitHub URL Card */}
+                            <View style={styles.card}>
+                                <View style={styles.cardHeader}>
+                                    <View style={[styles.cardIconContainer, { backgroundColor: '#1F2937' }]}>
+                                        <Ionicons name="logo-github" size={18} color="white" />
+                                    </View>
+                                    <Text style={styles.cardTitle}>GitHub</Text>
+                                    <View style={styles.optionalBadge}>
+                                        <Text style={styles.optionalText}>任意</Text>
+                                    </View>
                                 </View>
 
-                                {seekingRoles.includes('その他') && (
-                                    <View style={styles.otherInputContainer}>
-                                        <TextInput
-                                            value={otherSeekingText}
-                                            onChangeText={setOtherSeekingText}
-                                            placeholder="その他の仲間を記入"
-                                            placeholderTextColor="#9CA3AF"
-                                            style={styles.otherInput}
-                                        />
-                                    </View>
-                                )}
+                                <TextInput
+                                    value={githubUrl}
+                                    onChangeText={setGithubUrl}
+                                    placeholder="https://github.com/username"
+                                    placeholderTextColor="#9CA3AF"
+                                    style={styles.input}
+                                    autoCapitalize="none"
+                                    autoCorrect={false}
+                                    keyboardType="url"
+                                />
                             </View>
+
                         </ScrollView>
                     </View>
                 </TouchableWithoutFeedback>
@@ -663,7 +598,7 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
                     </View>
                 </TouchableOpacity>
             </Modal>
-        </SafeAreaView>
+        </SafeAreaView >
     );
 }
 
