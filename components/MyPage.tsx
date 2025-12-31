@@ -450,7 +450,7 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
     };
 
     return (
-        <SafeAreaView style={styles.container}>
+        <View style={styles.container}>
             <ScrollView
                 style={styles.scrollView}
                 refreshControl={
@@ -607,14 +607,14 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                     />
                 )}
             </Modal>
-        </SafeAreaView>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#FFF3E0',
+        backgroundColor: '#FFF3E0', // 元のクリーム色
     },
     header: {
         flexDirection: 'row',
