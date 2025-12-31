@@ -1,0 +1,280 @@
+import React from 'react';
+import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { getImageSource } from '../constants/DefaultImages';
+import { FONTS } from '../constants/DesignSystem';
+import { getThemeTagColor, getThemeTagTextColor } from '../constants/ThemeConstants';
+
+type ProjectLike = {
+  id?: string;
+  title?: string;
+  tagline?: string | null;
+  created_at?: string | null;
+  cover_image?: string | null;
+  tags?: string[] | null;
+  content_tags?: string[] | null;
+  pendingCount?: number | null;
+};
+
+export type ProjectSummaryCardProps = {
+  project: ProjectLike;
+  ownerName?: string;
+  ownerImage?: string | null;
+  onPress: () => void;
+  containerStyle?: ViewStyle;
+  overlay?: React.ReactNode; // 右上バッジ等
+};
+
+const formatCreatedDate = (createdAt?: string | null) => {
+  if (!createdAt) return '';
+  const d = new Date(createdAt);
+  if (Number.isNaN(d.getTime())) return '';
+  const y = d.getFullYear();
+  const m = d.getMonth() + 1;
+  const day = d.getDate();
+  return `${y}/${m}/${day}`;
+};
+
+export function ProjectSummaryCard({
+  project,
+  ownerName,
+  ownerImage,
+  onPress,
+  containerStyle,
+  overlay,
+}: ProjectSummaryCardProps) {
+  const coverImage = project?.cover_image;
+  const headline = (project?.tagline || '').trim() || (project?.title || '');
+  const createdDateText = formatCreatedDate(project?.created_at);
+  const themeTag = project?.tags?.[0] || '';
+  const contentTags = (project?.content_tags || []).filter(Boolean) as string[];
+  const pendingCount = typeof project?.pendingCount === 'number' ? project.pendingCount : 0;
+
+  const defaultCoverImage = require('../assets/default-project-cover.png');
+
+  return (
+    <TouchableOpacity
+      style={[styles.card, containerStyle]}
+      onPress={onPress}
+      activeOpacity={0.88}
+    >
+      {!!overlay && <View style={styles.overlayContainer}>{overlay}</View>}
+
+      {/* 上段 */}
+      <View style={styles.topSection}>
+        <View style={styles.thumbnail}>
+          <Image
+            source={coverImage ? { uri: coverImage } : defaultCoverImage}
+            style={styles.thumbnailImage}
+            resizeMode="cover"
+          />
+        </View>
+
+        <View style={styles.topRight}>
+          <View style={styles.topUpper}>
+            <Text style={styles.headline} numberOfLines={2}>
+              {headline}
+            </Text>
+
+            {!!project?.tagline && !!project?.title && (
+              <Text style={styles.projectTitle} numberOfLines={1}>
+                {project.title}
+              </Text>
+            )}
+
+            <View style={styles.metaRow}>
+              <Image source={getImageSource(ownerImage || undefined)} style={styles.ownerAvatar} />
+              <Text style={styles.ownerName} numberOfLines={1}>
+                {ownerName || '不明'}
+              </Text>
+              {!!createdDateText && (
+                <Text style={styles.createdAt} numberOfLines={1}>
+                  {createdDateText}
+                </Text>
+              )}
+            </View>
+          </View>
+        </View>
+      </View>
+
+      {/* 下段: タグ */}
+      <View style={styles.bottomSection}>
+        <View style={styles.bottomRow}>
+          {/* テーマタグは固定表示 */}
+          <View style={styles.tagsLeftArea}>
+            {!!themeTag && (
+              <View style={[styles.themeTag, { backgroundColor: getThemeTagColor(themeTag) }]}>
+                <Text style={[styles.themeTagText, { color: getThemeTagTextColor(themeTag) }]}>
+                  {themeTag}
+                </Text>
+              </View>
+            )}
+
+            {/* 内容タグは横スクロール（右端の申請数に被らない） */}
+            <ScrollView
+              horizontal
+              nestedScrollEnabled
+              showsHorizontalScrollIndicator={false}
+              style={styles.contentTagsScroller}
+              contentContainerStyle={styles.contentTagsRow}
+            >
+              {contentTags.map((tag, idx) => (
+                <View key={`${project?.id || 'project'}:content:${idx}`} style={styles.contentTag}>
+                  <Text style={styles.contentTagText}>{tag}</Text>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+
+          {/* 右端固定: 参加申請数 */}
+          <View style={styles.pendingCountBox}>
+            <Ionicons name="document-text-outline" size={14} color="#9CA3AF" />
+            <Text style={styles.pendingCountText}>{pendingCount}</Text>
+          </View>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+const styles = StyleSheet.create({
+  card: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  overlayContainer: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    zIndex: 10,
+  },
+  topSection: {
+    flexDirection: 'row',
+    height: 108, // TalkPage の projectTopSection と同じ
+  },
+  thumbnail: {
+    width: 108, // TalkPage の projectCardThumbnail と同じ
+    height: 108,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F3F4F6',
+  },
+  thumbnailImage: {
+    width: '100%',
+    height: '100%',
+  },
+  topRight: {
+    flex: 1,
+    padding: 12,
+    justifyContent: 'center',
+  },
+  topUpper: {
+    flex: 1,
+    justifyContent: 'space-between',
+    gap: 6,
+    minHeight: 0,
+  },
+  headline: {
+    fontSize: 16,
+    lineHeight: 21,
+    fontFamily: FONTS.bold,
+    color: '#111827',
+  },
+  projectTitle: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontFamily: FONTS.medium,
+    color: '#6B7280',
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  ownerAvatar: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#F3F4F6',
+  },
+  ownerName: {
+    flexShrink: 1,
+    fontSize: 11,
+    fontFamily: FONTS.medium,
+    color: '#6B7280',
+  },
+  createdAt: {
+    marginLeft: 'auto',
+    fontSize: 10,
+    fontFamily: FONTS.regular,
+    color: '#9CA3AF',
+  },
+  bottomSection: {
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  bottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  tagsLeftArea: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  contentTagsRow: {
+    alignItems: 'center',
+    gap: 6,
+    paddingRight: 6, // 末尾が切れないように
+  },
+  contentTagsScroller: {
+    flex: 1,
+    minWidth: 0, // row内で縮められるように（iOSで重要）
+  },
+  pendingCountBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingLeft: 6,
+  },
+  pendingCountText: {
+    fontSize: 11,
+    fontFamily: FONTS.regular,
+    color: '#9CA3AF',
+  },
+  themeTag: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 4,
+  },
+  themeTagText: {
+    fontSize: 10,
+    fontFamily: FONTS.semiBold,
+  },
+  contentTag: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 4,
+  },
+  contentTagText: {
+    fontSize: 10,
+    fontFamily: FONTS.medium,
+    color: '#6B7280',
+  },
+});
+
+

@@ -13,7 +13,7 @@ import { SHADOWS, FONTS } from '../constants/DesignSystem';
 import { ModernCard, ModernButton } from './ModernComponents';
 import { getImageSource } from '../constants/DefaultImages';
 import { MyProjectsEmptyState } from './EmptyState';
-import { getThemeTagColor, getThemeTagTextColor } from '../constants/ThemeConstants';
+import { ProjectSummaryCard } from './ProjectSummaryCard';
 
 interface MyPageProps {
     profile: Profile;
@@ -66,101 +66,24 @@ const ROLE_ID_TO_LABEL: { [key: string]: string } = {
     'creator': 'クリエイター',
 };
 
-const getTimeAgoText = (createdAt?: string) => {
-    if (!createdAt) return '';
-    const createdDate = new Date(createdAt);
-    if (Number.isNaN(createdDate.getTime())) return '';
-    const daysAgo = Math.floor((Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
-    // 3日以内は相対表示、4日以上は日付形式
-    return daysAgo === 0
-        ? '今日'
-        : daysAgo === 1
-            ? '昨日'
-            : daysAgo <= 3
-                ? `${daysAgo}日前`
-                : `${createdDate.getMonth() + 1}/${createdDate.getDate()}`;
-};
-
 // UserProjectPageと同じProjectCardコンポーネント（自分のプロジェクト用）- サムネイル式
 const ProjectCard = ({ project, ownerProfile, onPress }: { project: any; ownerProfile: Profile; onPress: () => void }) => {
     const isClosed = project.status === 'closed';
-    const coverImage = project.cover_image;
-    const timeAgo = getTimeAgoText(project?.created_at);
-
-    // デフォルトカバー画像
-    const defaultCoverImage = require('../assets/default-project-cover.png');
+    const badge = isClosed ? (
+        <View style={projectCardStyles.badgeClosed}>
+            <Text style={projectCardStyles.badgeText}>停止中</Text>
+        </View>
+    ) : null;
 
     return (
-        <TouchableOpacity
-            style={[projectCardStyles.cardNew, isClosed && { opacity: 0.7 }]}
+        <ProjectSummaryCard
+            project={project}
+            ownerName={ownerProfile.name}
+            ownerImage={ownerProfile.image}
             onPress={onPress}
-            activeOpacity={0.85}
-        >
-            {/* 停止中バッジ */}
-            {isClosed && (
-                <View style={projectCardStyles.closedBadge}>
-                    <Text style={projectCardStyles.closedBadgeText}>停止中</Text>
-                </View>
-            )}
-
-            {/* 左側: サムネイル画像 */}
-            <View style={projectCardStyles.cardThumbnail}>
-                <Image
-                    source={coverImage ? { uri: coverImage } : defaultCoverImage}
-                    style={projectCardStyles.cardThumbnailImage}
-                    resizeMode="cover"
-                />
-            </View>
-
-            {/* 右側: コンテンツ */}
-            <View style={projectCardStyles.cardContentNew}>
-                {/* タイトル */}
-                <Text style={projectCardStyles.cardTitleNew} numberOfLines={1}>{project.title}</Text>
-
-                {/* タグライン/説明 */}
-                {project.tagline && (
-                    <Text style={projectCardStyles.cardTaglineNew} numberOfLines={2}>{project.tagline}</Text>
-                )}
-
-                {/* オーナー情報（タグラインの下） */}
-                <View style={projectCardStyles.cardOwnerRow}>
-                    {ownerProfile.image ? (
-                        <Image
-                            source={{ uri: ownerProfile.image }}
-                            style={projectCardStyles.cardOwnerAvatar}
-                        />
-                    ) : (
-                        <View style={[projectCardStyles.cardOwnerAvatar, { backgroundColor: '#E5E7EB', alignItems: 'center', justifyContent: 'center' }]}>
-                            <Ionicons name="person" size={12} color="#9CA3AF" />
-                        </View>
-                    )}
-                    <Text style={projectCardStyles.cardOwnerName} numberOfLines={1}>{ownerProfile.name}</Text>
-                    {!!timeAgo && <Text style={projectCardStyles.cardTimeAgo}>{timeAgo}</Text>}
-                </View>
-
-                {/* 下部: タグ + 統計 */}
-                <View style={projectCardStyles.cardBottomRow}>
-                    {/* タグ */}
-                    <View style={projectCardStyles.cardTagsRow}>
-                        {project.tags?.slice(0, 1).map((tag: string, idx: number) => (
-                            <View key={`theme-${idx}`} style={[projectCardStyles.themeTag, { backgroundColor: getThemeTagColor(tag) }]}>
-                                <Text style={[projectCardStyles.themeTagText, { color: getThemeTagTextColor(tag) }]}>{tag}</Text>
-                            </View>
-                        ))}
-                        {project.content_tags?.slice(0, 2).map((tag: string, idx: number) => (
-                            <View key={`content-${idx}`} style={projectCardStyles.tag}>
-                                <Text style={projectCardStyles.tagText}>{tag}</Text>
-                            </View>
-                        ))}
-                    </View>
-                    {/* 統計 */}
-                    <View style={projectCardStyles.cardStatsRow}>
-                        <Ionicons name="document-text-outline" size={12} color="#9CA3AF" />
-                        <Text style={projectCardStyles.cardStatText}>{project.pendingCount ?? 0}</Text>
-                    </View>
-                </View>
-            </View>
-        </TouchableOpacity>
+            containerStyle={isClosed ? { opacity: 0.7 } : undefined}
+            overlay={badge}
+        />
     );
 };
 
@@ -398,83 +321,22 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
     );
 
     const renderParticipatingProjectItem = ({ item }: { item: any }) => {
-        const coverImage = item.cover_image;
         const ownerImage = item.profiles?.image || item.owner?.image;
         const ownerName = item.profiles?.name || item.owner?.name || '不明';
-        const timeAgo = getTimeAgoText(item?.created_at);
-
-        // デフォルトカバー画像
-        const defaultCoverImage = require('../assets/default-project-cover.png');
+        const badge = (
+            <View style={projectCardStyles.badgeParticipating}>
+                <Text style={projectCardStyles.badgeText}>参加中</Text>
+            </View>
+        );
 
         return (
-            <TouchableOpacity
-                style={projectCardStyles.cardNew}
+            <ProjectSummaryCard
+                project={item}
+                ownerName={ownerName}
+                ownerImage={ownerImage}
                 onPress={() => setSelectedProject(item)}
-                activeOpacity={0.85}
-            >
-                {/* 参加中バッジ */}
-                <View style={projectCardStyles.participatingBadgeNew}>
-                    <Text style={projectCardStyles.participatingBadgeTextNew}>参加中</Text>
-                </View>
-
-                {/* 左側: サムネイル画像 */}
-                <View style={projectCardStyles.cardThumbnail}>
-                    <Image
-                        source={coverImage ? { uri: coverImage } : defaultCoverImage}
-                        style={projectCardStyles.cardThumbnailImage}
-                        resizeMode="cover"
-                    />
-                </View>
-
-                {/* 右側: コンテンツ */}
-                <View style={projectCardStyles.cardContentNew}>
-                    {/* タイトル */}
-                    <Text style={projectCardStyles.cardTitleNew} numberOfLines={1}>{item.title}</Text>
-
-                    {/* タグライン/説明 */}
-                    {item.tagline && (
-                        <Text style={projectCardStyles.cardTaglineNew} numberOfLines={2}>{item.tagline}</Text>
-                    )}
-
-                    {/* オーナー情報（タグラインの下） */}
-                    <View style={projectCardStyles.cardOwnerRow}>
-                        {ownerImage ? (
-                            <Image
-                                source={{ uri: ownerImage }}
-                                style={projectCardStyles.cardOwnerAvatar}
-                            />
-                        ) : (
-                            <View style={[projectCardStyles.cardOwnerAvatar, { backgroundColor: '#E5E7EB', alignItems: 'center', justifyContent: 'center' }]}>
-                                <Ionicons name="person" size={12} color="#9CA3AF" />
-                            </View>
-                        )}
-                        <Text style={projectCardStyles.cardOwnerName} numberOfLines={1}>{ownerName}</Text>
-                        {!!timeAgo && <Text style={projectCardStyles.cardTimeAgo}>{timeAgo}</Text>}
-                    </View>
-
-                    {/* 下部: タグ + 統計 */}
-                    <View style={projectCardStyles.cardBottomRow}>
-                        {/* タグ */}
-                        <View style={projectCardStyles.cardTagsRow}>
-                            {item.tags?.slice(0, 1).map((tag: string, idx: number) => (
-                                <View key={`theme-${idx}`} style={[projectCardStyles.themeTag, { backgroundColor: getThemeTagColor(tag) }]}>
-                                    <Text style={[projectCardStyles.themeTagText, { color: getThemeTagTextColor(tag) }]}>{tag}</Text>
-                                </View>
-                            ))}
-                            {item.content_tags?.slice(0, 2).map((tag: string, idx: number) => (
-                                <View key={`content-${idx}`} style={projectCardStyles.tag}>
-                                    <Text style={projectCardStyles.tagText}>{tag}</Text>
-                                </View>
-                            ))}
-                        </View>
-                        {/* 統計 */}
-                        <View style={projectCardStyles.cardStatsRow}>
-                        <Ionicons name="document-text-outline" size={12} color="#9CA3AF" />
-                        <Text style={projectCardStyles.cardStatText}>{item.pendingCount ?? 0}</Text>
-                        </View>
-                    </View>
-                </View>
-            </TouchableOpacity>
+                overlay={badge}
+            />
         );
     };
 
@@ -1275,117 +1137,20 @@ const projectCardStyles = StyleSheet.create({
         alignSelf: 'center',
     },
 
-    // 新しいサムネイル式カードスタイル（UserProjectPageと統一）
-    cardNew: {
-        flexDirection: 'row',
-        backgroundColor: 'white',
-        borderRadius: 12,
-        overflow: 'hidden',
-        marginBottom: 12,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 8,
-        elevation: 3,
-    },
-    cardThumbnail: {
-        width: 140,
-        height: 140,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    cardThumbnailImage: {
-        width: '100%',
-        height: '100%',
-    },
-    cardContentNew: {
-        flex: 1,
-        padding: 12,
-        justifyContent: 'space-between',
-    },
-    cardOwnerRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 6,
-    },
-    cardOwnerAvatar: {
-        width: 22,
-        height: 22,
-        borderRadius: 11,
-        marginRight: 6,
-    },
-    cardOwnerName: {
-        flexShrink: 1,
-        marginRight: 8,
-        fontSize: 11,
-        fontFamily: FONTS.medium,
-        color: '#6B7280',
-    },
-    cardTimeAgo: {
-        fontSize: 10,
-        fontFamily: FONTS.regular,
-        color: '#9CA3AF',
-    },
-    cardTitleNew: {
-        fontSize: 16,
-        fontFamily: FONTS.bold,
-        color: '#111827',
-        lineHeight: 21,
-        marginBottom: 4,
-    },
-    cardTaglineNew: {
-        fontSize: 12,
-        fontFamily: FONTS.regular,
-        color: '#6B7280',
-        lineHeight: 16,
-        marginBottom: 6,
-    },
-    cardBottomRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-    },
-    cardTagsRow: {
-        flexDirection: 'row',
-        gap: 4,
-        flex: 1,
-    },
-    cardStatsRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-    },
-    cardStatText: {
-        fontSize: 11,
-        fontFamily: FONTS.regular,
-        color: '#9CA3AF',
-    },
-    closedBadge: {
-        position: 'absolute',
-        top: 8,
-        right: 8,
+    // ProjectSummaryCard 用バッジ（位置は ProjectSummaryCard 側で固定）
+    badgeClosed: {
         backgroundColor: '#6B7280',
         paddingHorizontal: 10,
         paddingVertical: 4,
         borderRadius: 12,
-        zIndex: 10,
     },
-    closedBadgeText: {
-        color: 'white',
-        fontSize: 11,
-        fontFamily: FONTS.bold,
-    },
-    participatingBadgeNew: {
-        position: 'absolute',
-        top: 8,
-        right: 8,
+    badgeParticipating: {
         backgroundColor: '#009688',
         paddingHorizontal: 10,
         paddingVertical: 4,
         borderRadius: 12,
-        zIndex: 10,
     },
-    participatingBadgeTextNew: {
+    badgeText: {
         color: 'white',
         fontSize: 11,
         fontFamily: FONTS.bold,
