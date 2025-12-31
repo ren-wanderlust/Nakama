@@ -25,6 +25,9 @@ interface Project {
     tags?: string[];
     content_tags?: string[];
     status?: string; // 'recruiting' | 'closed'
+    commitment_level?: string | null;
+    goal?: string | null;
+    duration?: string | null;
     owner?: {
         id: string;
         name: string;
@@ -966,6 +969,45 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                             <Ionicons name="time-outline" size={16} color="#B91C1C" />
                             <Text style={styles.deadlineText}>期限: {formatDate(project.deadline)}</Text>
                         </View>
+
+                        {/* コミット量・ゴール・期間を表示 */}
+                        {(project.commitment_level || project.goal || project.duration) && (
+                            <View style={styles.projectDetailsContainer}>
+                                {project.commitment_level && (
+                                    <View style={styles.projectDetailItem}>
+                                        <View style={styles.projectDetailIconContainer}>
+                                            <Ionicons name="time" size={16} color="#3B82F6" />
+                                        </View>
+                                        <View style={styles.projectDetailContent}>
+                                            <Text style={styles.projectDetailLabel}>求めるコミット量</Text>
+                                            <Text style={styles.projectDetailValue}>{project.commitment_level}</Text>
+                                        </View>
+                                    </View>
+                                )}
+                                {project.goal && (
+                                    <View style={styles.projectDetailItem}>
+                                        <View style={styles.projectDetailIconContainer}>
+                                            <Ionicons name="flag" size={16} color="#10B981" />
+                                        </View>
+                                        <View style={styles.projectDetailContent}>
+                                            <Text style={styles.projectDetailLabel}>ゴール</Text>
+                                            <Text style={styles.projectDetailValue}>{project.goal}</Text>
+                                        </View>
+                                    </View>
+                                )}
+                                {project.duration && (
+                                    <View style={styles.projectDetailItem}>
+                                        <View style={styles.projectDetailIconContainer}>
+                                            <Ionicons name="hourglass" size={16} color="#8B5CF6" />
+                                        </View>
+                                        <View style={styles.projectDetailContent}>
+                                            <Text style={styles.projectDetailLabel}>期間</Text>
+                                            <Text style={styles.projectDetailValue}>{project.duration}</Text>
+                                        </View>
+                                    </View>
+                                )}
+                            </View>
+                        )}
                     </View>
 
                     {/* Applicants Section */}
@@ -1550,5 +1592,43 @@ const styles = StyleSheet.create({
         fontSize: 10,
         color: '#F59E0B',
         marginTop: 2,
+    },
+    projectDetailsContainer: {
+        marginTop: 16,
+        backgroundColor: '#F9FAFB',
+        borderRadius: 12,
+        padding: 12,
+        gap: 12,
+    },
+    projectDetailItem: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 12,
+    },
+    projectDetailIconContainer: {
+        width: 32,
+        height: 32,
+        borderRadius: 8,
+        backgroundColor: 'white',
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+        elevation: 1,
+    },
+    projectDetailContent: {
+        flex: 1,
+    },
+    projectDetailLabel: {
+        fontSize: 11,
+        color: '#6B7280',
+        marginBottom: 2,
+    },
+    projectDetailValue: {
+        fontSize: 14,
+        fontWeight: '500',
+        color: '#111827',
     },
 });
