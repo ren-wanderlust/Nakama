@@ -296,6 +296,9 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                 <Text style={styles.discordProfileHandle}>
                     {profile.university}{profile.grade ? ` / ${profile.grade}` : ''}
                 </Text>
+                <Text style={styles.memberSinceText}>
+                    {formatRegistrationDate()}からメンバー
+                </Text>
             </View>
 
             {/* プロフィール編集ボタン - アウトラインスタイルに変更 */}
@@ -479,17 +482,7 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                         () => setActiveTab('participatingProjects')
                     )}
 
-                    {/* 仕切り線 */}
-                    <View style={styles.discordDivider} />
 
-                    {/* 登録日 */}
-                    {renderSectionItem(
-                        'calendar-outline',
-                        'メンバーになった日',
-                        <Text style={styles.discordSectionMeta}>{formatRegistrationDate()}</Text>,
-                        undefined,
-                        false
-                    )}
 
                     {/* GitHub / SNS リンク（将来実装用） */}
                     {profile.githubUrl && renderSectionItem(
@@ -888,6 +881,12 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#6B7280',
         fontFamily: FONTS.medium,
+    },
+    memberSinceText: {
+        fontSize: 12,
+        color: '#9CA3AF',
+        fontFamily: FONTS.regular,
+        marginTop: 4,
     },
     discordEditButton: {
         flexDirection: 'row',
