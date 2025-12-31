@@ -42,6 +42,7 @@ const ROLE_ICONS: { [key: string]: string } = {
     'デザイナー': 'color-palette',
     'マーケター': 'megaphone',
     'アイディアマン': 'bulb',
+    'クリエイター': 'videocam',
     '誰でも': 'people',
 };
 
@@ -52,6 +53,16 @@ const ROLE_COLORS: { [key: string]: { bg: string; icon: string } } = {
     'マーケター': { bg: '#FFF3E0', icon: '#E65100' },    // Orange
     'アイディアマン': { bg: '#FFF9C4', icon: '#F57F17' }, // Yellow
     '誰でも': { bg: '#E8F5E9', icon: '#388E3C' },        // Green
+    'クリエイター': { bg: '#FCE4EC', icon: '#C2185B' },   // Pink
+};
+
+// Role ID to Japanese label mapping
+const ROLE_ID_TO_LABEL: { [key: string]: string } = {
+    'engineer': 'エンジニア',
+    'designer': 'デザイナー',
+    'marketer': 'マーケター',
+    'ideaman': 'アイディアマン',
+    'creator': 'クリエイター',
 };
 
 // UserProjectPageと同じProjectCardコンポーネント（自分のプロジェクト用）- サムネイル式
@@ -301,6 +312,24 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                         <Text style={styles.userHandleText}>
                             {profile.university} {profile.grade ? `| ${profile.grade}` : ''}
                         </Text>
+
+                        {/* ロールタグ表示 */}
+                        <View style={styles.roleTagsContainer}>
+                            {profile.skills?.map(skill => {
+                                const roleLabel = ROLE_ID_TO_LABEL[skill] || skill;
+                                const roleColor = ROLE_COLORS[roleLabel];
+                                const roleIcon = ROLE_ICONS[roleLabel];
+
+                                if (!roleColor) return null;
+
+                                return (
+                                    <View key={roleLabel} style={[styles.roleTag, { backgroundColor: roleColor.bg, borderColor: roleColor.icon }]}>
+                                        {roleIcon && <Ionicons name={roleIcon as any} size={10} color={roleColor.icon} />}
+                                        <Text style={[styles.roleTagText, { color: roleColor.icon }]}>{roleLabel}</Text>
+                                    </View>
+                                );
+                            })}
+                        </View>
                     </View>
                 </View>
 
@@ -831,6 +860,26 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#6B7280',
         fontFamily: FONTS.regular,
+        marginBottom: 8,
+    },
+    roleTagsContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 6,
+    },
+    roleTag: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 12,
+        borderWidth: 1,
+        gap: 4,
+    },
+    roleTagText: {
+        fontSize: 10,
+        fontWeight: 'bold',
+        fontFamily: FONTS.medium,
     },
     editProfileButtonLarge: {
         backgroundColor: '#E5A33D',
