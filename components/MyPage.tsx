@@ -466,36 +466,40 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                 {renderDiscordHeader()}
 
                 {/* セクションリスト（固定） */}
-                <View style={styles.discordSectionsContainer}>
-                    {/* マイプロジェクト */}
-                    <TouchableOpacity
-                        style={[styles.discordSectionItem, activeTab === 'myProjects' && styles.discordSectionItemActive]}
-                        onPress={() => setActiveTab('myProjects')}
-                    >
-                        <View style={styles.discordSectionLeft}>
-                            <Ionicons name="grid-outline" size={20} color={activeTab === 'myProjects' ? '#F57C00' : '#6B7280'} />
-                            <Text style={[styles.discordSectionLabel, activeTab === 'myProjects' && styles.discordSectionLabelActive]}>マイプロジェクト</Text>
-                        </View>
-                        <View style={styles.discordSectionRight}>
-                            <Text style={styles.discordSectionCount}>{projects.length}</Text>
-                            <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
-                        </View>
-                    </TouchableOpacity>
+                <View style={styles.stickyHeaderWrapper}>
+                    {/* ステータスバー避け用スペーサー */}
+                    <View style={styles.stickyHeaderSpacer} />
+                    <View style={styles.discordSectionsContainer}>
+                        {/* マイプロジェクト */}
+                        <TouchableOpacity
+                            style={[styles.discordSectionItem, activeTab === 'myProjects' && styles.discordSectionItemActive]}
+                            onPress={() => setActiveTab('myProjects')}
+                        >
+                            <View style={styles.discordSectionLeft}>
+                                <Ionicons name="grid-outline" size={20} color={activeTab === 'myProjects' ? '#F57C00' : '#6B7280'} />
+                                <Text style={[styles.discordSectionLabel, activeTab === 'myProjects' && styles.discordSectionLabelActive]}>マイプロジェクト</Text>
+                            </View>
+                            <View style={styles.discordSectionRight}>
+                                <Text style={styles.discordSectionCount}>{projects.length}</Text>
+                                <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                            </View>
+                        </TouchableOpacity>
 
-                    {/* 参加中プロジェクト */}
-                    <TouchableOpacity
-                        style={[styles.discordSectionItem, activeTab === 'participatingProjects' && styles.discordSectionItemActive]}
-                        onPress={() => setActiveTab('participatingProjects')}
-                    >
-                        <View style={styles.discordSectionLeft}>
-                            <Ionicons name="people-outline" size={20} color={activeTab === 'participatingProjects' ? '#F57C00' : '#6B7280'} />
-                            <Text style={[styles.discordSectionLabel, activeTab === 'participatingProjects' && styles.discordSectionLabelActive]}>参加中プロジェクト</Text>
-                        </View>
-                        <View style={styles.discordSectionRight}>
-                            <Text style={styles.discordSectionCount}>{participatingProjects.length}</Text>
-                            <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
-                        </View>
-                    </TouchableOpacity>
+                        {/* 参加中プロジェクト */}
+                        <TouchableOpacity
+                            style={[styles.discordSectionItem, activeTab === 'participatingProjects' && styles.discordSectionItemActive]}
+                            onPress={() => setActiveTab('participatingProjects')}
+                        >
+                            <View style={styles.discordSectionLeft}>
+                                <Ionicons name="people-outline" size={20} color={activeTab === 'participatingProjects' ? '#F57C00' : '#6B7280'} />
+                                <Text style={[styles.discordSectionLabel, activeTab === 'participatingProjects' && styles.discordSectionLabelActive]}>参加中プロジェクト</Text>
+                            </View>
+                            <View style={styles.discordSectionRight}>
+                                <Text style={styles.discordSectionCount}>{participatingProjects.length}</Text>
+                                <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                            </View>
+                        </TouchableOpacity>
+                    </View>
                 </View>
 
                 {/* プロジェクトリスト */}
@@ -901,10 +905,16 @@ const styles = StyleSheet.create({
         color: '#F57C00', // 濃い目のオレンジ文字
         fontFamily: FONTS.semiBold,
     },
+    stickyHeaderWrapper: {
+        backgroundColor: '#FFF3E0', // 背景色と同じ
+    },
+    stickyHeaderSpacer: {
+        height: 50, // ステータスバーの高さ分
+        backgroundColor: '#FFF3E0',
+    },
     discordSectionsContainer: {
         backgroundColor: 'white',
         marginHorizontal: 16,
-        marginTop: 4,
         borderRadius: 16,
         paddingVertical: 8,
         ...SHADOWS.sm,
