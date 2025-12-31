@@ -1,5 +1,6 @@
 import { supabase } from '../../lib/supabase';
 import { fetchBlockedUserIds } from './blocks';
+import { isSystemMessageText, stripSystemPrefix } from '../../constants/SystemMessage';
 
 export interface ChatRoom {
   id: string;
@@ -212,7 +213,9 @@ export async function fetchChatRooms(userId: string): Promise<ChatRoom[]> {
       }
 
       // 画像メッセージの場合のテキスト生成
-      let lastMessage = room.last_message_content || 'チームチャットが作成されました';
+      let lastMessageRaw = room.last_message_content || 'チームチャットが作成されました';
+      const isSystem = isSystemMessageText(lastMessageRaw);
+      let lastMessage = isSystem ? stripSystemPrefix(lastMessageRaw) : lastMessageRaw;
       const isImageMessage = !!room.last_message_image_url && (!room.last_message_content || room.last_message_content.trim() === '');
       if (isImageMessage) {
         const isSentByMe = room.last_message_sender_id === userId;
@@ -242,9 +245,10 @@ export async function fetchChatRooms(userId: string): Promise<ChatRoom[]> {
         isUnreplied: false,
         type: 'group' as const,
         projectId: room.project_id,
-        lastSenderId: room.last_message_sender_id || null,
-        lastSenderName: senderProfile?.name || room.last_message_sender_name || null,
-        lastSenderImage: senderProfile?.image || null,
+        // システムメッセージは一覧で送信者を出さない（TalkPage側の表示分岐用）
+        lastSenderId: isSystem ? null : (room.last_message_sender_id || null),
+        lastSenderName: isSystem ? null : (senderProfile?.name || room.last_message_sender_name || null),
+        lastSenderImage: isSystem ? null : (senderProfile?.image || null),
       };
     });
   }

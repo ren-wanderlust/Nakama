@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { fetchMessagesPage, Message } from '../api/messages';
 import { queryKeys } from '../queryKeys';
+import { isSystemMessageText, stripSystemPrefix } from '../../constants/SystemMessage';
 
 interface UseMessagesInfiniteParams {
     roomId: string;
@@ -111,12 +112,13 @@ export function useMessagesInfinite({
 
                     const formattedMessage: Message = {
                         id: newMessage.id,
-                        text: newMessage.content,
+                        text: isSystemMessageText(newMessage.content) ? stripSystemPrefix(newMessage.content) : newMessage.content,
                         image_url: newMessage.image_url,
-                        sender: newMessage.sender_id === userId ? 'me' : 'other',
+                        sender: isSystemMessageText(newMessage.content) ? 'other' : (newMessage.sender_id === userId ? 'me' : 'other'),
                         senderId: newMessage.sender_id,
                         senderName: senderName,
                         senderImage: senderImage,
+                        isSystem: isSystemMessageText(newMessage.content),
                         timestamp: new Date(newMessage.created_at).toLocaleTimeString('ja-JP', {
                             hour: '2-digit',
                             minute: '2-digit',

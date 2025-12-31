@@ -1,4 +1,5 @@
 import { supabase } from '../../lib/supabase';
+import { isSystemMessageText, stripSystemPrefix } from '../../constants/SystemMessage';
 
 export interface Message {
     id: string;
@@ -8,6 +9,7 @@ export interface Message {
     senderId?: string;
     senderName?: string;
     senderImage?: string;
+    isSystem?: boolean;
     timestamp: string;
     date: string;
     created_at: string;
@@ -82,12 +84,13 @@ export async function fetchMessagesPage({
 
         const formattedMessages: Message[] = data.map((msg: any) => ({
             id: msg.id,
-            text: msg.content,
+            text: isSystemMessageText(msg.content) ? stripSystemPrefix(msg.content) : msg.content,
             image_url: msg.image_url,
-            sender: msg.sender_id === userId ? 'me' : 'other',
+            sender: isSystemMessageText(msg.content) ? 'other' : (msg.sender_id === userId ? 'me' : 'other'),
             senderId: msg.sender_id,
             senderName: profileMap.get(msg.sender_id)?.name,
             senderImage: profileMap.get(msg.sender_id)?.image,
+            isSystem: isSystemMessageText(msg.content),
             timestamp: new Date(msg.created_at).toLocaleTimeString('ja-JP', {
                 hour: '2-digit',
                 minute: '2-digit',

@@ -391,48 +391,48 @@ const ImageBatchBubble = ({
                             collapsable={false}
                             style={[styles.messageContainer, isMe ? styles.messageContainerMe : styles.messageContainerOther]}
                         >
-                        <View style={styles.bubbleRow}>
-                            {isMe && (
-                                <Text style={[styles.timestamp, styles.timestampMe]}>{first.timestamp}</Text>
-                            )}
+                            <View style={styles.bubbleRow}>
+                                {isMe && (
+                                    <Text style={[styles.timestamp, styles.timestampMe]}>{first.timestamp}</Text>
+                                )}
 
-                            <View style={[styles.imageBatchGrid, { width: gridWidth }]}>
-                                {uris.map((uri, idx) => (
-                                    // 奇数枚の最後は2枚分の幅（横長）で表示
-                                    (() => {
-                                        const isLast = idx === uris.length - 1;
-                                        const isWide = isOddLastWide && isLast;
-                                        const width = isWide ? gridWidth : cellWidth;
-                                        const height = cellHeight;
-                                        const marginRight = isWide ? 0 : (idx % 2 === 0 ? gap : 0);
-                                        const marginBottom = gap;
-                                        return (
-                                            <TouchableOpacity
-                                                key={`${uri}-${idx}`}
-                                                activeOpacity={0.9}
-                                                onPress={() => {
-                                                    setModalUri(uri);
-                                                    setImageModalVisible(true);
-                                                }}
-                                                style={[
-                                                    styles.imageBatchCell,
-                                                    { width, height, marginRight, marginBottom }
-                                                ]}
-                                            >
-                                                <Image source={{ uri }} style={styles.imageBatchImage} resizeMode="cover" />
-                                            </TouchableOpacity>
-                                        );
-                                    })()
-                                ))}
-                                {actionMenuVisible && (
-                                    <View pointerEvents="none" style={styles.longPressOverlay} />
+                                <View style={[styles.imageBatchGrid, { width: gridWidth }]}>
+                                    {uris.map((uri, idx) => (
+                                        // 奇数枚の最後は2枚分の幅（横長）で表示
+                                        (() => {
+                                            const isLast = idx === uris.length - 1;
+                                            const isWide = isOddLastWide && isLast;
+                                            const width = isWide ? gridWidth : cellWidth;
+                                            const height = cellHeight;
+                                            const marginRight = isWide ? 0 : (idx % 2 === 0 ? gap : 0);
+                                            const marginBottom = gap;
+                                            return (
+                                                <TouchableOpacity
+                                                    key={`${uri}-${idx}`}
+                                                    activeOpacity={0.9}
+                                                    onPress={() => {
+                                                        setModalUri(uri);
+                                                        setImageModalVisible(true);
+                                                    }}
+                                                    style={[
+                                                        styles.imageBatchCell,
+                                                        { width, height, marginRight, marginBottom }
+                                                    ]}
+                                                >
+                                                    <Image source={{ uri }} style={styles.imageBatchImage} resizeMode="cover" />
+                                                </TouchableOpacity>
+                                            );
+                                        })()
+                                    ))}
+                                    {actionMenuVisible && (
+                                        <View pointerEvents="none" style={styles.longPressOverlay} />
+                                    )}
+                                </View>
+
+                                {!isMe && (
+                                    <Text style={[styles.timestamp, styles.timestampOther]}>{first.timestamp}</Text>
                                 )}
                             </View>
-
-                            {!isMe && (
-                                <Text style={[styles.timestamp, styles.timestampOther]}>{first.timestamp}</Text>
-                            )}
-                        </View>
                         </View>
                     </Pressable>
                 </View>
@@ -484,6 +484,17 @@ const MessageBubble = ({
     currentUserName?: string,
     currentUserImage?: string
 }) => {
+    if (message.isSystem) {
+        return (
+            <View style={styles.systemMessageContainer}>
+                <Text style={styles.systemMessageTime}>{message.timestamp}</Text>
+                <View style={styles.systemMessageBubble}>
+                    <Text style={styles.systemMessageText}>{message.text}</Text>
+                </View>
+            </View>
+        );
+    }
+
     const isMe = message.sender === 'me';
     const swipeableRef = useRef<any>(null);
     const [imageModalVisible, setImageModalVisible] = useState(false);
@@ -828,139 +839,139 @@ const MessageBubble = ({
                     )}
 
                     <Pressable onLongPress={openActionMenu} delayLongPress={250}>
-                    <View
+                        <View
                             ref={anchorRef}
                             collapsable={false}
-                        style={[
-                            styles.messageContainer,
-                            isMe ? styles.messageContainerMe : styles.messageContainerOther,
-                            { maxWidth: dynamicMaxWidth }
-                        ]}
-                    >
+                            style={[
+                                styles.messageContainer,
+                                isMe ? styles.messageContainerMe : styles.messageContainerOther,
+                                { maxWidth: dynamicMaxWidth }
+                            ]}
+                        >
 
-                        {/* Sender name for group chats */}
-                        {!isMe && isGroup && message.senderName && (
-                            <Text style={styles.senderName}>
-                                {message.senderName}
-                            </Text>
-                        )}
-
-                        <View style={styles.bubbleRow}>
-                            {/* Timestamp for my messages (left side) */}
-                            {isMe && (
-                                <Text style={[styles.timestamp, styles.timestampMe]}>{message.timestamp}</Text>
+                            {/* Sender name for group chats */}
+                            {!isMe && isGroup && message.senderName && (
+                                <Text style={styles.senderName}>
+                                    {message.senderName}
+                                </Text>
                             )}
 
-                            {isMe ? (
-                                <>
-                                    {/* Image only - no bubble */}
-                                    {message.image_url && !message.text && !message.replyTo && (
-                                        <TouchableOpacity onPress={() => setImageModalVisible(true)} activeOpacity={0.9}>
-                                            <View style={{ position: 'relative' }}>
-                                                <Image
-                                                    source={{ uri: message.image_url }}
-                                                    resizeMode="contain"
-                                                    style={[styles.messageImageMe, { width: fittedImageSize.width, height: fittedImageSize.height }]}
-                                                />
-                                                {actionMenuVisible && (
-                                                    <View pointerEvents="none" style={styles.longPressOverlay} />
-                                                )}
-                                            </View>
-                                        </TouchableOpacity>
-                                    )}
-                                    {/* Has text or reply - show bubble */}
-                                    {(message.text || message.replyTo) && (
-                                        <LinearGradient
-                                            // 自分の吹き出しは「探す/いいね」系のトーンを保ちつつ、少しオレンジ寄りに
-                                            colors={['#FFE7C2', '#FFE7C2']}
-                                            start={{ x: 0, y: 0 }}
-                                            end={{ x: 1, y: 0 }}
-                                            style={[
-                                                styles.bubbleGradient,
-                                                { maxWidth: bubbleMaxWidth },
-                                                totalReplyWidth > 0 && { minWidth: Math.min(totalReplyWidth + 32, bubbleMaxWidth) } // cap to bubble max width
-                                            ]}
-                                        >
-                                            {message.replyTo && (
-                                                <TouchableOpacity
-                                                    onPress={() => {
-                                                        if (message.replyTo?.id && onScrollToReply) {
-                                                            onScrollToReply(message.replyTo.id);
-                                                        }
-                                                    }}
-                                                    activeOpacity={0.7}
-                                                >
-                                                    <View style={styles.replyContainerMe}>
-                                                        <View style={styles.replyContent}>
-                                                            <View style={styles.replySenderRow}>
-                                                                {!!resolvedReplySenderImage && (
+                            <View style={styles.bubbleRow}>
+                                {/* Timestamp for my messages (left side) */}
+                                {isMe && (
+                                    <Text style={[styles.timestamp, styles.timestampMe]}>{message.timestamp}</Text>
+                                )}
+
+                                {isMe ? (
+                                    <>
+                                        {/* Image only - no bubble */}
+                                        {message.image_url && !message.text && !message.replyTo && (
+                                            <TouchableOpacity onPress={() => setImageModalVisible(true)} activeOpacity={0.9}>
+                                                <View style={{ position: 'relative' }}>
+                                                    <Image
+                                                        source={{ uri: message.image_url }}
+                                                        resizeMode="contain"
+                                                        style={[styles.messageImageMe, { width: fittedImageSize.width, height: fittedImageSize.height }]}
+                                                    />
+                                                    {actionMenuVisible && (
+                                                        <View pointerEvents="none" style={styles.longPressOverlay} />
+                                                    )}
+                                                </View>
+                                            </TouchableOpacity>
+                                        )}
+                                        {/* Has text or reply - show bubble */}
+                                        {(message.text || message.replyTo) && (
+                                            <LinearGradient
+                                                // 自分の吹き出しは「探す/いいね」系のトーンを保ちつつ、少しオレンジ寄りに
+                                                colors={['#FFE7C2', '#FFE7C2']}
+                                                start={{ x: 0, y: 0 }}
+                                                end={{ x: 1, y: 0 }}
+                                                style={[
+                                                    styles.bubbleGradient,
+                                                    { maxWidth: bubbleMaxWidth },
+                                                    totalReplyWidth > 0 && { minWidth: Math.min(totalReplyWidth + 32, bubbleMaxWidth) } // cap to bubble max width
+                                                ]}
+                                            >
+                                                {message.replyTo && (
+                                                    <TouchableOpacity
+                                                        onPress={() => {
+                                                            if (message.replyTo?.id && onScrollToReply) {
+                                                                onScrollToReply(message.replyTo.id);
+                                                            }
+                                                        }}
+                                                        activeOpacity={0.7}
+                                                    >
+                                                        <View style={styles.replyContainerMe}>
+                                                            <View style={styles.replyContent}>
+                                                                <View style={styles.replySenderRow}>
+                                                                    {!!resolvedReplySenderImage && (
+                                                                        <Image
+                                                                            source={{ uri: resolvedReplySenderImage }}
+                                                                            style={styles.replySenderAvatar}
+                                                                        />
+                                                                    )}
+                                                                    <Text style={styles.replySenderMe}>{resolvedReplySenderName}</Text>
+                                                                </View>
+                                                                {replyImageUri ? (
                                                                     <Image
-                                                                        source={{ uri: resolvedReplySenderImage }}
-                                                                        style={styles.replySenderAvatar}
+                                                                        source={{ uri: replyImageUri }}
+                                                                        style={styles.replyImageThumb}
+                                                                        resizeMode="cover"
                                                                     />
+                                                                ) : (
+                                                                    <Text style={styles.replyTextMe} numberOfLines={3} ellipsizeMode="tail">
+                                                                        {replyText || ' '}
+                                                                    </Text>
                                                                 )}
-                                                                <Text style={styles.replySenderMe}>{resolvedReplySenderName}</Text>
                                                             </View>
-                                                            {replyImageUri ? (
-                                                                <Image
-                                                                    source={{ uri: replyImageUri }}
-                                                                    style={styles.replyImageThumb}
-                                                                    resizeMode="cover"
-                                                                />
-                                                            ) : (
-                                                                <Text style={styles.replyTextMe} numberOfLines={3} ellipsizeMode="tail">
-                                                                    {replyText || ' '}
-                                                                </Text>
+                                                        </View>
+                                                    </TouchableOpacity>
+                                                )}
+                                                {message.image_url && (
+                                                    <TouchableOpacity onPress={() => setImageModalVisible(true)} activeOpacity={0.9}>
+                                                        <View style={{ position: 'relative' }}>
+                                                            <Image
+                                                                source={{ uri: message.image_url }}
+                                                                resizeMode="contain"
+                                                                style={[styles.messageImageMe, { width: fittedImageSize.width, height: fittedImageSize.height }]}
+                                                            />
+                                                            {actionMenuVisible && (
+                                                                <View pointerEvents="none" style={styles.longPressOverlay} />
                                                             )}
                                                         </View>
-                                                    </View>
-                                                </TouchableOpacity>
-                                            )}
-                                            {message.image_url && (
-                                                <TouchableOpacity onPress={() => setImageModalVisible(true)} activeOpacity={0.9}>
-                                                    <View style={{ position: 'relative' }}>
-                                                        <Image
-                                                            source={{ uri: message.image_url }}
-                                                            resizeMode="contain"
-                                                            style={[styles.messageImageMe, { width: fittedImageSize.width, height: fittedImageSize.height }]}
-                                                        />
-                                                        {actionMenuVisible && (
-                                                            <View pointerEvents="none" style={styles.longPressOverlay} />
-                                                        )}
-                                                    </View>
-                                                </TouchableOpacity>
-                                            )}
-                                            {message.text ? richTextNodes : null}
-                                            {actionMenuVisible && (
-                                                <View pointerEvents="none" style={styles.longPressOverlay} />
-                                            )}
-                                        </LinearGradient>
-                                    )}
-                                </>
-                            ) : (
-                                <>
-                                    {/* Image only - no bubble */}
-                                    {message.image_url && !message.text && !message.replyTo && (
-                                        <TouchableOpacity onPress={() => setImageModalVisible(true)} activeOpacity={0.9}>
-                                            <View style={{ position: 'relative' }}>
-                                                <Image
-                                                    source={{ uri: message.image_url }}
-                                                    resizeMode="contain"
-                                                    style={[styles.messageImageOther, { width: fittedImageSize.width, height: fittedImageSize.height }]}
-                                                />
+                                                    </TouchableOpacity>
+                                                )}
+                                                {message.text ? richTextNodes : null}
                                                 {actionMenuVisible && (
                                                     <View pointerEvents="none" style={styles.longPressOverlay} />
                                                 )}
-                                            </View>
-                                        </TouchableOpacity>
-                                    )}
-                                    {/* Has text or reply - show bubble */}
-                                    {(message.text || message.replyTo) && (
+                                            </LinearGradient>
+                                        )}
+                                    </>
+                                ) : (
+                                    <>
+                                        {/* Image only - no bubble */}
+                                        {message.image_url && !message.text && !message.replyTo && (
+                                            <TouchableOpacity onPress={() => setImageModalVisible(true)} activeOpacity={0.9}>
+                                                <View style={{ position: 'relative' }}>
+                                                    <Image
+                                                        source={{ uri: message.image_url }}
+                                                        resizeMode="contain"
+                                                        style={[styles.messageImageOther, { width: fittedImageSize.width, height: fittedImageSize.height }]}
+                                                    />
+                                                    {actionMenuVisible && (
+                                                        <View pointerEvents="none" style={styles.longPressOverlay} />
+                                                    )}
+                                                </View>
+                                            </TouchableOpacity>
+                                        )}
+                                        {/* Has text or reply - show bubble */}
+                                        {(message.text || message.replyTo) && (
                                             <View
                                                 style={[
                                                     styles.bubbleOther,
-                                                { maxWidth: bubbleMaxWidth },
-                                                totalReplyWidth > 0 && { minWidth: Math.min(totalReplyWidth + 32, bubbleMaxWidth) } // cap to bubble max width
+                                                    { maxWidth: bubbleMaxWidth },
+                                                    totalReplyWidth > 0 && { minWidth: Math.min(totalReplyWidth + 32, bubbleMaxWidth) } // cap to bubble max width
                                                 ]}
                                             >
                                                 {message.replyTo && (
@@ -1000,33 +1011,33 @@ const MessageBubble = ({
                                                 )}
                                                 {message.image_url && (
                                                     <TouchableOpacity onPress={() => setImageModalVisible(true)} activeOpacity={0.9}>
-                                                    <View style={{ position: 'relative' }}>
-                                                        <Image
-                                                            source={{ uri: message.image_url }}
-                                                            resizeMode="contain"
-                                                            style={[styles.messageImageOther, { width: fittedImageSize.width, height: fittedImageSize.height }]}
-                                                        />
-                                                        {actionMenuVisible && (
-                                                            <View pointerEvents="none" style={styles.longPressOverlay} />
-                                                        )}
-                                                    </View>
+                                                        <View style={{ position: 'relative' }}>
+                                                            <Image
+                                                                source={{ uri: message.image_url }}
+                                                                resizeMode="contain"
+                                                                style={[styles.messageImageOther, { width: fittedImageSize.width, height: fittedImageSize.height }]}
+                                                            />
+                                                            {actionMenuVisible && (
+                                                                <View pointerEvents="none" style={styles.longPressOverlay} />
+                                                            )}
+                                                        </View>
                                                     </TouchableOpacity>
                                                 )}
                                                 {message.text ? richTextNodes : null}
-                                            {actionMenuVisible && (
-                                                <View pointerEvents="none" style={styles.longPressOverlay} />
-                                            )}
+                                                {actionMenuVisible && (
+                                                    <View pointerEvents="none" style={styles.longPressOverlay} />
+                                                )}
                                             </View>
-                                    )}
-                                </>
-                            )}
+                                        )}
+                                    </>
+                                )}
 
-                            {/* Timestamp for partner messages (right side) */}
-                            {!isMe && (
-                                <Text style={[styles.timestamp, styles.timestampOther]}>{message.timestamp}</Text>
-                            )}
+                                {/* Timestamp for partner messages (right side) */}
+                                {!isMe && (
+                                    <Text style={[styles.timestamp, styles.timestampOther]}>{message.timestamp}</Text>
+                                )}
+                            </View>
                         </View>
-                    </View>
                     </Pressable>
                 </View>
             </Swipeable>
@@ -1243,12 +1254,12 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                         const nextKey = getBatchKeyFromImageUrl(n.image_url);
                         if (nextKey !== batchKey) break;
                     } else {
-                    const prevTime = parseTimeMs(group[group.length - 1].created_at);
-                    const nextTime = parseTimeMs(n.created_at);
-                    if (Number.isFinite(prevTime) && Number.isFinite(nextTime)) {
-                        const gap = Math.abs(prevTime - nextTime);
-                        if (gap > maxGapMs) break;
-                    }
+                        const prevTime = parseTimeMs(group[group.length - 1].created_at);
+                        const nextTime = parseTimeMs(n.created_at);
+                        if (Number.isFinite(prevTime) && Number.isFinite(nextTime)) {
+                            const gap = Math.abs(prevTime - nextTime);
+                            if (gap > maxGapMs) break;
+                        }
                     }
 
                     group.push(n);
@@ -1263,18 +1274,18 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                         messages: group,
                     });
                 } else {
-            items.push({
-                type: 'message',
+                    items.push({
+                        type: 'message',
                         id: m.id,
                         message: m,
-            });
+                    });
                 }
 
                 const lastProcessed = group[group.length - 1];
                 const nextMessage = messages[j];
                 if (!nextMessage || nextMessage.date !== lastProcessed.date) {
-                items.push({
-                    type: 'date',
+                    items.push({
+                        type: 'date',
                         id: `date-${lastProcessed.date}`,
                         dateLabel: getDateLabel(lastProcessed.date),
                     });
@@ -1350,152 +1361,152 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                 reply: typeof replyData;
                 batchId?: string;
             }) => {
-            let uploadedImageUrl: string | null = null;
+                let uploadedImageUrl: string | null = null;
 
-            if (imageUri) {
-                const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
-                    const xhr = new XMLHttpRequest();
-                    xhr.onload = function () {
-                        resolve(xhr.response);
-                    };
-                    xhr.onerror = function (e) {
-                        console.log(e);
-                        reject(new TypeError('Network request failed'));
-                    };
-                    xhr.responseType = 'arraybuffer';
-                    xhr.open('GET', imageUri, true);
-                    xhr.send(null);
-                });
+                if (imageUri) {
+                    const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+                        const xhr = new XMLHttpRequest();
+                        xhr.onload = function () {
+                            resolve(xhr.response);
+                        };
+                        xhr.onerror = function (e) {
+                            console.log(e);
+                            reject(new TypeError('Network request failed'));
+                        };
+                        xhr.responseType = 'arraybuffer';
+                        xhr.open('GET', imageUri, true);
+                        xhr.send(null);
+                    });
 
-                const fileExt = imageUri.split('.').pop()?.toLowerCase() ?? 'jpg';
-                const safeExt = fileExt === 'jpeg' ? 'jpg' : fileExt;
+                    const fileExt = imageUri.split('.').pop()?.toLowerCase() ?? 'jpg';
+                    const safeExt = fileExt === 'jpeg' ? 'jpg' : fileExt;
                     const fileName = batchId
                         ? `${currentUserId}/batches/${batchId}/${Date.now()}-${Math.random().toString(16).slice(2)}.${safeExt}`
                         : `${currentUserId}/${Date.now()}-${Math.random().toString(16).slice(2)}.${safeExt}`;
 
-                const contentType = safeExt === 'jpg' ? 'image/jpeg' : `image/${safeExt}`;
+                    const contentType = safeExt === 'jpg' ? 'image/jpeg' : `image/${safeExt}`;
 
-                const { error: uploadError } = await supabase.storage
-                    .from('chat-images')
-                    .upload(fileName, arrayBuffer, {
-                        contentType,
-                        upsert: false,
-                    });
+                    const { error: uploadError } = await supabase.storage
+                        .from('chat-images')
+                        .upload(fileName, arrayBuffer, {
+                            contentType,
+                            upsert: false,
+                        });
 
-                if (uploadError) throw uploadError;
+                    if (uploadError) throw uploadError;
 
-                const { data: { publicUrl } } = supabase.storage
-                    .from('chat-images')
-                    .getPublicUrl(fileName);
+                    const { data: { publicUrl } } = supabase.storage
+                        .from('chat-images')
+                        .getPublicUrl(fileName);
 
-                uploadedImageUrl = publicUrl;
-            }
+                    uploadedImageUrl = publicUrl;
+                }
 
-            // Optimistic Update
+                // Optimistic Update
                 const tempId = `temp-${Date.now()}-${Math.random().toString(16).slice(2)}`;
                 const nowIso = new Date().toISOString();
-            const optimisticMessage: Message = {
-                id: tempId,
+                const optimisticMessage: Message = {
+                    id: tempId,
                     text: messageText,
-                image_url: uploadedImageUrl || undefined,
-                sender: 'me',
-                senderId: currentUserId,
+                    image_url: uploadedImageUrl || undefined,
+                    sender: 'me',
+                    senderId: currentUserId,
                     senderName: currentUserName || '不明',
-                timestamp: new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }),
+                    timestamp: new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }),
                     date: nowIso.split('T')[0],
                     created_at: nowIso,
                     replyTo: reply || undefined,
                 };
 
-            queryClient.setQueryData(queryKey, (oldData: any) => {
-                if (!oldData || !oldData.pages) {
+                queryClient.setQueryData(queryKey, (oldData: any) => {
+                    if (!oldData || !oldData.pages) {
+                        return {
+                            pages: [{
+                                data: [optimisticMessage],
+                                nextCursor: null
+                            }],
+                            pageParams: [undefined]
+                        };
+                    }
+
+                    const firstPage = oldData.pages[0];
                     return {
+                        ...oldData,
                         pages: [{
-                            data: [optimisticMessage],
-                            nextCursor: null
-                        }],
-                        pageParams: [undefined]
+                            ...firstPage,
+                            data: [optimisticMessage, ...firstPage.data]
+                        }, ...oldData.pages.slice(1)]
                     };
+                });
+
+                setTimeout(() => {
+                    flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+                }, 100);
+
+                const { data, error } = await supabase
+                    .from('messages')
+                    .insert({
+                        sender_id: currentUserId,
+                        receiver_id: isGroup ? currentUserId : partnerId,
+                        chat_room_id: isGroup ? partnerId : null,
+                        content: messageText,
+                        image_url: uploadedImageUrl,
+                        reply_to: reply,
+                    })
+                    .select()
+                    .single();
+
+                if (error) {
+                    // Rollback on error
+                    queryClient.setQueryData(queryKey, (oldData: any) => {
+                        if (!oldData || !oldData.pages) return oldData;
+
+                        const newPages = oldData.pages.map((page: any) => ({
+                            ...page,
+                            data: page.data.filter((msg: Message) => msg.id !== tempId)
+                        }));
+
+                        return {
+                            ...oldData,
+                            pages: newPages
+                        };
+                    });
+                    throw error;
                 }
 
-                const firstPage = oldData.pages[0];
-                return {
-                    ...oldData,
-                    pages: [{
-                        ...firstPage,
-                        data: [optimisticMessage, ...firstPage.data]
-                    }, ...oldData.pages.slice(1)]
-                };
-            });
-
-            setTimeout(() => {
-                flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
-            }, 100);
-
-            const { data, error } = await supabase
-                .from('messages')
-                .insert({
-                    sender_id: currentUserId,
-                    receiver_id: isGroup ? currentUserId : partnerId,
-                    chat_room_id: isGroup ? partnerId : null,
-                        content: messageText,
-                    image_url: uploadedImageUrl,
-                        reply_to: reply,
-                })
-                .select()
-                .single();
-
-            if (error) {
-                // Rollback on error
-                queryClient.setQueryData(queryKey, (oldData: any) => {
-                    if (!oldData || !oldData.pages) return oldData;
-
-                    const newPages = oldData.pages.map((page: any) => ({
-                        ...page,
-                        data: page.data.filter((msg: Message) => msg.id !== tempId)
-                    }));
-
-                    return {
-                        ...oldData,
-                        pages: newPages
-                    };
-                });
-                throw error;
-            }
-
-            if (data) {
-                const realMessage: Message = {
-                    id: data.id,
-                    text: data.content,
-                    image_url: data.image_url,
-                    sender: 'me',
-                    senderId: currentUserId,
+                if (data) {
+                    const realMessage: Message = {
+                        id: data.id,
+                        text: data.content,
+                        image_url: data.image_url,
+                        sender: 'me',
+                        senderId: currentUserId,
                         senderName: currentUserName || '不明',
-                    timestamp: new Date(data.created_at).toLocaleTimeString('ja-JP', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                    }),
-                    date: new Date(data.created_at).toISOString().split('T')[0],
-                    created_at: data.created_at,
+                        timestamp: new Date(data.created_at).toLocaleTimeString('ja-JP', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                        }),
+                        date: new Date(data.created_at).toISOString().split('T')[0],
+                        created_at: data.created_at,
                         replyTo: reply || undefined,
-                };
-
-                queryClient.setQueryData(queryKey, (oldData: any) => {
-                    if (!oldData || !oldData.pages) return oldData;
-
-                    const newPages = oldData.pages.map((page: any) => ({
-                        ...page,
-                        data: page.data.map((msg: Message) =>
-                            msg.id === tempId ? realMessage : msg
-                        )
-                    }));
-
-                    return {
-                        ...oldData,
-                        pages: newPages
                     };
-                });
-            }
+
+                    queryClient.setQueryData(queryKey, (oldData: any) => {
+                        if (!oldData || !oldData.pages) return oldData;
+
+                        const newPages = oldData.pages.map((page: any) => ({
+                            ...page,
+                            data: page.data.map((msg: Message) =>
+                                msg.id === tempId ? realMessage : msg
+                            )
+                        }));
+
+                        return {
+                            ...oldData,
+                            pages: newPages
+                        };
+                    });
+                }
             };
 
             if (imagesToSend.length > 0) {
@@ -1803,11 +1814,10 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
     };
 
     const handleMenuPress = () => {
-        setIsSidebarOpen(true);
+        // Deprecated
     };
 
     const openSearchMode = () => {
-        setIsSidebarOpen(false);
         setIsSearchMode(true);
         // Focus after modal close animation
         setTimeout(() => searchInputRef.current?.focus(), 250);
@@ -1868,41 +1878,100 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                         )}
                         {/* Header */}
                         <View style={styles.header}>
-                            <TouchableOpacity onPress={onBack} style={styles.backButton}>
-                                <Ionicons name="chevron-back" size={28} color="#374151" />
-                            </TouchableOpacity>
-
-                            {/* Header Info - Tappable for group chats to view project detail */}
-                            {isGroup && projectId && onViewProjectDetail ? (
-                                <TouchableOpacity
-                                    style={styles.headerInfo}
-                                    onPress={() => onViewProjectDetail(projectId)}
-                                    activeOpacity={0.7}
-                                >
-                                    <Image
-                                        source={{ uri: partnerImage }}
-                                        style={styles.headerAvatar}
+                            {isSearchMode ? (
+                                <View style={styles.searchModeBar}>
+                                    <TextInput
+                                        ref={searchInputRef}
+                                        style={styles.searchModeInput}
+                                        placeholder="検索..."
+                                        value={searchQuery}
+                                        onChangeText={setSearchQuery}
+                                        returnKeyType="search"
+                                        onSubmitEditing={() => {
+                                            if (searchMatches.length > 0) {
+                                                scrollToMessageId(searchMatches[0], { preferAboveSearchBar: true });
+                                                setActiveMatchIndex(0);
+                                            }
+                                        }}
                                     />
-                                    <Text style={styles.headerName} numberOfLines={2} ellipsizeMode="tail">{partnerName}</Text>
-                                </TouchableOpacity>
-                            ) : (
-                                <View style={styles.headerInfo}>
-                                    <Image
-                                        source={{ uri: partnerImage }}
-                                        style={styles.headerAvatar}
-                                    />
-                                    <Text style={styles.headerName} numberOfLines={2} ellipsizeMode="tail">{partnerName}</Text>
+                                    <Text style={styles.searchModeCount}>
+                                        {searchQuery.trim()
+                                            ? `${searchMatches.length === 0 ? 0 : (activeMatchIndex + 1)}/${searchMatches.length}`
+                                            : ''}
+                                    </Text>
+                                    <TouchableOpacity
+                                        style={[styles.searchModeNavBtn, searchMatches.length === 0 && styles.searchModeNavBtnDisabled]}
+                                        disabled={searchMatches.length === 0}
+                                        onPress={() => {
+                                            const n = searchMatches.length;
+                                            if (n === 0) return;
+                                            const next = (activeMatchIndex - 1 + n) % n;
+                                            setActiveMatchIndex(next);
+                                            scrollToMessageId(searchMatches[next], { preferAboveSearchBar: true });
+                                        }}
+                                    >
+                                        <Ionicons name="chevron-up" size={18} color="#111827" />
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={[styles.searchModeNavBtn, searchMatches.length === 0 && styles.searchModeNavBtnDisabled]}
+                                        disabled={searchMatches.length === 0}
+                                        onPress={() => {
+                                            const n = searchMatches.length;
+                                            if (n === 0) return;
+                                            const next = (activeMatchIndex + 1) % n;
+                                            setActiveMatchIndex(next);
+                                            scrollToMessageId(searchMatches[next], { preferAboveSearchBar: true });
+                                        }}
+                                    >
+                                        <Ionicons name="chevron-down" size={18} color="#111827" />
+                                    </TouchableOpacity>
+                                    <TouchableOpacity style={styles.searchModeCloseBtn} onPress={closeSearchMode}>
+                                        <Ionicons name="close" size={20} color="#374151" />
+                                    </TouchableOpacity>
                                 </View>
-                            )}
+                            ) : (
+                                <>
+                                    <TouchableOpacity onPress={onBack} style={styles.backButton}>
+                                        <Ionicons name="chevron-back" size={28} color="#374151" />
+                                    </TouchableOpacity>
 
-                            <View style={styles.headerRightArea}>
-                                {isChatMuted && (
-                                    <Ionicons name="notifications-off-outline" size={20} color="#9ca3af" style={{ marginRight: 8 }} />
-                                )}
-                            <TouchableOpacity onPress={handleMenuPress} style={styles.menuButton}>
-                                <Ionicons name="ellipsis-horizontal" size={24} color="#374151" />
-                            </TouchableOpacity>
-                            </View>
+                                    {/* Header Info - Tappable for group chats to view project detail */}
+                                    {isGroup && projectId && onViewProjectDetail ? (
+                                        <TouchableOpacity
+                                            style={styles.headerInfo}
+                                            onPress={() => onViewProjectDetail(projectId)}
+                                            activeOpacity={0.7}
+                                        >
+                                            <Image
+                                                source={{ uri: partnerImage }}
+                                                style={styles.headerAvatar}
+                                            />
+                                            <Text style={styles.headerName} numberOfLines={2} ellipsizeMode="tail">{partnerName}</Text>
+                                        </TouchableOpacity>
+                                    ) : (
+                                        <View style={styles.headerInfo}>
+                                            <Image
+                                                source={{ uri: partnerImage }}
+                                                style={styles.headerAvatar}
+                                            />
+                                            <Text style={styles.headerName} numberOfLines={2} ellipsizeMode="tail">{partnerName}</Text>
+                                        </View>
+                                    )}
+
+                                    <View style={styles.headerRightArea}>
+                                        <TouchableOpacity onPress={toggleMute} style={styles.headerIconButton}>
+                                            <Ionicons
+                                                name={isChatMuted ? 'notifications-off-outline' : 'notifications-outline'}
+                                                size={24}
+                                                color={isChatMuted ? '#9ca3af' : '#374151'}
+                                            />
+                                        </TouchableOpacity>
+                                        <TouchableOpacity onPress={openSearchMode} style={styles.headerIconButton}>
+                                            <Ionicons name="search-outline" size={24} color="#374151" />
+                                        </TouchableOpacity>
+                                    </View>
+                                </>
+                            )}
                         </View>
 
                         {/* Messages List */}
@@ -1913,43 +1982,43 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                                 // No extra padding here; reserve space via FlatList contentContainerStyle to avoid unscrollable blank area.
                             ]}
                         >
-                        <FlatList
+                            <FlatList
                                 style={[styles.messagesList, isGroup && { backgroundColor: 'transparent' }]}
-                            ref={flatListRef}
-                            data={messageListWithDates}
-                            renderItem={renderItem}
-                            keyExtractor={(item) => item.id}
+                                ref={flatListRef}
+                                data={messageListWithDates}
+                                renderItem={renderItem}
+                                keyExtractor={(item) => item.id}
                                 contentContainerStyle={listContentStyle as any}
-                            inverted={true}
-                            onEndReached={() => {
-                                if (hasNextPage) fetchNextPage();
-                            }}
-                            onEndReachedThreshold={0.5}
-                            ListFooterComponent={isFetchingNextPage ? <ActivityIndicator size="small" color="#009688" /> : null}
-                            onScrollToIndexFailed={(info) => {
-                                // If scroll fails, wait and retry
-                                setTimeout(() => {
-                                    flatListRef.current?.scrollToIndex({
-                                        index: info.index,
-                                        animated: true,
-                                        viewPosition: 0.5
-                                    });
-                                }, 100);
-                            }}
-                        />
+                                inverted={true}
+                                onEndReached={() => {
+                                    if (hasNextPage) fetchNextPage();
+                                }}
+                                onEndReachedThreshold={0.5}
+                                ListFooterComponent={isFetchingNextPage ? <ActivityIndicator size="small" color="#009688" /> : null}
+                                onScrollToIndexFailed={(info) => {
+                                    // If scroll fails, wait and retry
+                                    setTimeout(() => {
+                                        flatListRef.current?.scrollToIndex({
+                                            index: info.index,
+                                            animated: true,
+                                            viewPosition: 0.5
+                                        });
+                                    }, 100);
+                                }}
+                            />
                         </View>
 
                         {/* Input Area */}
                         {!isSearchMode && (
-                        <KeyboardAvoidingView
-                            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-                        >
-                            {/* Reply Preview */}
-                            {replyingTo && (
-                                <View style={styles.replyPreviewBar}>
-                                    <View style={styles.replyPreviewContent}>
-                                        <View>
+                            <KeyboardAvoidingView
+                                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+                            >
+                                {/* Reply Preview */}
+                                {replyingTo && (
+                                    <View style={styles.replyPreviewBar}>
+                                        <View style={styles.replyPreviewContent}>
+                                            <View>
                                                 <View style={styles.replyPreviewSenderRow}>
                                                     {!!(replyingTo.sender === 'me' ? currentUserImage : replyingTo.senderImage) && (
                                                         <Image
@@ -1957,13 +2026,13 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                                                             style={styles.replyPreviewSenderAvatar}
                                                         />
                                                     )}
-                                            <Text style={styles.replyPreviewSender}>
+                                                    <Text style={styles.replyPreviewSender}>
                                                         {((replyingTo.senderName && replyingTo.senderName !== '自分')
                                                             ? replyingTo.senderName
                                                             : (replyingTo.sender === 'me'
                                                                 ? (currentUserName || replyingTo.senderName || '不明')
                                                                 : ((!isGroup ? partnerName : replyingTo.senderName) || '不明')))}への返信
-                                            </Text>
+                                                    </Text>
                                                 </View>
                                                 {replyingTo.image_url ? (
                                                     <Image
@@ -1972,21 +2041,21 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                                                         resizeMode="cover"
                                                     />
                                                 ) : (
-                                            <Text style={styles.replyPreviewText} numberOfLines={1}>
+                                                    <Text style={styles.replyPreviewText} numberOfLines={1}>
                                                         {replyingTo.text || ' '}
-                                            </Text>
+                                                    </Text>
                                                 )}
+                                            </View>
                                         </View>
+                                        <TouchableOpacity onPress={() => setReplyingTo(null)} style={styles.closeReplyButton}>
+                                            <Ionicons name="close" size={20} color="#6B7280" />
+                                        </TouchableOpacity>
                                     </View>
-                                    <TouchableOpacity onPress={() => setReplyingTo(null)} style={styles.closeReplyButton}>
-                                        <Ionicons name="close" size={20} color="#6B7280" />
-                                    </TouchableOpacity>
-                                </View>
-                            )}
+                                )}
 
-                            {/* Image Preview */}
+                                {/* Image Preview */}
                                 {selectedImages.length > 0 && (
-                                <View style={styles.imagePreviewBar}>
+                                    <View style={styles.imagePreviewBar}>
                                         <ScrollView
                                             horizontal
                                             showsHorizontalScrollIndicator={false}
@@ -1994,10 +2063,10 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                                         >
                                             {selectedImages.map((uri, idx) => (
                                                 <View key={`${uri}-${idx}`} style={styles.imagePreviewItem}>
-                                    <Image
+                                                    <Image
                                                         source={{ uri }}
-                                        style={styles.imagePreview}
-                                    />
+                                                        style={styles.imagePreview}
+                                                    />
                                                     <View style={styles.imagePreviewIndexBadge}>
                                                         <Text style={styles.imagePreviewIndexText}>{idx + 1}</Text>
                                                     </View>
@@ -2008,144 +2077,53 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                                                         style={styles.closeImageButton}
                                                     >
                                                         <Ionicons name="close-circle" size={22} color="#ef4444" />
-                                    </TouchableOpacity>
+                                                    </TouchableOpacity>
                                                 </View>
                                             ))}
                                         </ScrollView>
-                                </View>
-                            )}
+                                    </View>
+                                )}
 
-                            <View style={styles.inputContainer}>
-                                <TouchableOpacity style={styles.attachButton} onPress={handlePickImage} disabled={isSending}>
-                                    <Ionicons name="image-outline" size={24} color="#9ca3af" />
-                                </TouchableOpacity>
+                                <View style={styles.inputContainer}>
+                                    <TouchableOpacity style={styles.attachButton} onPress={handlePickImage} disabled={isSending}>
+                                        <Ionicons name="image-outline" size={24} color="#9ca3af" />
+                                    </TouchableOpacity>
 
-                                <TextInput
-                                    ref={inputRef}
-                                    style={styles.input}
-                                    placeholder="メッセージを入力..."
-                                    value={inputText}
-                                    onChangeText={setInputText}
-                                    multiline
-                                    maxLength={1000}
-                                    editable={!isSending}
-                                />
+                                    <TextInput
+                                        ref={inputRef}
+                                        style={styles.input}
+                                        placeholder="メッセージを入力..."
+                                        value={inputText}
+                                        onChangeText={setInputText}
+                                        multiline
+                                        maxLength={1000}
+                                        editable={!isSending}
+                                    />
 
-                                <TouchableOpacity
-                                    style={[
-                                        styles.sendButton,
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.sendButton,
                                             (!inputText.trim() && selectedImages.length === 0) || isSending ? styles.sendButtonDisabled : null
-                                    ]}
-                                    onPress={handleSend}
+                                        ]}
+                                        onPress={handleSend}
                                         disabled={(!inputText.trim() && selectedImages.length === 0) || isSending}
-                                >
-                                    {isSending ? (
-                                        <ActivityIndicator size="small" color="white" />
-                                    ) : (
-                                        <Ionicons
-                                            name="send"
-                                            size={20}
+                                    >
+                                        {isSending ? (
+                                            <ActivityIndicator size="small" color="white" />
+                                        ) : (
+                                            <Ionicons
+                                                name="send"
+                                                size={20}
                                                 color={inputText.trim() || selectedImages.length > 0 ? 'white' : '#9ca3af'}
-                                        />
-                                    )}
-                                </TouchableOpacity>
-                            </View>
-                        </KeyboardAvoidingView>
+                                            />
+                                        )}
+                                    </TouchableOpacity>
+                                </View>
+                            </KeyboardAvoidingView>
                         )}
                     </SafeAreaView>
                 </View>
             </PanGestureHandler>
-
-            {/* Bottom Menu Modal */}
-            <Modal visible={isSidebarOpen} transparent animationType="slide" onRequestClose={() => setIsSidebarOpen(false)}>
-                <Pressable style={styles.menuOverlay} onPress={() => setIsSidebarOpen(false)}>
-                    <Pressable style={styles.bottomSheet} onPress={() => { /* absorb */ }}>
-                        <View style={styles.bottomSheetHandle}>
-                            <View style={styles.bottomSheetIndicator} />
-                        </View>
-                        <View style={styles.bottomSheetHeader}>
-                            <Text style={styles.bottomSheetTitle}>メニュー</Text>
-                            <TouchableOpacity onPress={() => setIsSidebarOpen(false)} style={styles.bottomSheetClose}>
-                                <Ionicons name="close" size={24} color="#374151" />
-                            </TouchableOpacity>
-                        </View>
-
-                        <TouchableOpacity style={styles.bottomSheetItem} onPress={openSearchMode}>
-                            <Ionicons name="search" size={20} color="#374151" />
-                            <Text style={styles.bottomSheetItemText}>検索</Text>
-                        </TouchableOpacity>
-
-                        <View style={styles.bottomSheetDivider} />
-
-                        {/* Mute (below search) */}
-                        <TouchableOpacity style={styles.bottomSheetItem} onPress={toggleMute}>
-                            <Ionicons name={isChatMuted ? 'notifications-outline' : 'notifications-off-outline'} size={20} color="#374151" />
-                            <Text style={styles.bottomSheetItemText}>{isChatMuted ? '通知オン' : '通知オフ'}</Text>
-                        </TouchableOpacity>
-                    </Pressable>
-                </Pressable>
-            </Modal>
-
-            {/* Search Mode Bar (above keyboard) */}
-            {isSearchMode && (
-                <KeyboardAvoidingView
-                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                    keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-                    style={styles.searchModeBarWrapper}
-                >
-                    {/* When keyboard is visible, keep the bar flush to keyboard (avoid corner "holes"). */}
-                    <View style={[styles.searchModeBar, { paddingBottom: keyboardHeight > 0 ? 10 : insets.bottom + 10 }]}>
-                        <TextInput
-                            ref={searchInputRef}
-                            style={styles.searchModeInput}
-                            placeholder="検索..."
-                            value={searchQuery}
-                            onChangeText={setSearchQuery}
-                            returnKeyType="search"
-                            onSubmitEditing={() => {
-                                if (searchMatches.length > 0) {
-                                scrollToMessageId(searchMatches[0], { preferAboveSearchBar: true });
-                                    setActiveMatchIndex(0);
-                                }
-                            }}
-                        />
-                        <Text style={styles.searchModeCount}>
-                        {searchQuery.trim()
-                            ? `${searchMatches.length === 0 ? 0 : (activeMatchIndex + 1)}/${searchMatches.length}`
-                            : ''}
-                        </Text>
-                        <TouchableOpacity
-                            style={[styles.searchModeNavBtn, searchMatches.length === 0 && styles.searchModeNavBtnDisabled]}
-                            disabled={searchMatches.length === 0}
-                            onPress={() => {
-                                const n = searchMatches.length;
-                                if (n === 0) return;
-                                const next = (activeMatchIndex - 1 + n) % n;
-                                setActiveMatchIndex(next);
-                            scrollToMessageId(searchMatches[next], { preferAboveSearchBar: true });
-                            }}
-                        >
-                            <Ionicons name="chevron-up" size={18} color="#111827" />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={[styles.searchModeNavBtn, searchMatches.length === 0 && styles.searchModeNavBtnDisabled]}
-                            disabled={searchMatches.length === 0}
-                            onPress={() => {
-                                const n = searchMatches.length;
-                                if (n === 0) return;
-                                const next = (activeMatchIndex + 1) % n;
-                                setActiveMatchIndex(next);
-                            scrollToMessageId(searchMatches[next], { preferAboveSearchBar: true });
-                            }}
-                        >
-                            <Ionicons name="chevron-down" size={18} color="#111827" />
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.searchModeCloseBtn} onPress={closeSearchMode}>
-                            <Ionicons name="close" size={20} color="#374151" />
-                        </TouchableOpacity>
-                    </View>
-                </KeyboardAvoidingView>
-            )}
 
             <ChatImagePickerModal
                 visible={imagePickerVisible}
@@ -2182,6 +2160,7 @@ const styles = StyleSheet.create({
         backgroundColor: 'white',
         borderBottomWidth: 1,
         borderBottomColor: '#e5e7eb',
+        minHeight: 60, // Ensure minimum height consistency
     },
     messagesArea: {
         flex: 1,
@@ -2229,114 +2208,48 @@ const styles = StyleSheet.create({
         color: '#111827',
         flex: 1,
         flexShrink: 1, // Allow text to shrink
+        lineHeight: 20, // Explicit line height for calculations
     },
     headerRightArea: {
         flexDirection: 'row',
         alignItems: 'center',
+        gap: 8, // Added gap for spacing between icons
     },
-    menuButton: {
+    headerIconButton: {
         padding: 4,
     },
-    menuOverlay: {
-        ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'transparent',
-        justifyContent: 'flex-end',
-    },
-    bottomSheet: {
-        backgroundColor: 'white',
-        paddingTop: 12,
-        paddingHorizontal: 16,
-        paddingBottom: 40,
-        borderTopLeftRadius: 18,
-        borderTopRightRadius: 18,
-        borderTopWidth: 1,
-        borderTopColor: '#e5e7eb',
-    },
-    bottomSheetHandle: {
-        alignItems: 'center',
-        paddingBottom: 8,
-    },
-    bottomSheetIndicator: {
-        width: 40,
-        height: 4,
-        backgroundColor: '#E0E0E0',
-        borderRadius: 2,
-    },
-    bottomSheetHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingBottom: 10,
-    },
-    bottomSheetTitle: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: '#111827',
-    },
-    bottomSheetClose: {
-        padding: 6,
-    },
-    bottomSheetSectionTitle: {
-        fontSize: 13,
-        color: '#6b7280',
-        fontWeight: '700',
-        marginBottom: 8,
-    },
-    bottomSheetDivider: {
-        height: 1,
-        backgroundColor: '#e5e7eb',
-        marginVertical: 12,
-    },
-    bottomSheetItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 12,
-        gap: 10,
-    },
-    bottomSheetItemText: {
-        fontSize: 15,
-        color: '#111827',
-        fontWeight: '600',
-    },
-    searchModeBarWrapper: {
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'white',
-    },
+    // Removed unused menu and bottom sheet styles
+    // Removed unused searchModeBarWrapper and fixed positioning styles
     searchModeBar: {
-        minHeight: SEARCH_BAR_HEIGHT,
+        flex: 1, // Take full width in header
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
-        backgroundColor: 'white',
-        borderTopWidth: 1,
-        borderTopColor: '#e5e7eb',
-        paddingHorizontal: 12,
-        paddingVertical: 10,
+        // Removed borders/padding that conflicted with header container
     },
     searchModeInput: {
         flex: 1,
-        height: 38,
+        height: 36,
         borderWidth: 1,
         borderColor: '#e5e7eb',
-        borderRadius: 10,
-        paddingHorizontal: 10,
+        borderRadius: 18, // More rounded for header style
+        paddingHorizontal: 12,
+        paddingVertical: 0, // Essential for text centering on Android/iOS within fixed height
         backgroundColor: '#f9fafb',
         color: '#111827',
+        fontSize: 14,
     },
     searchModeCount: {
-        minWidth: 44,
-        textAlign: 'right',
+        minWidth: 40,
+        textAlign: 'center', // Center align
         fontSize: 12,
         color: '#6b7280',
         fontWeight: '600',
     },
     searchModeNavBtn: {
-        width: 34,
-        height: 34,
-        borderRadius: 10,
+        width: 32,
+        height: 32,
+        borderRadius: 16,
         borderWidth: 1,
         borderColor: '#e5e7eb',
         alignItems: 'center',
@@ -2347,14 +2260,8 @@ const styles = StyleSheet.create({
         opacity: 0.4,
     },
     searchModeCloseBtn: {
-        width: 34,
-        height: 34,
-        borderRadius: 10,
-        borderWidth: 1,
-        borderColor: '#e5e7eb',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: 'white',
+        padding: 4,
+        marginLeft: 4,
     },
     listContent: {
         padding: 16,
@@ -2381,6 +2288,31 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#9ca3af',
         fontWeight: '500',
+    },
+    systemMessageContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginVertical: 10,
+        paddingHorizontal: 16,
+    },
+    systemMessageTime: {
+        fontSize: 14,
+        color: 'white',
+        marginBottom: 6,
+        fontWeight: '600',
+    },
+    systemMessageBubble: {
+        backgroundColor: '#BDBDBD',
+        borderRadius: 18,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        maxWidth: '100%',
+    },
+    systemMessageText: {
+        fontSize: 14,
+        color: 'white',
+        textAlign: 'center',
+        fontWeight: '600',
     },
     // LINE-style avatar for partner messages
     messageAvatarContainer: {

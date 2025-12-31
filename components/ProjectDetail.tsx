@@ -10,6 +10,7 @@ import { getUserPushTokens, sendPushNotification } from '../lib/notifications';
 import { getRoleColors, getRoleIcon } from '../constants/RoleConstants';
 import { getImageSource } from '../constants/DefaultImages';
 import { queryKeys } from '../data/queryKeys';
+import { buildSystemMessage } from '../constants/SystemMessage';
 
 interface Project {
     id: string;
@@ -425,20 +426,31 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
 
                 if (totalMembers >= 2) {
                     // Check if chat room already exists
-                    const { data: existingRoom } = await supabase
+                    const { data: existingRoom, error: existingRoomError } = await supabase
                         .from('chat_rooms')
                         .select('id')
                         .eq('project_id', project.id)
-                        .single();
+                        .eq('type', 'group')
+                        .order('created_at', { ascending: true })
+                        .limit(1)
+                        .maybeSingle();
+
+                    if (existingRoomError) {
+                        console.error('Error fetching existing chat room:', existingRoomError);
+                    }
+
+                    let chatRoomId: string | null = existingRoom?.id ?? null;
 
                     if (!existingRoom) {
                         // Create team chat room
-                        const { error: createRoomError } = await supabase
+                        const { data: createdRoom, error: createRoomError } = await supabase
                             .from('chat_rooms')
                             .insert({
                                 project_id: project.id,
                                 type: 'group'
-                            });
+                            })
+                            .select('id')
+                            .single();
 
                         if (!createRoomError) {
                             // Invalidate chat rooms query to refresh the list in TalkPage
@@ -446,9 +458,30 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                                 queryClient.invalidateQueries({ queryKey: queryKeys.chatRooms.list(currentUser.id) });
                             }
                             teamChatCreated = true;
+                            chatRoomId = createdRoom?.id ?? null;
                         } else {
                             console.error('Error creating chat room:', createRoomError);
                         }
+                    }
+
+                    // 参加承認時: システムメッセージをチームチャットに投稿
+                    // NOTE: 既存スキーマを変えずに表示を「システム」扱いにするため、contentにプレフィックスを付ける
+                    if (chatRoomId && currentUser?.id) {
+                        const systemText = `${userName}がプロジェクトに参加しました`;
+                        const { error: systemMsgError } = await supabase
+                            .from('messages')
+                            .insert({
+                                sender_id: currentUser.id,
+                                receiver_id: currentUser.id, // グループチャットの既存実装に合わせる
+                                chat_room_id: chatRoomId,
+                                content: buildSystemMessage(systemText),
+                            });
+                        if (systemMsgError) {
+                            console.error('Error inserting system message:', systemMsgError);
+                        }
+                        // チャット一覧/未読を即時更新
+                        queryClient.invalidateQueries({ queryKey: queryKeys.chatRooms.list(currentUser.id), refetchType: 'active' });
+                        queryClient.invalidateQueries({ queryKey: queryKeys.messages.list(chatRoomId), refetchType: 'active' });
                     }
                 }
             }
