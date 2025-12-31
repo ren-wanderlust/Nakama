@@ -1517,7 +1517,7 @@ function AppContent() {
                   <View style={styles.headerTop}>
                     <View style={styles.headerLeft} />
                     <View style={styles.talkHeaderTitleContainer}>
-                      <Text style={styles.talkHeaderTitle}>プロジェクトチャット</Text>
+                      <Text style={styles.talkHeaderTitle}>プロジェクトダッシュボード</Text>
                     </View>
                     <View style={styles.headerRight}>
                       <TouchableOpacity

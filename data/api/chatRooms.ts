@@ -1,5 +1,6 @@
 import { supabase } from '../../lib/supabase';
 import { fetchBlockedUserIds } from './blocks';
+import { isSystemMessageText, stripSystemPrefix } from '../../constants/SystemMessage';
 
 export interface ChatRoom {
   id: string;
@@ -7,6 +8,7 @@ export interface ChatRoom {
   partnerName: string;
   partnerAge: number;
   partnerImage: string;
+  projectImage?: string;
   lastMessage: string;
   unreadCount: number;
   timestamp: string;
@@ -15,6 +17,9 @@ export interface ChatRoom {
   type: 'individual' | 'group';
   rawTimestamp: string;
   projectId?: string;
+  lastSenderId?: string | null;
+  lastSenderName?: string | null;
+  lastSenderImage?: string | null;
 }
 
 /**
@@ -170,6 +175,27 @@ export async function fetchChatRooms(userId: string): Promise<ChatRoom[]> {
 
   let teamRooms: ChatRoom[] = [];
   if (teamRoomsData && teamRoomsData.length > 0) {
+    // 最新送信者のアイコンを出すため、送信者プロフィールをまとめて取得
+    const senderIds = Array.from(
+      new Set(
+        teamRoomsData
+          .map((r: any) => r.last_message_sender_id)
+          .filter((id: any) => !!id)
+      )
+    );
+
+    const { data: senderProfiles } = senderIds.length > 0
+      ? await supabase
+        .from('profiles')
+        .select('id, name, image')
+        .in('id', senderIds)
+      : { data: [] as any[] };
+
+    const senderMap = new Map<string, { id: string; name: string | null; image: string | null }>();
+    senderProfiles?.forEach((p: any) => {
+      senderMap.set(p.id, { id: p.id, name: p.name ?? null, image: p.image ?? null });
+    });
+
     teamRooms = teamRoomsData.map((room: any) => {
       const lastMsgDate = room.last_message_created_at
         ? new Date(room.last_message_created_at)
@@ -187,7 +213,9 @@ export async function fetchChatRooms(userId: string): Promise<ChatRoom[]> {
       }
 
       // 画像メッセージの場合のテキスト生成
-      let lastMessage = room.last_message_content || 'チームチャットが作成されました';
+      let lastMessageRaw = room.last_message_content || 'チームチャットが作成されました';
+      const isSystem = isSystemMessageText(lastMessageRaw);
+      let lastMessage = isSystem ? stripSystemPrefix(lastMessageRaw) : lastMessageRaw;
       const isImageMessage = !!room.last_message_image_url && (!room.last_message_content || room.last_message_content.trim() === '');
       if (isImageMessage) {
         const isSentByMe = room.last_message_sender_id === userId;
@@ -199,12 +227,16 @@ export async function fetchChatRooms(userId: string): Promise<ChatRoom[]> {
         }
       }
 
+      const senderProfile = room.last_message_sender_id ? senderMap.get(room.last_message_sender_id) : undefined;
+
       return {
         id: room.chat_room_id,
         partnerId: room.chat_room_id,
         partnerName: room.project_title || 'Team Chat',
         partnerAge: 0,
-        partnerImage: room.owner_image || room.project_image_url || '',
+        // グループチャットのヘッダー/一覧ではプロジェクト画像を優先
+        partnerImage: room.project_image_url || room.owner_image || '',
+        projectImage: room.project_image_url || '',
         lastMessage: lastMessage,
         unreadCount: Number(room.unread_count) || 0,
         timestamp: timestamp,
@@ -213,6 +245,10 @@ export async function fetchChatRooms(userId: string): Promise<ChatRoom[]> {
         isUnreplied: false,
         type: 'group' as const,
         projectId: room.project_id,
+        // システムメッセージは一覧で送信者を出さない（TalkPage側の表示分岐用）
+        lastSenderId: isSystem ? null : (room.last_message_sender_id || null),
+        lastSenderName: isSystem ? null : (senderProfile?.name || room.last_message_sender_name || null),
+        lastSenderImage: isSystem ? null : (senderProfile?.image || null),
       };
     });
   }
