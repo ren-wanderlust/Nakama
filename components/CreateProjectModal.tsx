@@ -9,10 +9,12 @@ import {
     ActivityIndicator,
     ScrollView,
     KeyboardAvoidingView,
-    Platform
+    Platform,
+    Image
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../lib/supabase';
 import { Profile, Theme } from '../types';
 import { HapticTouchable, triggerHaptic } from './HapticButton';
@@ -29,6 +31,7 @@ interface CreateProjectModalProps {
         tagline?: string;
         description: string;
         image_url: string | null;
+        cover_image?: string | null;
         deadline?: string | null;
         required_roles?: string[];
         tags?: string[];
@@ -50,6 +53,10 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
     const [selectedThemes, setSelectedThemes] = useState<string[]>(project?.tags || []);
     const [selectedContentTags, setSelectedContentTags] = useState<string[]>(project?.content_tags || []);
     const [customTagInput, setCustomTagInput] = useState('');
+
+    // カバー画像
+    const [coverImageUri, setCoverImageUri] = useState<string | null>(project?.cover_image || null);
+    const [uploadingImage, setUploadingImage] = useState(false);
 
     // 進捗状況の選択肢
     const PROGRESS_STATUS = [
@@ -113,6 +120,72 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
         }
     };
 
+    // カバー画像選択
+    const pickCoverImage = async () => {
+        try {
+            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (status !== 'granted') {
+                Alert.alert('エラー', '画像へのアクセス許可が必要です');
+                return;
+            }
+
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                aspect: [16, 9],
+                quality: 0.8,
+            });
+
+            if (!result.canceled && result.assets[0]) {
+                setCoverImageUri(result.assets[0].uri);
+            }
+        } catch (error) {
+            console.error('Error picking image:', error);
+            Alert.alert('エラー', '画像の選択に失敗しました');
+        }
+    };
+
+    // カバー画像をSupabase Storageにアップロード
+    const uploadCoverImage = async (projectId: string): Promise<string | null> => {
+        if (!coverImageUri) return null;
+
+        // 既にSupabaseのURLの場合はそのまま返す
+        if (coverImageUri.startsWith('https://')) {
+            return coverImageUri;
+        }
+
+        setUploadingImage(true);
+        try {
+            const fileName = `${projectId}_${Date.now()}.jpg`;
+            const filePath = `project-covers/${fileName}`;
+
+            // 画像をfetch → blob
+            const response = await fetch(coverImageUri);
+            const blob = await response.blob();
+            const arrayBuffer = await new Response(blob).arrayBuffer();
+
+            const { error: uploadError } = await supabase.storage
+                .from('avatars') // 既存のバケットを使用
+                .upload(filePath, arrayBuffer, {
+                    contentType: 'image/jpeg',
+                    upsert: true,
+                });
+
+            if (uploadError) throw uploadError;
+
+            const { data: urlData } = supabase.storage
+                .from('avatars')
+                .getPublicUrl(filePath);
+
+            return urlData.publicUrl;
+        } catch (error) {
+            console.error('Error uploading cover image:', error);
+            return null;
+        } finally {
+            setUploadingImage(false);
+        }
+    };
+
     const handleSave = async () => {
         if (!title.trim()) {
             Alert.alert('エラー', 'プロジェクト名を入力してください');
@@ -145,36 +218,74 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
 
         setLoading(true);
         try {
-            const projectData = {
-                owner_id: currentUser.id,
-                title: title.trim(),
-                tagline: tagline.trim(),
-                description: description.trim(),
-                image_url: null,
-                deadline: deadline ? deadline.toISOString() : null,
-                required_roles: selectedRoles,
-                tags: selectedThemes,
-                content_tags: selectedContentTags,
-                status: selectedStatus,
-            };
+            let coverImageUrl: string | null = null;
 
-            let error;
+            // プロジェクト作成/更新
             if (project) {
                 // Update
+                // 新しい画像が選択された場合のみアップロード
+                if (coverImageUri && !coverImageUri.startsWith('https://')) {
+                    // ローカル画像（新しく選択した）の場合はアップロード
+                    coverImageUrl = await uploadCoverImage(project.id);
+                } else {
+                    // 既存のURLまたはnullをそのまま使用
+                    coverImageUrl = coverImageUri;
+                }
+
+                const projectData = {
+                    owner_id: currentUser.id,
+                    title: title.trim(),
+                    tagline: tagline.trim(),
+                    description: description.trim(),
+                    image_url: null,
+                    cover_image: coverImageUrl,
+                    deadline: deadline ? deadline.toISOString() : null,
+                    required_roles: selectedRoles,
+                    tags: selectedThemes,
+                    content_tags: selectedContentTags,
+                    status: selectedStatus,
+                };
+
                 const { error: updateError } = await supabase
                     .from('projects')
                     .update(projectData)
                     .eq('id', project.id);
-                error = updateError;
-            } else {
-                // Create
-                const { error: insertError } = await supabase
-                    .from('projects')
-                    .insert(projectData);
-                error = insertError;
-            }
 
-            if (error) throw error;
+                if (updateError) throw updateError;
+            } else {
+                // Create - まずプロジェクトを作成
+                const projectData = {
+                    owner_id: currentUser.id,
+                    title: title.trim(),
+                    tagline: tagline.trim(),
+                    description: description.trim(),
+                    image_url: null,
+                    deadline: deadline ? deadline.toISOString() : null,
+                    required_roles: selectedRoles,
+                    tags: selectedThemes,
+                    content_tags: selectedContentTags,
+                    status: selectedStatus,
+                };
+
+                const { data: newProject, error: insertError } = await supabase
+                    .from('projects')
+                    .insert(projectData)
+                    .select('id')
+                    .single();
+
+                if (insertError) throw insertError;
+
+                // カバー画像がある場合はアップロードして更新
+                if (coverImageUri && newProject) {
+                    coverImageUrl = await uploadCoverImage(newProject.id);
+                    if (coverImageUrl) {
+                        await supabase
+                            .from('projects')
+                            .update({ cover_image: coverImageUrl })
+                            .eq('id', newProject.id);
+                    }
+                }
+            }
 
             Alert.alert(
                 '完了',
@@ -248,6 +359,54 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={styles.contentContainer}
                 >
+                    {/* Cover Image Section */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <View style={styles.sectionIconContainer}>
+                                <Ionicons name="image" size={18} color="#009688" />
+                            </View>
+                            <Text style={styles.sectionTitle}>カバー画像</Text>
+                            <Text style={styles.optionalBadge}>任意</Text>
+                        </View>
+                        <TouchableOpacity
+                            style={styles.coverImagePicker}
+                            onPress={pickCoverImage}
+                            activeOpacity={0.7}
+                        >
+                            {coverImageUri ? (
+                                <Image
+                                    source={{ uri: coverImageUri }}
+                                    style={styles.coverImagePreview}
+                                    resizeMode="cover"
+                                />
+                            ) : (
+                                <View style={styles.coverImagePlaceholder}>
+                                    <Ionicons name="add-circle-outline" size={40} color="#9CA3AF" />
+                                    <Text style={styles.coverImagePlaceholderText}>
+                                        タップして画像を選択
+                                    </Text>
+                                    <Text style={styles.coverImageHint}>
+                                        16:9の比率で表示されます
+                                    </Text>
+                                </View>
+                            )}
+                            {uploadingImage && (
+                                <View style={styles.coverImageLoading}>
+                                    <ActivityIndicator size="large" color="#009688" />
+                                </View>
+                            )}
+                        </TouchableOpacity>
+                        {coverImageUri && (
+                            <TouchableOpacity
+                                style={styles.coverImageRemove}
+                                onPress={() => setCoverImageUri(null)}
+                            >
+                                <Ionicons name="trash-outline" size={16} color="#EF4444" />
+                                <Text style={styles.coverImageRemoveText}>画像を削除</Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
+
                     {/* Project Title Section */}
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
@@ -941,5 +1100,53 @@ const styles = StyleSheet.create({
     },
     addTagButton: {
         padding: 4,
+    },
+    // Cover Image Styles
+    coverImagePicker: {
+        width: '100%',
+        aspectRatio: 16 / 9,
+        borderRadius: 12,
+        backgroundColor: '#F3F4F6',
+        borderWidth: 2,
+        borderColor: '#E5E7EB',
+        borderStyle: 'dashed',
+        overflow: 'hidden',
+    },
+    coverImagePreview: {
+        width: '100%',
+        height: '100%',
+    },
+    coverImagePlaceholder: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+    },
+    coverImagePlaceholderText: {
+        fontSize: 14,
+        color: '#6B7280',
+        fontWeight: '500',
+    },
+    coverImageHint: {
+        fontSize: 12,
+        color: '#9CA3AF',
+    },
+    coverImageLoading: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(255,255,255,0.8)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    coverImageRemove: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 12,
+        gap: 6,
+    },
+    coverImageRemoveText: {
+        fontSize: 13,
+        color: '#EF4444',
+        fontWeight: '500',
     },
 });
