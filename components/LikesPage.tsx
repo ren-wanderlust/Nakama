@@ -745,9 +745,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
 
         const pendingApps = filteredRecruitingApps.filter(a => a.status === 'pending');
 
-        const RecruitingEmptyComponent = () => (
-            <ApplicantsEmptyState projectName={selectedRecruitingProject?.title} />
-        );
+
 
         return (
             <View style={{ flex: 1 }}>
@@ -789,7 +787,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                     refreshControl={
                         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F39800" />
                     }
-                    ListEmptyComponent={<RecruitingEmptyComponent />}
+                    ListEmptyComponent={<ApplicantsEmptyState projectName={selectedRecruitingProject?.title} />}
                 />
             </View>
         );
