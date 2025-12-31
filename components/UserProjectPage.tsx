@@ -152,11 +152,11 @@ const ProjectCard = ({ project, onPress, index = 0 }: { project: Project; onPres
                     </View>
 
                     {/* タイトル */}
-                    <Text style={styles.cardTitleNew} numberOfLines={2}>{project.title}</Text>
+                    <Text style={styles.cardTitleNew} numberOfLines={1}>{project.title}</Text>
 
                     {/* タグライン/説明 */}
                     {project.tagline && (
-                        <Text style={styles.cardTaglineNew} numberOfLines={1}>{project.tagline}</Text>
+                        <Text style={styles.cardTaglineNew} numberOfLines={2}>{project.tagline}</Text>
                     )}
 
                     {/* 下部: タグ + 統計 */}
