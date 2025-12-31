@@ -59,9 +59,8 @@ const ProjectCard = ({ project, ownerProfile, onPress }: { project: any; ownerPr
     const isClosed = project.status === 'closed';
     const coverImage = project.cover_image;
 
-    // モックのサムネイル画像色（カバー画像がない場合）
-    const mockColors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F'];
-    const mockColor = mockColors[Math.abs(project.id.charCodeAt(0)) % mockColors.length];
+    // デフォルトカバー画像
+    const defaultCoverImage = require('../assets/default-project-cover.png');
 
     return (
         <TouchableOpacity
@@ -77,16 +76,12 @@ const ProjectCard = ({ project, ownerProfile, onPress }: { project: any; ownerPr
             )}
 
             {/* 左側: サムネイル画像 */}
-            <View style={[projectCardStyles.cardThumbnail, !coverImage && { backgroundColor: mockColor }]}>
-                {coverImage ? (
-                    <Image
-                        source={{ uri: coverImage }}
-                        style={projectCardStyles.cardThumbnailImage}
-                        resizeMode="cover"
-                    />
-                ) : (
-                    <Ionicons name="image-outline" size={36} color="rgba(255,255,255,0.5)" />
-                )}
+            <View style={projectCardStyles.cardThumbnail}>
+                <Image
+                    source={coverImage ? { uri: coverImage } : defaultCoverImage}
+                    style={projectCardStyles.cardThumbnailImage}
+                    resizeMode="cover"
+                />
             </View>
 
             {/* 右側: コンテンツ */}
@@ -373,9 +368,8 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
         const ownerImage = item.profiles?.image || item.owner?.image;
         const ownerName = item.profiles?.name || item.owner?.name || '不明';
 
-        // モックのサムネイル画像色（カバー画像がない場合）
-        const mockColors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F'];
-        const mockColor = mockColors[Math.abs(item.id.charCodeAt(0)) % mockColors.length];
+        // デフォルトカバー画像
+        const defaultCoverImage = require('../assets/default-project-cover.png');
 
         return (
             <TouchableOpacity
@@ -389,16 +383,12 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                 </View>
 
                 {/* 左側: サムネイル画像 */}
-                <View style={[projectCardStyles.cardThumbnail, !coverImage && { backgroundColor: mockColor }]}>
-                    {coverImage ? (
-                        <Image
-                            source={{ uri: coverImage }}
-                            style={projectCardStyles.cardThumbnailImage}
-                            resizeMode="cover"
-                        />
-                    ) : (
-                        <Ionicons name="image-outline" size={36} color="rgba(255,255,255,0.5)" />
-                    )}
+                <View style={projectCardStyles.cardThumbnail}>
+                    <Image
+                        source={coverImage ? { uri: coverImage } : defaultCoverImage}
+                        style={projectCardStyles.cardThumbnailImage}
+                        resizeMode="cover"
+                    />
                 </View>
 
                 {/* 右側: コンテンツ */}

@@ -492,9 +492,8 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
         const ownerName = projectData.profiles?.name || projectData.owner?.name || '不明';
         const coverImage = projectData.cover_image;
 
-        // モックのサムネイル画像色（カバー画像がない場合）
-        const mockColors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F'];
-        const mockColor = mockColors[Math.abs(project.id.charCodeAt(0)) % mockColors.length];
+        // デフォルトカバー画像
+        const defaultCoverImage = require('../assets/default-project-cover.png');
 
         return (
             <TouchableOpacity
@@ -509,16 +508,12 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                 </View>
 
                 {/* 左側: サムネイル画像 */}
-                <View style={[styles.appliedCardThumbnail, !coverImage && { backgroundColor: mockColor }]}>
-                    {coverImage ? (
-                        <Image
-                            source={{ uri: coverImage }}
-                            style={styles.appliedCardThumbnailImage}
-                            resizeMode="cover"
-                        />
-                    ) : (
-                        <Ionicons name="image-outline" size={36} color="rgba(255,255,255,0.5)" />
-                    )}
+                <View style={styles.appliedCardThumbnail}>
+                    <Image
+                        source={coverImage ? { uri: coverImage } : defaultCoverImage}
+                        style={styles.appliedCardThumbnailImage}
+                        resizeMode="cover"
+                    />
                 </View>
 
                 {/* 右側: コンテンツ */}

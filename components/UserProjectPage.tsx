@@ -110,9 +110,8 @@ const ProjectCard = ({ project, onPress, index = 0 }: { project: Project; onPres
     const ownerName = projectData.profiles?.name || projectData.owner?.name || '不明';
     const coverImage = projectData.cover_image;
 
-    // モックのサムネイル画像（色のバリエーション）- カバー画像がない場合に使用
-    const mockColors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F'];
-    const mockColor = mockColors[index % mockColors.length];
+    // デフォルトカバー画像
+    const defaultCoverImage = require('../assets/default-project-cover.png');
 
     return (
         <Animated.View style={{
@@ -121,16 +120,12 @@ const ProjectCard = ({ project, onPress, index = 0 }: { project: Project; onPres
         }}>
             <TouchableOpacity style={styles.cardNew} onPress={onPress} activeOpacity={0.85}>
                 {/* 左側: サムネイル画像 */}
-                <View style={[styles.cardThumbnail, !coverImage && { backgroundColor: mockColor }]}>
-                    {coverImage ? (
-                        <Image
-                            source={{ uri: coverImage }}
-                            style={styles.cardThumbnailImage}
-                            resizeMode="cover"
-                        />
-                    ) : (
-                        <Ionicons name="image-outline" size={36} color="rgba(255,255,255,0.5)" />
-                    )}
+                <View style={styles.cardThumbnail}>
+                    <Image
+                        source={coverImage ? { uri: coverImage } : defaultCoverImage}
+                        style={styles.cardThumbnailImage}
+                        resizeMode="cover"
+                    />
                 </View>
 
                 {/* 右側: コンテンツ */}
