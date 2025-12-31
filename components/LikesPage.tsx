@@ -493,9 +493,9 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
         const ownerName = projectData.profiles?.name || projectData.owner?.name || '不明';
         const statusBadge = (
             <View style={[styles.appliedStatusBadgePill, { backgroundColor: statusInfo.color + '20' }]}>
-                <Ionicons name={statusInfo.icon as any} size={14} color={statusInfo.color} />
+                    <Ionicons name={statusInfo.icon as any} size={14} color={statusInfo.color} />
                 <Text style={[styles.appliedStatusTextPill, { color: statusInfo.color }]}>{statusInfo.text}</Text>
-            </View>
+                </View>
         );
 
         return (
@@ -1641,22 +1641,6 @@ const styles = StyleSheet.create({
         gap: 4,
     },
     appliedStatusText: {
-        fontSize: 11,
-        fontWeight: '600',
-    },
-    appliedStatusBadgeCorner: {
-        position: 'absolute',
-        top: 8,
-        right: 8,
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 10,
-        gap: 4,
-        zIndex: 10,
-    },
-    appliedStatusTextCorner: {
         fontSize: 11,
         fontWeight: '600',
     },

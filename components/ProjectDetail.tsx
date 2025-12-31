@@ -359,7 +359,6 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
 
 
     const updateApplicantStatus = async (applicationId: string, newStatus: 'approved' | 'rejected', userName: string) => {
-        Alert.alert('Debug 1', `Start: status=${newStatus}, user=${userName}`);
         try {
             const { error } = await supabase
                 .from('project_applications')
@@ -412,7 +411,6 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
 
             let teamChatCreated = false;
             if (newStatus === 'approved') {
-                Alert.alert('Debug 2', 'In approved block');
                 // 承認されたユーザーの「参加中」を即時更新（実行者ではなく対象ユーザー）
                 if (applicant?.user_id) {
                     queryClient.invalidateQueries({ queryKey: queryKeys.participatingProjects.detail(applicant.user_id), refetchType: 'active' });
@@ -426,7 +424,6 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                     .eq('status', 'approved');
 
                 const totalMembers = (count || 0) + 1; // +1 for owner
-                Alert.alert('Debug 3', `count=${count}, totalMembers=${totalMembers}`);
 
                 if (totalMembers >= 2) {
                     // Check if chat room already exists
@@ -483,13 +480,12 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                                 content: buildSystemMessage(systemText),
                             });
                         if (systemMsgError) {
-                            Alert.alert('Debug Error', `Insert error: ${JSON.stringify(systemMsgError)}`);
+                            console.error('Error inserting system message:', systemMsgError);
                         } else {
-                            Alert.alert('Debug 4', 'Insert success');
+                            // チャット一覧/未読を即時更新
+                            queryClient.invalidateQueries({ queryKey: queryKeys.chatRooms.list(currentUser.id), refetchType: 'active' });
+                            queryClient.invalidateQueries({ queryKey: queryKeys.messages.list(chatRoomId), refetchType: 'active' });
                         }
-                        // チャット一覧/未読を即時更新
-                        queryClient.invalidateQueries({ queryKey: queryKeys.chatRooms.list(currentUser.id), refetchType: 'active' });
-                        queryClient.invalidateQueries({ queryKey: queryKeys.messages.list(chatRoomId), refetchType: 'active' });
                     }
                 }
             }
@@ -832,31 +828,29 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                     {project.required_roles && project.required_roles.length > 0 && (
                         <View style={styles.recruitmentRow}>
                             <Text style={styles.recruitmentLabel}>募集：</Text>
-                            <ScrollView
-                                horizontal
-                                showsHorizontalScrollIndicator={false}
-                                contentContainerStyle={styles.recruitmentTagsContent}
-                                style={styles.recruitmentTagsScroll}
-                            >
-                                {project.required_roles.map((role, index) => {
+                            <View style={styles.recruitmentTagsContainer}>
+                                {project.required_roles?.slice(0, 5).map((role, index) => {
                                     const roleColors = getRoleColors(role);
                                     const roleIcon = getRoleIcon(role);
                                     return (
                                         <View
-                                            key={`role-top-${index}`}
+                                            key={`role-${index}`}
                                             style={[
                                                 styles.roleTag,
-                                                { backgroundColor: roleColors.bg, borderColor: roleColors.border }
+                                                { borderColor: roleColors.icon, backgroundColor: 'white' }
                                             ]}
                                         >
                                             <View style={[styles.roleTagIcon, { backgroundColor: roleColors.bg }]}>
                                                 <Ionicons name={roleIcon as any} size={12} color={roleColors.icon} />
                                             </View>
-                                            <Text style={[styles.roleTagText, { color: roleColors.icon }]}>{role}</Text>
+                                            <Text style={[styles.roleTagText, { color: roleColors.icon }]} numberOfLines={1}>{role}</Text>
                                         </View>
                                     );
                                 })}
-                            </ScrollView>
+                                {project.required_roles && project.required_roles.length > 5 && (
+                                    <Text style={styles.moreTagsDotsInline}>...</Text>
+                                )}
+                            </View>
                         </View>
                     )}
 
@@ -864,13 +858,8 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                     {/* 参加メンバー（横一列） */}
                     <View style={styles.membersRow}>
                         <Text style={styles.membersLabel}>メンバー：</Text>
-                        <ScrollView
-                            horizontal
-                            showsHorizontalScrollIndicator={false}
-                            contentContainerStyle={styles.membersScrollContent}
-                            style={styles.membersScroll}
-                        >
-                            {/* オーナー（オレンジ枠 + "オーナー" テキスト） */}
+                        <View style={styles.membersRowContent}>
+                            {/* オーナー */}
                             <TouchableOpacity
                                 style={styles.ownerMemberChip}
                                 onPress={() => fetchMemberProfile(project.owner_id)}
@@ -881,17 +870,11 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                                 <Text style={styles.ownerChipText}>オーナー</Text>
                             </TouchableOpacity>
 
-                            {applicants.filter(a => a.status === 'approved').map((applicant) => (
+                            {applicants.filter(a => a.status === 'approved').slice(0, 8).map((applicant) => (
                                 <TouchableOpacity
                                     key={applicant.id}
                                     style={styles.memberAvatarButton}
                                     onPress={() => fetchMemberProfile(applicant.user_id)}
-                                    onLongPress={() => {
-                                        if (currentUser?.id === project.owner_id) {
-                                            handleKickMember(applicant);
-                                        }
-                                    }}
-                                    delayLongPress={500}
                                     activeOpacity={0.7}
                                     disabled={loadingProfile === applicant.user_id}
                                 >
@@ -904,30 +887,31 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                                     )}
                                 </TouchableOpacity>
                             ))}
-                        </ScrollView>
+                            {applicants.filter(a => a.status === 'approved').length > 8 && (
+                                <Text style={styles.moreTagsDotsInline}>...</Text>
+                            )}
+                        </View>
                     </View>
 
                     {/* 内容（テーマタグ + 内容タグをまとめて表示 / 横一列・横スクロール） */}
                     {(!!project.tags?.length || !!project.content_tags?.length) && (
                         <View style={styles.themeContentRow}>
                             <Text style={styles.themeContentLabel}>内容：</Text>
-                            <ScrollView
-                                horizontal
-                                showsHorizontalScrollIndicator={false}
-                                contentContainerStyle={styles.themeContentScrollContent}
-                                style={styles.themeContentScroll}
-                            >
-                                {!!project.tags?.length && project.tags.map((tag, index) => (
+                            <View style={styles.themeContentRowContent}>
+                                {project.tags?.slice(0, 4).map((tag, index) => (
                                     <View key={`theme-inline-${index}`} style={[styles.themeTag, { backgroundColor: getThemeTagColor(tag) }]}>
                                         <Text style={[styles.themeTagText, { color: getThemeTagTextColor(tag) }]}>{tag}</Text>
                                     </View>
                                 ))}
-                                {!!project.content_tags?.length && project.content_tags.map((tag, index) => (
+                                {project.content_tags?.slice(0, 4).map((tag, index) => (
                                     <View key={`content-inline-${index}`} style={styles.contentTag}>
-                                        <Text style={styles.contentTagText}>{tag}</Text>
+                                        <Text style={styles.contentTagText} numberOfLines={1}>{tag}</Text>
                                     </View>
                                 ))}
-                            </ScrollView>
+                                {((project.tags?.length || 0) + (project.content_tags?.length || 0)) > 8 && (
+                                    <Text style={styles.moreTagsDotsInline}>...</Text>
+                                )}
+                            </View>
                         </View>
                     )}
 
@@ -1135,14 +1119,12 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         color: '#374151',
     },
-    recruitmentTagsScroll: {
-        flexGrow: 0,
-        flexShrink: 1,
-    },
-    recruitmentTagsContent: {
+    recruitmentTagsContainer: {
+        flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
-        paddingRight: 8,
+        flex: 1,
+        minWidth: 0,
     },
     deadlineBadgeSmall: {
         flexDirection: 'row',
@@ -1198,14 +1180,12 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         color: '#374151',
     },
-    membersScroll: {
-        flexGrow: 0,
-        flexShrink: 1,
-    },
-    membersScrollContent: {
+    membersRowContent: {
+        flexDirection: 'row',
         alignItems: 'center',
         gap: 10,
-        paddingRight: 8,
+        flex: 1,
+        minWidth: 0,
     },
     ownerMemberChip: {
         flexDirection: 'row',
@@ -1254,13 +1234,18 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginBottom: 16,
     },
-    themeContentScroll: {
-        flexGrow: 0,
-    },
-    themeContentScrollContent: {
+    themeContentRowContent: {
+        flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
-        paddingRight: 8,
+        flex: 1,
+        minWidth: 0,
+    },
+    moreTagsDotsInline: {
+        fontSize: 14,
+        color: '#9CA3AF',
+        fontWeight: 'bold',
+        marginLeft: -4,
     },
     themeContentLabel: {
         fontSize: 14,

@@ -110,20 +110,17 @@ export function ProjectSummaryCard({
               </View>
             )}
 
-            {/* 内容タグは横スクロール（右端の申請数に被らない） */}
-            <ScrollView
-              horizontal
-              nestedScrollEnabled
-              showsHorizontalScrollIndicator={false}
-              style={styles.contentTagsScroller}
-              contentContainerStyle={styles.contentTagsRow}
-            >
-              {contentTags.map((tag, idx) => (
+            {/* 内容タグは省略表示（スクロールさせない） */}
+            <View style={styles.contentTagsContainer}>
+              {contentTags.slice(0, 4).map((tag, idx) => (
                 <View key={`${project?.id || 'project'}:content:${idx}`} style={styles.contentTag}>
-                  <Text style={styles.contentTagText}>{tag}</Text>
+                  <Text style={styles.contentTagText} numberOfLines={1}>{tag}</Text>
                 </View>
               ))}
-            </ScrollView>
+              {contentTags.length > 4 && (
+                <Text style={styles.moreTagsDots}>...</Text>
+              )}
+            </View>
           </View>
 
           {/* 右端固定: 参加申請数 */}
@@ -235,14 +232,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
   },
-  contentTagsRow: {
+  contentTagsContainer: {
+    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingRight: 6, // 末尾が切れないように
+    minWidth: 0,
   },
-  contentTagsScroller: {
-    flex: 1,
-    minWidth: 0, // row内で縮められるように（iOSで重要）
+  moreTagsDots: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    fontWeight: 'bold',
+    marginLeft: -2,
   },
   pendingCountBox: {
     flexDirection: 'row',

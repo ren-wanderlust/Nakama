@@ -45,23 +45,7 @@ interface UserProjectPageProps {
     filterCriteria?: FilterCriteria | null;
 }
 
-// Role to icon mapping (matching CreateProjectModal)
-const ROLE_ICONS: { [key: string]: string } = {
-    'エンジニア': 'code-slash',
-    'デザイナー': 'color-palette',
-    'マーケター': 'megaphone',
-    'アイディアマン': 'bulb',
-    '誰でも': 'people',
-};
-
-// Role to color mapping
-const ROLE_COLORS: { [key: string]: { bg: string; icon: string } } = {
-    'エンジニア': { bg: '#E3F2FD', icon: '#1976D2' },      // Blue
-    'デザイナー': { bg: '#F3E5F5', icon: '#7B1FA2' },    // Purple
-    'マーケター': { bg: '#FFF3E0', icon: '#E65100' },    // Orange
-    'アイディアマン': { bg: '#FFF9C4', icon: '#F57F17' }, // Yellow
-    '誰でも': { bg: '#E8F5E9', icon: '#388E3C' },        // Green
-};
+// NOTE: 旧カードUIで使用していたROLE系定数は、ProjectSummaryCard移行により不要になりました。
 
 const ProjectCard = ({ project, onPress, index = 0 }: { project: Project; onPress: () => void; index?: number }) => {
     // created_at は ProjectSummaryCard 側で日付表示
