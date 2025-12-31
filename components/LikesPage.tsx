@@ -660,6 +660,14 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                         )}
                     </View>
                 </View>
+
+                {item.message && (
+                    <View style={styles.recruitingMessageContainer}>
+                        <Text style={styles.recruitingMessageText} numberOfLines={2}>
+                            "{item.message}"
+                        </Text>
+                    </View>
+                )}
             </TouchableOpacity>
         );
     };
@@ -1929,6 +1937,22 @@ const styles = StyleSheet.create({
         fontSize: 11,
         fontFamily: FONTS.regular,
         color: '#9CA3AF',
+    },
+    recruitingMessageContainer: {
+        marginTop: 8,
+        marginHorizontal: 12,
+        marginBottom: 4,
+        padding: 8,
+        backgroundColor: '#FFFBEB',
+        borderRadius: 8,
+        borderLeftWidth: 3,
+        borderLeftColor: '#F59E0B',
+    },
+    recruitingMessageText: {
+        fontSize: 12,
+        color: '#4B5563',
+        fontStyle: 'italic',
+        lineHeight: 16,
     },
 });
 

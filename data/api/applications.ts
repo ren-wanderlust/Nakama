@@ -9,6 +9,7 @@ export interface Application {
   status: 'pending' | 'approved' | 'rejected';
   created_at: string;
   is_read?: boolean;
+  message?: string;
   user?: Profile;
   project?: {
     id: string;

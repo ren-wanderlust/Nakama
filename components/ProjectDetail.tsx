@@ -1235,6 +1235,13 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                                                         </Text>
                                                     </View>
                                                 </View>
+                                                {applicant.message && (
+                                                    <View style={styles.pendingMessageContainer}>
+                                                        <Text style={styles.pendingMessageText}>
+                                                            "{applicant.message}"
+                                                        </Text>
+                                                    </View>
+                                                )}
                                                 <View style={styles.pendingCardActions}>
                                                     <TouchableOpacity
                                                         style={styles.rejectButton}
@@ -1666,6 +1673,20 @@ const styles = StyleSheet.create({
         fontSize: 13,
         color: '#6B7280',
         marginTop: 2,
+    },
+    pendingMessageContainer: {
+        backgroundColor: 'rgba(255, 255, 255, 0.6)',
+        padding: 10,
+        borderRadius: 8,
+        marginTop: 0,
+        marginBottom: 12,
+        borderLeftWidth: 3,
+        borderLeftColor: '#F59E0B',
+    },
+    pendingMessageText: {
+        fontSize: 14,
+        color: '#4B5563',
+        fontStyle: 'italic',
     },
     pendingCardActions: {
         flexDirection: 'row',
