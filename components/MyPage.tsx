@@ -460,66 +460,61 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                     <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F39800" />
                 }
                 showsVerticalScrollIndicator={false}
+                stickyHeaderIndices={[1]}
             >
                 {/* Discord風ヘッダー */}
                 {renderDiscordHeader()}
 
-                {/* セクションリスト */}
+                {/* セクションリスト（固定） */}
                 <View style={styles.discordSectionsContainer}>
                     {/* マイプロジェクト */}
-                    {renderSectionItem(
-                        'grid-outline',
-                        'マイプロジェクト',
-                        <Text style={styles.discordSectionCount}>{projects.length}</Text>,
-                        () => setActiveTab('myProjects')
-                    )}
+                    <TouchableOpacity
+                        style={[styles.discordSectionItem, activeTab === 'myProjects' && styles.discordSectionItemActive]}
+                        onPress={() => setActiveTab('myProjects')}
+                    >
+                        <View style={styles.discordSectionLeft}>
+                            <Ionicons name="grid-outline" size={20} color={activeTab === 'myProjects' ? '#F57C00' : '#6B7280'} />
+                            <Text style={[styles.discordSectionLabel, activeTab === 'myProjects' && styles.discordSectionLabelActive]}>マイプロジェクト</Text>
+                        </View>
+                        <View style={styles.discordSectionRight}>
+                            <Text style={styles.discordSectionCount}>{projects.length}</Text>
+                            <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                        </View>
+                    </TouchableOpacity>
 
                     {/* 参加中プロジェクト */}
-                    {renderSectionItem(
-                        'people-outline',
-                        '参加中プロジェクト',
-                        <Text style={styles.discordSectionCount}>{participatingProjects.length}</Text>,
-                        () => setActiveTab('participatingProjects')
-                    )}
-
-
-
-                    {/* GitHub / SNS リンク（将来実装用） */}
-                    {profile.githubUrl && renderSectionItem(
-                        'logo-github',
-                        'GitHub',
-                        undefined,
-                        () => { /* TODO: Open GitHub */ }
-                    )}
+                    <TouchableOpacity
+                        style={[styles.discordSectionItem, activeTab === 'participatingProjects' && styles.discordSectionItemActive]}
+                        onPress={() => setActiveTab('participatingProjects')}
+                    >
+                        <View style={styles.discordSectionLeft}>
+                            <Ionicons name="people-outline" size={20} color={activeTab === 'participatingProjects' ? '#F57C00' : '#6B7280'} />
+                            <Text style={[styles.discordSectionLabel, activeTab === 'participatingProjects' && styles.discordSectionLabelActive]}>参加中プロジェクト</Text>
+                        </View>
+                        <View style={styles.discordSectionRight}>
+                            <Text style={styles.discordSectionCount}>{participatingProjects.length}</Text>
+                            <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                        </View>
+                    </TouchableOpacity>
                 </View>
 
-                {/* プロジェクトリスト（タブ選択時に表示） */}
-                {(activeTab === 'myProjects' || activeTab === 'participatingProjects') && (
-                    <View style={styles.discordProjectSection}>
-                        <View style={styles.discordProjectHeader}>
-                            <Text style={styles.discordProjectTitle}>
-                                {activeTab === 'myProjects' ? 'マイプロジェクト' : '参加中プロジェクト'}
-                            </Text>
-                            <TouchableOpacity onPress={() => setActiveTab(null as any)}>
-                                <Ionicons name="close" size={24} color="#6B7280" />
-                            </TouchableOpacity>
-                        </View>
-                        <FlatList
-                            data={activeTab === 'myProjects' ? projects : participatingProjects}
-                            renderItem={activeTab === 'myProjects' ? renderProjectItem : renderParticipatingProjectItem}
-                            keyExtractor={(item) => item.id}
-                            contentContainerStyle={styles.projectListContent}
-                            showsVerticalScrollIndicator={false}
-                            scrollEnabled={false}
-                            ItemSeparatorComponent={() => <View style={{ height: 4 }} />}
-                            ListEmptyComponent={
-                                (activeTab === 'myProjects' ? !loadingProjects : !loadingParticipating) ? (
-                                    <MyProjectsEmptyState type={activeTab} />
-                                ) : null
-                            }
-                        />
-                    </View>
-                )}
+                {/* プロジェクトリスト */}
+                <View style={styles.projectListContainer}>
+                    <FlatList
+                        data={activeTab === 'myProjects' ? projects : participatingProjects}
+                        renderItem={activeTab === 'myProjects' ? renderProjectItem : renderParticipatingProjectItem}
+                        keyExtractor={(item) => item.id}
+                        contentContainerStyle={styles.projectListContent}
+                        showsVerticalScrollIndicator={false}
+                        scrollEnabled={false}
+                        ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+                        ListEmptyComponent={
+                            (activeTab === 'myProjects' ? !loadingProjects : !loadingParticipating) ? (
+                                <MyProjectsEmptyState type={activeTab} />
+                            ) : null
+                        }
+                    />
+                </View>
             </ScrollView>
 
             {/* Menu Modal */}
@@ -812,7 +807,7 @@ const styles = StyleSheet.create({
     },
     discordHeader: {
         paddingTop: 60, // ステータスバーエリアをカバー
-        paddingBottom: 20,
+        paddingBottom: 8, // タブとの間隔を縮める
     },
     discordBannerContent: {
         flexDirection: 'row',
@@ -909,10 +904,11 @@ const styles = StyleSheet.create({
     discordSectionsContainer: {
         backgroundColor: 'white',
         marginHorizontal: 16,
+        marginTop: 4,
         borderRadius: 16,
         paddingVertical: 8,
-        ...SHADOWS.sm, // 浮き上がり効果
-        marginBottom: 16,
+        ...SHADOWS.sm,
+        marginBottom: 12,
         overflow: 'hidden',
     },
     discordSectionItem: {
@@ -934,6 +930,14 @@ const styles = StyleSheet.create({
     discordSectionLabel: {
         fontSize: 15,
         color: '#111827',
+        marginLeft: 12,
+    },
+    discordSectionLabelActive: {
+        color: '#F57C00',
+        fontWeight: '600',
+    },
+    discordSectionItemActive: {
+        backgroundColor: '#FFF8F0',
     },
     discordSectionCount: {
         fontSize: 15,
@@ -950,25 +954,45 @@ const styles = StyleSheet.create({
         marginHorizontal: 20,
         marginVertical: 8,
     },
-    discordProjectSection: {
-        backgroundColor: 'transparent',
-        paddingBottom: 100,
-        paddingHorizontal: 16,
-        marginTop: 8, // 上のマージンを追加
-    },
-    discordProjectHeader: {
+    // Sticky Tabs Styles
+    stickyTabContainer: {
         flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 4,
-        paddingVertical: 12,
-        marginBottom: 12, // カードとの間隔を広げる
-        borderBottomWidth: 0,
+        backgroundColor: '#FFF3E0', // 背景色と同じにして違和感をなくす
+        paddingTop: 50, // 固定時にステータスバーを避けるために上部を広げる
+        paddingBottom: 12,
+        paddingHorizontal: 16,
+        gap: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(0,0,0,0.05)',
+        zIndex: 100,
     },
-    discordProjectTitle: {
-        fontSize: 16,
+    stickyTab: {
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        borderRadius: 20,
+        backgroundColor: 'rgba(255,255,255,0.5)',
+        borderWidth: 1,
+        borderColor: 'transparent',
+    },
+    stickyTabActive: {
+        backgroundColor: 'white',
+        borderColor: '#FFB74D',
+        ...SHADOWS.sm,
+    },
+    stickyTabText: {
+        fontSize: 14,
         fontWeight: '600',
-        color: '#111827',
+        color: '#6B7280',
+        fontFamily: FONTS.medium,
+    },
+    stickyTabTextActive: {
+        color: '#F57C00',
+        fontFamily: FONTS.semiBold,
+    },
+    projectListContainer: {
+        paddingTop: 16,
+        paddingHorizontal: 16,
+        paddingBottom: 100,
     },
 });
 
