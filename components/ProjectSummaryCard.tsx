@@ -94,7 +94,7 @@ export function ProjectSummaryCard({
       onPress={onPress}
       activeOpacity={0.88}
     >
-      {!!overlay && <View style={styles.overlayContainer}>{overlay}</View>}
+
 
       {/* 上段 */}
       <View style={styles.topSection}>
@@ -128,6 +128,8 @@ export function ProjectSummaryCard({
                   {createdDateText}
                 </Text>
               )}
+              {/* ステータスバッジ（日時横へ移動） */}
+              {!!overlay && <View style={styles.statusBadgeContainer}>{overlay}</View>}
             </View>
           </View>
         </View>
@@ -182,11 +184,8 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
-  overlayContainer: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    zIndex: 10,
+  statusBadgeContainer: {
+    marginLeft: 'auto', // 右寄せ
   },
   topSection: {
     flexDirection: 'row',

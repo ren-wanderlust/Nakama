@@ -284,7 +284,7 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                     onPress={() => onEditProfile && onEditProfile()}
                     activeOpacity={0.7}
                 >
-                    <Ionicons name="pencil" size={16} color="white" style={{ marginRight: 8 }} />
+                    <Ionicons name="pencil" size={16} color="#E5A33D" style={{ marginRight: 8 }} />
                     <Text style={styles.editProfileButtonTextLarge}>プロフィール編集</Text>
                 </TouchableOpacity>
             </View>
@@ -769,18 +769,20 @@ const styles = StyleSheet.create({
         fontFamily: FONTS.medium,
     },
     editProfileButtonLarge: {
-        backgroundColor: '#E5A33D',
+        backgroundColor: 'white',
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         paddingVertical: 12,
         borderRadius: 24,
         width: '100%',
+        borderWidth: 1,
+        borderColor: '#E5A33D',
         // marginBottom: 20, // 不要な余白を削除
         ...SHADOWS.sm,
     },
     editProfileButtonTextLarge: {
-        color: 'white',
+        color: '#E5A33D',
         fontSize: 15,
         fontWeight: 'bold',
         fontFamily: FONTS.bold,
