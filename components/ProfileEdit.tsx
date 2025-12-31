@@ -355,62 +355,6 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
                                 </View>
                             </View>
 
-                            {/* Bio Card */}
-                            <View style={styles.card}>
-                                <View style={styles.cardHeader}>
-                                    <View style={[styles.cardIconContainer, { backgroundColor: '#FEF3C7' }]}>
-                                        <Ionicons name="chatbubble" size={18} color="#F59E0B" />
-                                    </View>
-                                    <Text style={styles.cardTitle}>自己紹介</Text>
-                                    <View style={styles.optionalBadge}>
-                                        <Text style={styles.optionalText}>任意</Text>
-                                    </View>
-                                </View>
-
-                                <TextInput
-                                    value={bio}
-                                    onChangeText={(text) => {
-                                        if (text.length <= maxBioLength) {
-                                            setBio(text);
-                                        }
-                                    }}
-                                    placeholder="例: スタートアップでエンジニア経験あり"
-                                    placeholderTextColor="#9CA3AF"
-                                    style={styles.bioInput}
-                                    maxLength={maxBioLength}
-                                    multiline={true}
-                                    textAlignVertical="top"
-                                    numberOfLines={4}
-                                />
-                                <Text style={styles.characterCount}>
-                                    {bioLength} / {maxBioLength}
-                                </Text>
-                            </View>
-
-                            {/* GitHub URL Card */}
-                            <View style={styles.card}>
-                                <View style={styles.cardHeader}>
-                                    <View style={[styles.cardIconContainer, { backgroundColor: '#1F2937' }]}>
-                                        <Ionicons name="logo-github" size={18} color="white" />
-                                    </View>
-                                    <Text style={styles.cardTitle}>GitHub</Text>
-                                    <View style={styles.optionalBadge}>
-                                        <Text style={styles.optionalText}>任意</Text>
-                                    </View>
-                                </View>
-
-                                <TextInput
-                                    value={githubUrl}
-                                    onChangeText={setGithubUrl}
-                                    placeholder="https://github.com/username"
-                                    placeholderTextColor="#9CA3AF"
-                                    style={styles.input}
-                                    autoCapitalize="none"
-                                    autoCorrect={false}
-                                    keyboardType="url"
-                                />
-                            </View>
-
                             {/* Your Role Card */}
                             <View style={styles.card}>
                                 <View style={styles.cardHeader}>
@@ -467,6 +411,61 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
                                 )}
                             </View>
 
+                            {/* Bio Card */}
+                            <View style={styles.card}>
+                                <View style={styles.cardHeader}>
+                                    <View style={[styles.cardIconContainer, { backgroundColor: '#FEF3C7' }]}>
+                                        <Ionicons name="chatbubble" size={18} color="#F59E0B" />
+                                    </View>
+                                    <Text style={styles.cardTitle}>自己紹介</Text>
+                                    <View style={styles.optionalBadge}>
+                                        <Text style={styles.optionalText}>任意</Text>
+                                    </View>
+                                </View>
+
+                                <TextInput
+                                    value={bio}
+                                    onChangeText={(text) => {
+                                        if (text.length <= maxBioLength) {
+                                            setBio(text);
+                                        }
+                                    }}
+                                    placeholder="例: スタートアップでエンジニア経験あり"
+                                    placeholderTextColor="#9CA3AF"
+                                    style={styles.bioInput}
+                                    maxLength={maxBioLength}
+                                    multiline={true}
+                                    textAlignVertical="top"
+                                    numberOfLines={4}
+                                />
+                                <Text style={styles.characterCount}>
+                                    {bioLength} / {maxBioLength}
+                                </Text>
+                            </View>
+
+                            {/* GitHub URL Card */}
+                            <View style={styles.card}>
+                                <View style={styles.cardHeader}>
+                                    <View style={[styles.cardIconContainer, { backgroundColor: '#1F2937' }]}>
+                                        <Ionicons name="logo-github" size={18} color="white" />
+                                    </View>
+                                    <Text style={styles.cardTitle}>GitHub</Text>
+                                    <View style={styles.optionalBadge}>
+                                        <Text style={styles.optionalText}>任意</Text>
+                                    </View>
+                                </View>
+
+                                <TextInput
+                                    value={githubUrl}
+                                    onChangeText={setGithubUrl}
+                                    placeholder="https://github.com/username"
+                                    placeholderTextColor="#9CA3AF"
+                                    style={styles.input}
+                                    autoCapitalize="none"
+                                    autoCorrect={false}
+                                    keyboardType="url"
+                                />
+                            </View>
 
                         </ScrollView>
                     </View>
@@ -599,7 +598,7 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
                     </View>
                 </TouchableOpacity>
             </Modal>
-        </SafeAreaView>
+        </SafeAreaView >
     );
 }
 
