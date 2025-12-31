@@ -19,6 +19,7 @@ import { translateTag } from '../constants/TagConstants';
 import { FONTS } from '../constants/DesignSystem';
 import { ProjectDetail } from './ProjectDetail';
 import { getImageSource } from '../constants/DefaultImages';
+import { getThemeTagColor, getThemeTagTextColor } from '../constants/ThemeConstants';
 import { getUserPushTokens, sendPushNotification } from '../lib/notifications';
 import { ProjectSelectModal, SimpleProject } from './ProjectSelectModal';
 
@@ -562,8 +563,8 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                         {/* タグ */}
                         <View style={styles.appliedCardTagsRow}>
                             {project.tags?.slice(0, 1).map((tag: string, idx: number) => (
-                                <View key={`theme-${idx}`} style={styles.appliedThemeTag}>
-                                    <Text style={styles.appliedThemeTagText}>{tag}</Text>
+                                <View key={`theme-${idx}`} style={[styles.appliedThemeTag, { backgroundColor: getThemeTagColor(tag) }]}>
+                                    <Text style={[styles.appliedThemeTagText, { color: getThemeTagTextColor(tag) }]}>{tag}</Text>
                                 </View>
                             ))}
                             {project.content_tags?.slice(0, 2).map((tag: string, idx: number) => (
@@ -574,8 +575,8 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                         </View>
                         {/* 統計 */}
                         <View style={styles.appliedCardStatsRow}>
-                            <Ionicons name="people-outline" size={12} color="#9CA3AF" />
-                            <Text style={styles.appliedCardStatText}>{projectData.max_members || '?'}</Text>
+                            <Ionicons name="document-text-outline" size={12} color="#9CA3AF" />
+                            <Text style={styles.appliedCardStatText}>{projectData.pendingCount ?? 0}</Text>
                         </View>
                     </View>
                 </View>

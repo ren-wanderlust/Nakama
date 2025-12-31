@@ -11,6 +11,7 @@ import { getRoleColors, getRoleIcon } from '../constants/RoleConstants';
 import { getImageSource } from '../constants/DefaultImages';
 import { queryKeys } from '../data/queryKeys';
 import { buildSystemMessage } from '../constants/SystemMessage';
+import { getThemeTagColor, getThemeTagTextColor } from '../constants/ThemeConstants';
 
 interface Project {
     id: string;
@@ -917,8 +918,8 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                             >
                                 <Text style={styles.themeContentLabel}>内容：</Text>
                                 {!!project.tags?.length && project.tags.map((tag, index) => (
-                                    <View key={`theme-inline-${index}`} style={styles.themeTag}>
-                                        <Text style={styles.themeTagText}>{tag}</Text>
+                                    <View key={`theme-inline-${index}`} style={[styles.themeTag, { backgroundColor: getThemeTagColor(tag) }]}>
+                                        <Text style={[styles.themeTagText, { color: getThemeTagTextColor(tag) }]}>{tag}</Text>
                                     </View>
                                 ))}
                                 {!!project.content_tags?.length && project.content_tags.map((tag, index) => (

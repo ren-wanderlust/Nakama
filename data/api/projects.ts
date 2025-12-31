@@ -14,6 +14,7 @@ export interface Project {
   tags?: string[];
   content_tags?: string[];
   status?: string;
+  pendingCount?: number; // 参加申請数（pending）
   owner?: {
     id: string;
     name: string;
@@ -69,5 +70,27 @@ export async function fetchProjects({ sort, userId }: FetchProjectsParams): Prom
     return true;
   });
 
-  return filteredData as Project[];
+  if (filteredData.length === 0) return [];
+
+  // 参加申請数（pending）を付与
+  const projectIds = filteredData.map((p: any) => p.id);
+  const { data: apps, error: appsError } = await supabase
+    .from('project_applications')
+    .select('project_id')
+    .in('project_id', projectIds)
+    .eq('status', 'pending');
+
+  if (appsError) throw appsError;
+
+  const counts: Record<string, number> = {};
+  apps?.forEach((app: any) => {
+    counts[app.project_id] = (counts[app.project_id] || 0) + 1;
+  });
+
+  const projectsWithCounts = filteredData.map((p: any) => ({
+    ...p,
+    pendingCount: counts[p.id] || 0,
+  }));
+
+  return projectsWithCounts as Project[];
 }

@@ -22,6 +22,7 @@ export interface Application {
     required_roles?: string[];
     tags?: string[];
     content_tags?: string[];
+    pendingCount?: number; // 参加申請数（pending）
     owner?: {
       id: string;
       name: string;
@@ -152,6 +153,40 @@ export async function fetchProjectApplications(userId: string): Promise<ProjectA
       created_at: app.created_at,
       project: app.project,
     }));
+  }
+
+  // 3. Attach pending application count per project
+  const allProjectIds = Array.from(
+    new Set<string>([
+      ...recruiting.map(a => a.project_id),
+      ...applied.map(a => a.project_id),
+    ].filter(Boolean))
+  );
+
+  if (allProjectIds.length > 0) {
+    const { data: apps, error: countError } = await supabase
+      .from('project_applications')
+      .select('project_id')
+      .in('project_id', allProjectIds)
+      .eq('status', 'pending');
+
+    if (countError) {
+      console.error('Error fetching pending counts:', countError);
+    } else {
+      const counts: Record<string, number> = {};
+      apps?.forEach((app: any) => {
+        counts[app.project_id] = (counts[app.project_id] || 0) + 1;
+      });
+
+      recruiting = recruiting.map((a) => ({
+        ...a,
+        project: a.project ? { ...a.project, pendingCount: counts[a.project_id] || 0 } : a.project,
+      }));
+      applied = applied.map((a) => ({
+        ...a,
+        project: a.project ? { ...a.project, pendingCount: counts[a.project_id] || 0 } : a.project,
+      }));
+    }
   }
 
   return {

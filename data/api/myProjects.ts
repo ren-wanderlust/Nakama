@@ -108,5 +108,29 @@ export async function fetchParticipatingProjects(userId: string): Promise<any[]>
       applicationId: item.id,
     }));
 
-  return projectsWithStatus;
+  if (projectsWithStatus.length === 0) {
+    return [];
+  }
+
+  // 参加申請数（pending）を付与
+  const projectIds = projectsWithStatus.map((p: any) => p.id);
+  const { data: apps, error: appsError } = await supabase
+    .from('project_applications')
+    .select('project_id')
+    .in('project_id', projectIds)
+    .eq('status', 'pending');
+
+  if (appsError) throw appsError;
+
+  const counts: { [key: string]: number } = {};
+  apps?.forEach((app: any) => {
+    counts[app.project_id] = (counts[app.project_id] || 0) + 1;
+  });
+
+  const projectsWithCounts = projectsWithStatus.map((p: any) => ({
+    ...p,
+    pendingCount: counts[p.id] || 0,
+  }));
+
+  return projectsWithCounts;
 }

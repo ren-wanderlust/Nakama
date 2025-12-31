@@ -13,6 +13,7 @@ import { SHADOWS, FONTS } from '../constants/DesignSystem';
 import { ModernCard, ModernButton } from './ModernComponents';
 import { getImageSource } from '../constants/DefaultImages';
 import { MyProjectsEmptyState } from './EmptyState';
+import { getThemeTagColor, getThemeTagTextColor } from '../constants/ThemeConstants';
 
 interface MyPageProps {
     profile: Profile;
@@ -131,8 +132,8 @@ const ProjectCard = ({ project, ownerProfile, onPress }: { project: any; ownerPr
                     {/* タグ */}
                     <View style={projectCardStyles.cardTagsRow}>
                         {project.tags?.slice(0, 1).map((tag: string, idx: number) => (
-                            <View key={`theme-${idx}`} style={projectCardStyles.themeTag}>
-                                <Text style={projectCardStyles.themeTagText}>{tag}</Text>
+                            <View key={`theme-${idx}`} style={[projectCardStyles.themeTag, { backgroundColor: getThemeTagColor(tag) }]}>
+                                <Text style={[projectCardStyles.themeTagText, { color: getThemeTagTextColor(tag) }]}>{tag}</Text>
                             </View>
                         ))}
                         {project.content_tags?.slice(0, 2).map((tag: string, idx: number) => (
@@ -143,8 +144,8 @@ const ProjectCard = ({ project, ownerProfile, onPress }: { project: any; ownerPr
                     </View>
                     {/* 統計 */}
                     <View style={projectCardStyles.cardStatsRow}>
-                        <Ionicons name="people-outline" size={12} color="#9CA3AF" />
-                        <Text style={projectCardStyles.cardStatText}>{project.max_members || '?'}</Text>
+                        <Ionicons name="document-text-outline" size={12} color="#9CA3AF" />
+                        <Text style={projectCardStyles.cardStatText}>{project.pendingCount ?? 0}</Text>
                     </View>
                 </View>
             </View>
@@ -444,8 +445,8 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                         {/* タグ */}
                         <View style={projectCardStyles.cardTagsRow}>
                             {item.tags?.slice(0, 1).map((tag: string, idx: number) => (
-                                <View key={`theme-${idx}`} style={projectCardStyles.themeTag}>
-                                    <Text style={projectCardStyles.themeTagText}>{tag}</Text>
+                                <View key={`theme-${idx}`} style={[projectCardStyles.themeTag, { backgroundColor: getThemeTagColor(tag) }]}>
+                                    <Text style={[projectCardStyles.themeTagText, { color: getThemeTagTextColor(tag) }]}>{tag}</Text>
                                 </View>
                             ))}
                             {item.content_tags?.slice(0, 2).map((tag: string, idx: number) => (
@@ -456,8 +457,8 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                         </View>
                         {/* 統計 */}
                         <View style={projectCardStyles.cardStatsRow}>
-                            <Ionicons name="people-outline" size={12} color="#9CA3AF" />
-                            <Text style={projectCardStyles.cardStatText}>{item.max_members || '?'}</Text>
+                        <Ionicons name="document-text-outline" size={12} color="#9CA3AF" />
+                        <Text style={projectCardStyles.cardStatText}>{item.pendingCount ?? 0}</Text>
                         </View>
                     </View>
                 </View>

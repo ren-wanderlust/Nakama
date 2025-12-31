@@ -16,6 +16,7 @@ import { RADIUS, COLORS, SHADOWS, SPACING, AVATAR, FONTS } from '../constants/De
 import { ProjectsEmptyState } from './EmptyState';
 import { translateTag } from '../constants/TagConstants';
 import { getImageSource } from '../constants/DefaultImages';
+import { getThemeTagColor, getThemeTagTextColor } from '../constants/ThemeConstants';
 
 interface Project {
     id: string;
@@ -35,6 +36,7 @@ interface Project {
         image: string;
         university: string;
     };
+    pendingCount?: number; // 参加申請数（pending）
 }
 
 interface UserProjectPageProps {
@@ -159,8 +161,8 @@ const ProjectCard = ({ project, onPress, index = 0 }: { project: Project; onPres
                         {/* タグ */}
                         <View style={styles.cardTagsRow}>
                             {project.tags?.slice(0, 1).map((tag, idx) => (
-                                <View key={`theme-${idx}`} style={styles.themeTag}>
-                                    <Text style={styles.themeTagText}>{tag}</Text>
+                                <View key={`theme-${idx}`} style={[styles.themeTag, { backgroundColor: getThemeTagColor(tag) }]}>
+                                    <Text style={[styles.themeTagText, { color: getThemeTagTextColor(tag) }]}>{tag}</Text>
                                 </View>
                             ))}
                             {project.content_tags?.slice(0, 2).map((tag, idx) => (
@@ -171,8 +173,8 @@ const ProjectCard = ({ project, onPress, index = 0 }: { project: Project; onPres
                         </View>
                         {/* 統計（モック） */}
                         <View style={styles.cardStatsRow}>
-                            <Ionicons name="people-outline" size={12} color="#9CA3AF" />
-                            <Text style={styles.cardStatText}>{projectData.max_members || '?'}</Text>
+                            <Ionicons name="document-text-outline" size={12} color="#9CA3AF" />
+                            <Text style={styles.cardStatText}>{projectData.pendingCount ?? 0}</Text>
                         </View>
                     </View>
                 </View>
