@@ -255,23 +255,23 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
         return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
     };
 
-    // Discord風ヘッダー
+    // Discord風ヘッダー（グラデーション拡張）
     const renderDiscordHeader = () => (
-        <View style={styles.discordHeader}>
-            {/* 背景色 + ロゴ (グラデーションを削除し、ロゴの背景色に合わせる) */}
-            <View
-                style={[styles.discordBanner, { backgroundColor: '#FBA535' }]} // 推定されるロゴ背景色
-            >
-                <View style={styles.discordBannerContent}>
-                    <View style={styles.logoContainer}>
-                        <Image
-                            source={require('../assets/adaptive-icon.png')}
-                            style={styles.discordBannerLogo}
-                            resizeMode="contain"
-                        />
-                    </View>
-                    <Text style={styles.discordBannerText}>Pogg</Text>
+        <LinearGradient
+            colors={['#FBA535', '#FFCC66', '#FFF3E0']}
+            locations={[0, 0.5, 1]}
+            style={styles.discordHeader}
+        >
+            {/* ロゴ部分 */}
+            <View style={styles.discordBannerContent}>
+                <View style={styles.logoContainer}>
+                    <Image
+                        source={require('../assets/adaptive-icon.png')}
+                        style={styles.discordBannerLogo}
+                        resizeMode="contain"
+                    />
                 </View>
+                <Text style={styles.discordBannerText}>Pogg</Text>
             </View>
 
             {/* 設定アイコン（右上） */}
@@ -306,7 +306,7 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                 <Ionicons name="pencil" size={14} color="#F57C00" style={{ marginRight: 6 }} />
                 <Text style={styles.discordEditButtonText}>プロフィール編集</Text>
             </TouchableOpacity>
-        </View>
+        </LinearGradient>
     );
 
     // Discord風セクション
@@ -818,26 +818,21 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     discordHeader: {
-        backgroundColor: '#F9FAFB', // 全体の背景色に合わせる
+        paddingTop: 60, // ステータスバーエリアをカバー
         paddingBottom: 20,
-    },
-    discordBanner: {
-        height: 120, // 少し高さを増やす
-        marginBottom: -50, // アバターの食い込みを調整
-        justifyContent: 'center',
     },
     discordBannerContent: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingBottom: 20, // コンテンツが真ん中に来すぎないように少し調整
+        paddingBottom: 20,
         gap: 8,
     },
     logoContainer: {
         width: 64,
         height: 64,
-        borderRadius: 16, // 角丸
-        backgroundColor: 'white', // 白背景
+        borderRadius: 16,
+        backgroundColor: 'white',
         alignItems: 'center',
         justifyContent: 'center',
         ...SHADOWS.sm,
@@ -855,7 +850,7 @@ const styles = StyleSheet.create({
     },
     discordSettingsBtn: {
         position: 'absolute',
-        top: 16, // ステータスバー避け
+        top: 60, // ステータスバー + paddingTop
         right: 16,
         width: 36,
         height: 36,
