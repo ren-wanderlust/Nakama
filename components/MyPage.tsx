@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, Image, TouchableOpacity, ScrollView, SafeAreaView, Alert, Modal, FlatList, Dimensions, RefreshControl } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { StyleSheet, Text, View, Image, TouchableOpacity, ScrollView, SafeAreaView, Alert, Modal, FlatList, Dimensions, RefreshControl, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
@@ -142,6 +142,17 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
     const [activeTab, setActiveTab] = useState<'myProjects' | 'participatingProjects'>('myProjects');
     const [refreshing, setRefreshing] = useState(false);
     const queryClient = useQueryClient();
+
+    // フェードインアニメーション
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 300,
+            useNativeDriver: true,
+        }).start();
+    }, []);
 
     // React Query hooks
     const myProjectsQuery = useMyProjects(profile.id);
@@ -443,7 +454,7 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
     };
 
     return (
-        <View style={styles.container}>
+        <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
             <ScrollView
                 style={styles.scrollView}
                 refreshControl={
@@ -589,7 +600,7 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                     />
                 )}
             </Modal>
-        </View>
+        </Animated.View>
     );
 }
 
