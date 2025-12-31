@@ -830,7 +830,7 @@ const styles = StyleSheet.create({
         fontFamily: FONTS.regular,
     },
     editProfileButtonLarge: {
-        backgroundColor: '#F57C00',
+        backgroundColor: '#E5A33D',
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
