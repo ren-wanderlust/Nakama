@@ -1091,35 +1091,29 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                         <View style={styles.projectDetailsContainer}>
                             {project.commitment_level && (
                                 <View style={styles.projectDetailItem}>
-                                    <View style={styles.projectDetailIconContainer}>
-                                        <Ionicons name="time" size={16} color="#3B82F6" />
-                                    </View>
-                                    <View style={styles.projectDetailContent}>
-                                        <Text style={styles.projectDetailLabel}>求めるコミット量</Text>
-                                        <Text style={styles.projectDetailValue}>{project.commitment_level}</Text>
-                                    </View>
+                                    <Ionicons name="time-outline" size={18} color="#6B7280" style={styles.projectDetailIcon} />
+                                    <Text style={styles.projectDetailText}>
+                                        <Text style={styles.projectDetailLabel}>求めるコミット量: </Text>
+                                        {project.commitment_level}
+                                    </Text>
                                 </View>
                             )}
                             {project.goal && (
                                 <View style={styles.projectDetailItem}>
-                                    <View style={styles.projectDetailIconContainer}>
-                                        <Ionicons name="flag" size={16} color="#10B981" />
-                                    </View>
-                                    <View style={styles.projectDetailContent}>
-                                        <Text style={styles.projectDetailLabel}>ゴール</Text>
-                                        <Text style={styles.projectDetailValue}>{project.goal}</Text>
-                                    </View>
+                                    <Ionicons name="flag-outline" size={18} color="#6B7280" style={styles.projectDetailIcon} />
+                                    <Text style={styles.projectDetailText}>
+                                        <Text style={styles.projectDetailLabel}>ゴール: </Text>
+                                        {project.goal}
+                                    </Text>
                                 </View>
                             )}
                             {project.duration && (
                                 <View style={styles.projectDetailItem}>
-                                    <View style={styles.projectDetailIconContainer}>
-                                        <Ionicons name="hourglass" size={16} color="#8B5CF6" />
-                                    </View>
-                                    <View style={styles.projectDetailContent}>
-                                        <Text style={styles.projectDetailLabel}>期間</Text>
-                                        <Text style={styles.projectDetailValue}>{project.duration}</Text>
-                                    </View>
+                                    <Ionicons name="hourglass-outline" size={18} color="#6B7280" style={styles.projectDetailIcon} />
+                                    <Text style={styles.projectDetailText}>
+                                        <Text style={styles.projectDetailLabel}>期間: </Text>
+                                        {project.duration}
+                                    </Text>
                                 </View>
                             )}
                         </View>
@@ -1220,6 +1214,13 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                                                         </Text>
                                                     </View>
                                                 </View>
+                                                {applicant.message && (
+                                                    <View style={styles.pendingMessageContainer}>
+                                                        <Text style={styles.pendingMessageText}>
+                                                            "{applicant.message}"
+                                                        </Text>
+                                                    </View>
+                                                )}
                                                 <View style={styles.pendingCardActions}>
                                                     <TouchableOpacity
                                                         style={styles.rejectButton}
@@ -1653,6 +1654,20 @@ const styles = StyleSheet.create({
         color: '#6B7280',
         marginTop: 2,
     },
+    pendingMessageContainer: {
+        backgroundColor: 'rgba(255, 255, 255, 0.6)',
+        padding: 10,
+        borderRadius: 8,
+        marginTop: 0,
+        marginBottom: 12,
+        borderLeftWidth: 3,
+        borderLeftColor: '#F59E0B',
+    },
+    pendingMessageText: {
+        fontSize: 14,
+        color: '#4B5563',
+        fontStyle: 'italic',
+    },
     pendingCardActions: {
         flexDirection: 'row',
         gap: 10,
@@ -1826,42 +1841,28 @@ const styles = StyleSheet.create({
     },
     projectDetailsContainer: {
         marginTop: 16,
-        backgroundColor: '#F9FAFB',
-        borderRadius: 12,
-        padding: 12,
-        gap: 12,
+        gap: 8,
     },
     projectDetailItem: {
         flexDirection: 'row',
         alignItems: 'flex-start',
-        gap: 12,
+        gap: 8,
     },
-    projectDetailIconContainer: {
-        width: 32,
-        height: 32,
-        borderRadius: 8,
-        backgroundColor: 'white',
-        alignItems: 'center',
-        justifyContent: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
-        elevation: 1,
+    projectDetailIcon: {
+        marginTop: 2,
     },
-    projectDetailContent: {
+    projectDetailText: {
         flex: 1,
+        fontSize: 14,
+        color: '#111827',
+        lineHeight: 22,
     },
     projectDetailLabel: {
-        fontSize: 11,
-        color: '#6B7280',
-        marginBottom: 2,
+        fontWeight: 'bold',
+        color: '#4B5563',
     },
-    projectDetailValue: {
-        fontSize: 14,
-        fontWeight: '500',
-        color: '#111827',
-    },
+    // projectDetailValue is no longer used, but kept if needed by other logic or removed safely
+    // Removing unused styles: projectDetailIconContainer, projectDetailContent
     // Apply Modal Styles
     applyModalOverlay: {
         flex: 1,
