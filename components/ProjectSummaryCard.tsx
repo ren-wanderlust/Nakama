@@ -29,6 +29,41 @@ const formatCreatedDate = (createdAt?: string | null) => {
   if (!createdAt) return '';
   const d = new Date(createdAt);
   if (Number.isNaN(d.getTime())) return '';
+
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  // 未来日付などはフォールバックで絶対日付表示
+  if (diffMs < 0) {
+    const y = d.getFullYear();
+    const m = d.getMonth() + 1;
+    const day = d.getDate();
+    return `${y}/${m}/${day}`;
+  }
+
+  const HOUR = 1000 * 60 * 60;
+  const DAY = HOUR * 24;
+
+  // 24時間前より短い → （時間）前
+  if (diffMs < DAY) {
+    const hours = Math.max(1, Math.floor(diffMs / HOUR));
+    return `${hours}時間前`;
+  }
+
+  // 1ヶ月前より短い → （日数）前（= 同じ月）
+  const nowMonthKey = now.getFullYear() * 12 + now.getMonth();
+  const createdMonthKey = d.getFullYear() * 12 + d.getMonth();
+  const monthDiff = nowMonthKey - createdMonthKey;
+  if (monthDiff === 0) {
+    const days = Math.max(1, Math.floor(diffMs / DAY));
+    return `${days}日前`;
+  }
+
+  // 10ヶ月前より短い → （月数）前
+  if (monthDiff > 0 && monthDiff < 10) {
+    return `${monthDiff}ヶ月前`;
+  }
+
+  // それ以上 → 年/月/日（現在通り）
   const y = d.getFullYear();
   const m = d.getMonth() + 1;
   const day = d.getDate();
@@ -208,7 +243,8 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
   createdAt: {
-    marginLeft: 'auto',
+    flexShrink: 0,
+    marginLeft: 6,
     fontSize: 10,
     fontFamily: FONTS.regular,
     color: '#9CA3AF',
