@@ -14,7 +14,8 @@ export interface Project {
   tags?: string[];
   content_tags?: string[];
   status?: string;
-  pendingCount?: number; // 参加申請数（pending）
+  pendingCount?: number; // pending数（互換のため残す）
+  applicantCount?: number; // これまで参加申請したユーザー数（status問わず、同一userは1）
   owner?: {
     id: string;
     name: string;
@@ -72,24 +73,27 @@ export async function fetchProjects({ sort, userId }: FetchProjectsParams): Prom
 
   if (filteredData.length === 0) return [];
 
-  // 参加申請数（pending）を付与
+  // 参加申請ユーザー数（累計/重複なし）を付与
   const projectIds = filteredData.map((p: any) => p.id);
   const { data: apps, error: appsError } = await supabase
     .from('project_applications')
-    .select('project_id')
-    .in('project_id', projectIds)
-    .eq('status', 'pending');
+    .select('project_id, user_id')
+    .in('project_id', projectIds);
 
   if (appsError) throw appsError;
 
-  const counts: Record<string, number> = {};
+  const userSets: Record<string, Set<string>> = {};
   apps?.forEach((app: any) => {
-    counts[app.project_id] = (counts[app.project_id] || 0) + 1;
+    const pid = app.project_id as string | undefined;
+    const uid = app.user_id as string | undefined;
+    if (!pid || !uid) return;
+    if (!userSets[pid]) userSets[pid] = new Set<string>();
+    userSets[pid].add(uid);
   });
 
   const projectsWithCounts = filteredData.map((p: any) => ({
     ...p,
-    pendingCount: counts[p.id] || 0,
+    applicantCount: userSets[p.id]?.size || 0,
   }));
 
   return projectsWithCounts as Project[];

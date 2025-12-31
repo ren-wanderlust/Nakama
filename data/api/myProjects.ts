@@ -13,6 +13,7 @@ export interface Project {
   tags?: string[];
   status?: string;
   pendingCount?: number;
+  applicantCount?: number; // これまで参加申請したユーザー数（status問わず、同一userは1）
 }
 
 /**
@@ -33,22 +34,33 @@ export async function fetchMyProjects(userId: string): Promise<Project[]> {
     return [];
   }
 
-  // Fetch pending application counts
+  // Fetch application counts (pending + applicantCount)
   const projectIds = data.map((p: any) => p.id);
-  const { data: apps } = await supabase
+  const { data: apps, error: appsError } = await supabase
     .from('project_applications')
-    .select('project_id')
-    .in('project_id', projectIds)
-    .eq('status', 'pending');
+    .select('project_id, user_id, status')
+    .in('project_id', projectIds);
 
-  const counts: { [key: string]: number } = {};
+  if (appsError) throw appsError;
+
+  const pendingCounts: { [key: string]: number } = {};
+  const userSets: { [key: string]: Set<string> } = {};
   apps?.forEach((app: any) => {
-    counts[app.project_id] = (counts[app.project_id] || 0) + 1;
+    const pid = app.project_id as string | undefined;
+    const uid = app.user_id as string | undefined;
+    const status = app.status as string | undefined;
+    if (!pid || !uid) return;
+    if (!userSets[pid]) userSets[pid] = new Set<string>();
+    userSets[pid].add(uid);
+    if (status === 'pending') {
+      pendingCounts[pid] = (pendingCounts[pid] || 0) + 1;
+    }
   });
 
   const projectsWithCounts = data.map((p: any) => ({
     ...p,
-    pendingCount: counts[p.id] || 0,
+    pendingCount: pendingCounts[p.id] || 0,
+    applicantCount: userSets[p.id]?.size || 0,
   }));
 
   // Sort by pending count (descending) - projects with more pending apps first
@@ -112,24 +124,33 @@ export async function fetchParticipatingProjects(userId: string): Promise<any[]>
     return [];
   }
 
-  // 参加申請数（pending）を付与
+  // 参加申請ユーザー数（累計/重複なし）と pending 数を付与
   const projectIds = projectsWithStatus.map((p: any) => p.id);
   const { data: apps, error: appsError } = await supabase
     .from('project_applications')
-    .select('project_id')
-    .in('project_id', projectIds)
-    .eq('status', 'pending');
+    .select('project_id, user_id, status')
+    .in('project_id', projectIds);
 
   if (appsError) throw appsError;
 
-  const counts: { [key: string]: number } = {};
+  const pendingCounts: { [key: string]: number } = {};
+  const userSets: { [key: string]: Set<string> } = {};
   apps?.forEach((app: any) => {
-    counts[app.project_id] = (counts[app.project_id] || 0) + 1;
+    const pid = app.project_id as string | undefined;
+    const uid = app.user_id as string | undefined;
+    const status = app.status as string | undefined;
+    if (!pid || !uid) return;
+    if (!userSets[pid]) userSets[pid] = new Set<string>();
+    userSets[pid].add(uid);
+    if (status === 'pending') {
+      pendingCounts[pid] = (pendingCounts[pid] || 0) + 1;
+    }
   });
 
   const projectsWithCounts = projectsWithStatus.map((p: any) => ({
     ...p,
-    pendingCount: counts[p.id] || 0,
+    pendingCount: pendingCounts[p.id] || 0,
+    applicantCount: userSets[p.id]?.size || 0,
   }));
 
   return projectsWithCounts;

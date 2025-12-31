@@ -19,9 +19,9 @@ import { translateTag } from '../constants/TagConstants';
 import { FONTS } from '../constants/DesignSystem';
 import { ProjectDetail } from './ProjectDetail';
 import { getImageSource } from '../constants/DefaultImages';
-import { getThemeTagColor, getThemeTagTextColor } from '../constants/ThemeConstants';
 import { getUserPushTokens, sendPushNotification } from '../lib/notifications';
 import { ProjectSelectModal, SimpleProject } from './ProjectSelectModal';
+import { ProjectSummaryCard } from './ProjectSummaryCard';
 
 // Project型とApplication型はdata/apiからインポート
 import { Application } from '../data/api/applications';
@@ -491,96 +491,21 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
         const projectData = project as any;
         const ownerImage = projectData.profiles?.image || projectData.owner?.image;
         const ownerName = projectData.profiles?.name || projectData.owner?.name || '不明';
-        const coverImage = projectData.cover_image;
-        const timeAgo = (() => {
-            const createdAt = (project as any)?.created_at as string | undefined;
-            if (!createdAt) return '';
-            const createdDate = new Date(createdAt);
-            if (Number.isNaN(createdDate.getTime())) return '';
-            const daysAgo = Math.floor((Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
-            // 3日以内は相対表示、4日以上は日付形式
-            return daysAgo === 0
-                ? '今日'
-                : daysAgo === 1
-                    ? '昨日'
-                    : daysAgo <= 3
-                        ? `${daysAgo}日前`
-                        : `${createdDate.getMonth() + 1}/${createdDate.getDate()}`;
-        })();
-
-        // デフォルトカバー画像
-        const defaultCoverImage = require('../assets/default-project-cover.png');
+        const statusBadge = (
+            <View style={[styles.appliedStatusBadgePill, { backgroundColor: statusInfo.color + '20' }]}>
+                <Ionicons name={statusInfo.icon as any} size={14} color={statusInfo.color} />
+                <Text style={[styles.appliedStatusTextPill, { color: statusInfo.color }]}>{statusInfo.text}</Text>
+            </View>
+        );
 
         return (
-            <TouchableOpacity
-                style={styles.appliedCardNew}
-                activeOpacity={0.85}
+            <ProjectSummaryCard
+                project={projectData}
+                ownerName={ownerName}
+                ownerImage={ownerImage}
                 onPress={() => handleProjectSelect(project.id)}
-            >
-                {/* Status Badge - Top Right */}
-                <View style={[styles.appliedStatusBadgeCorner, { backgroundColor: statusInfo.color + '20' }]}>
-                    <Ionicons name={statusInfo.icon as any} size={14} color={statusInfo.color} />
-                    <Text style={[styles.appliedStatusTextCorner, { color: statusInfo.color }]}>{statusInfo.text}</Text>
-                </View>
-
-                {/* 左側: サムネイル画像 */}
-                <View style={styles.appliedCardThumbnail}>
-                    <Image
-                        source={coverImage ? { uri: coverImage } : defaultCoverImage}
-                        style={styles.appliedCardThumbnailImage}
-                        resizeMode="cover"
-                    />
-                </View>
-
-                {/* 右側: コンテンツ */}
-                <View style={styles.appliedCardContentNew}>
-                    {/* タイトル */}
-                    <Text style={styles.appliedCardTitleNew} numberOfLines={1}>{project.title}</Text>
-
-                    {/* タグライン/説明 */}
-                    {project.tagline && (
-                        <Text style={styles.appliedCardTaglineNew} numberOfLines={2}>{project.tagline}</Text>
-                    )}
-
-                    {/* オーナー情報（タグラインの下） */}
-                    <View style={styles.appliedCardOwnerRow}>
-                        {ownerImage ? (
-                            <Image
-                                source={{ uri: ownerImage }}
-                                style={styles.appliedCardOwnerAvatar}
-                            />
-                        ) : (
-                            <View style={[styles.appliedCardOwnerAvatar, { backgroundColor: '#E5E7EB', alignItems: 'center', justifyContent: 'center' }]}>
-                                <Ionicons name="person" size={12} color="#9CA3AF" />
-                            </View>
-                        )}
-                        <Text style={styles.appliedCardOwnerName} numberOfLines={1}>{ownerName}</Text>
-                        {!!timeAgo && <Text style={styles.appliedCardTimeAgo}>{timeAgo}</Text>}
-                    </View>
-
-                    {/* 下部: タグ + 統計 */}
-                    <View style={styles.appliedCardBottomRow}>
-                        {/* タグ */}
-                        <View style={styles.appliedCardTagsRow}>
-                            {project.tags?.slice(0, 1).map((tag: string, idx: number) => (
-                                <View key={`theme-${idx}`} style={[styles.appliedThemeTag, { backgroundColor: getThemeTagColor(tag) }]}>
-                                    <Text style={[styles.appliedThemeTagText, { color: getThemeTagTextColor(tag) }]}>{tag}</Text>
-                                </View>
-                            ))}
-                            {project.content_tags?.slice(0, 2).map((tag: string, idx: number) => (
-                                <View key={`content-${idx}`} style={styles.appliedContentTag}>
-                                    <Text style={styles.appliedContentTagText}>{tag}</Text>
-                                </View>
-                            ))}
-                        </View>
-                        {/* 統計 */}
-                        <View style={styles.appliedCardStatsRow}>
-                            <Ionicons name="document-text-outline" size={12} color="#9CA3AF" />
-                            <Text style={styles.appliedCardStatText}>{projectData.pendingCount ?? 0}</Text>
-                        </View>
-                    </View>
-                </View>
-            </TouchableOpacity>
+                overlay={statusBadge}
+            />
         );
     };
 
@@ -1727,19 +1652,16 @@ const styles = StyleSheet.create({
         fontSize: 11,
         fontWeight: '600',
     },
-    appliedStatusBadgeCorner: {
-        position: 'absolute',
-        top: 8,
-        right: 8,
+    // ProjectSummaryCard 用（位置はカード側で固定）
+    appliedStatusBadgePill: {
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: 8,
         paddingVertical: 4,
         borderRadius: 10,
         gap: 4,
-        zIndex: 10,
     },
-    appliedStatusTextCorner: {
+    appliedStatusTextPill: {
         fontSize: 11,
         fontWeight: '600',
     },
@@ -1853,91 +1775,6 @@ const styles = StyleSheet.create({
         maxWidth: 220,
     },
 
-    // 新しいカードデザイン用スタイル（UserProjectPageと統一）
-    appliedCardNew: {
-        flexDirection: 'row',
-        backgroundColor: 'white',
-        borderRadius: 12,
-        overflow: 'hidden',
-        marginBottom: 12,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 8,
-        elevation: 3,
-    },
-    appliedCardThumbnail: {
-        width: 140,
-        height: 140,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    appliedCardThumbnailImage: {
-        width: '100%',
-        height: '100%',
-    },
-    appliedCardContentNew: {
-        flex: 1,
-        padding: 12,
-        justifyContent: 'space-between',
-    },
-    appliedCardOwnerRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 6,
-    },
-    appliedCardOwnerAvatar: {
-        width: 22,
-        height: 22,
-        borderRadius: 11,
-        marginRight: 6,
-    },
-    appliedCardOwnerName: {
-        flexShrink: 1,
-        marginRight: 8,
-        fontSize: 11,
-        fontFamily: FONTS.medium,
-        color: '#6B7280',
-    },
-    appliedCardTimeAgo: {
-        fontSize: 10,
-        fontFamily: FONTS.regular,
-        color: '#9CA3AF',
-    },
-    appliedCardTitleNew: {
-        fontSize: 16,
-        fontFamily: FONTS.bold,
-        color: '#111827',
-        lineHeight: 21,
-        marginBottom: 4,
-    },
-    appliedCardTaglineNew: {
-        fontSize: 12,
-        fontFamily: FONTS.regular,
-        color: '#6B7280',
-        lineHeight: 16,
-        marginBottom: 6,
-    },
-    appliedCardBottomRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-    },
-    appliedCardTagsRow: {
-        flexDirection: 'row',
-        gap: 4,
-        flex: 1,
-    },
-    appliedCardStatsRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-    },
-    appliedCardStatText: {
-        fontSize: 11,
-        fontFamily: FONTS.regular,
-        color: '#9CA3AF',
-    },
     recruitingMessageContainer: {
         marginTop: 8,
         marginHorizontal: 12,

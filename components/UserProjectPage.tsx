@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Dimensions, Image, Modal, Alert, Animated, Easing } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, Alert, Animated, Easing } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
@@ -15,8 +15,7 @@ import { CustomRefreshControl } from './CustomRefreshControl';
 import { RADIUS, COLORS, SHADOWS, SPACING, AVATAR, FONTS } from '../constants/DesignSystem';
 import { ProjectsEmptyState } from './EmptyState';
 import { translateTag } from '../constants/TagConstants';
-import { getImageSource } from '../constants/DefaultImages';
-import { getThemeTagColor, getThemeTagTextColor } from '../constants/ThemeConstants';
+import { ProjectSummaryCard } from './ProjectSummaryCard';
 
 interface Project {
     id: string;
@@ -46,39 +45,10 @@ interface UserProjectPageProps {
     filterCriteria?: FilterCriteria | null;
 }
 
-// Role to icon mapping (matching CreateProjectModal)
-const ROLE_ICONS: { [key: string]: string } = {
-    'エンジニア': 'code-slash',
-    'デザイナー': 'color-palette',
-    'マーケター': 'megaphone',
-    'アイディアマン': 'bulb',
-    '誰でも': 'people',
-};
-
-// Role to color mapping
-const ROLE_COLORS: { [key: string]: { bg: string; icon: string } } = {
-    'エンジニア': { bg: '#E3F2FD', icon: '#1976D2' },      // Blue
-    'デザイナー': { bg: '#F3E5F5', icon: '#7B1FA2' },    // Purple
-    'マーケター': { bg: '#FFF3E0', icon: '#E65100' },    // Orange
-    'アイディアマン': { bg: '#FFF9C4', icon: '#F57F17' }, // Yellow
-    '誰でも': { bg: '#E8F5E9', icon: '#388E3C' },        // Green
-};
+// NOTE: 旧カードUIで使用していたROLE系定数は、ProjectSummaryCard移行により不要になりました。
 
 const ProjectCard = ({ project, onPress, index = 0 }: { project: Project; onPress: () => void; index?: number }) => {
-    const deadlineDate = project.deadline ? new Date(project.deadline) : null;
-    const deadlineString = deadlineDate
-        ? `${deadlineDate.getMonth() + 1}/${deadlineDate.getDate()}まで`
-        : '';
-    const createdDate = new Date(project.created_at);
-    const daysAgo = Math.floor((Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
-    // 3日以内は相対表示、4日以上は日付形式
-    const timeAgo = daysAgo === 0
-        ? '今日'
-        : daysAgo === 1
-            ? '昨日'
-            : daysAgo <= 3
-                ? `${daysAgo}日前`
-                : `${createdDate.getMonth() + 1}/${createdDate.getDate()}`;
+    // created_at は ProjectSummaryCard 側で日付表示
 
     // 登場アニメーション用
     const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -110,75 +80,18 @@ const ProjectCard = ({ project, onPress, index = 0 }: { project: Project; onPres
     const projectData = project as any;
     const ownerImage = projectData.profiles?.image || projectData.owner?.image;
     const ownerName = projectData.profiles?.name || projectData.owner?.name || '不明';
-    const coverImage = projectData.cover_image;
-
-    // デフォルトカバー画像
-    const defaultCoverImage = require('../assets/default-project-cover.png');
 
     return (
         <Animated.View style={{
             opacity: fadeAnim,
             transform: [{ translateY: slideAnim }]
         }}>
-            <TouchableOpacity style={styles.cardNew} onPress={onPress} activeOpacity={0.85}>
-                {/* 左側: サムネイル画像 */}
-                <View style={styles.cardThumbnail}>
-                    <Image
-                        source={coverImage ? { uri: coverImage } : defaultCoverImage}
-                        style={styles.cardThumbnailImage}
-                        resizeMode="cover"
-                    />
-                </View>
-
-                {/* 右側: コンテンツ */}
-                <View style={styles.cardContentNew}>
-                    {/* タイトル */}
-                    <Text style={styles.cardTitleNew} numberOfLines={1}>{project.title}</Text>
-
-                    {/* タグライン/説明 */}
-                    {project.tagline && (
-                        <Text style={styles.cardTaglineNew} numberOfLines={2}>{project.tagline}</Text>
-                    )}
-
-                    {/* オーナー情報（タグラインの下） */}
-                    <View style={styles.cardOwnerRow}>
-                        {ownerImage ? (
-                            <Image
-                                source={{ uri: ownerImage }}
-                                style={styles.cardOwnerAvatar}
-                            />
-                        ) : (
-                            <View style={[styles.cardOwnerAvatar, { backgroundColor: '#E5E7EB', alignItems: 'center', justifyContent: 'center' }]}>
-                                <Ionicons name="person" size={12} color="#9CA3AF" />
-                            </View>
-                        )}
-                        <Text style={styles.cardOwnerName} numberOfLines={1}>{ownerName}</Text>
-                        <Text style={styles.cardTimeAgo}>{timeAgo}</Text>
-                    </View>
-
-                    {/* 下部: タグ + 統計 */}
-                    <View style={styles.cardBottomRow}>
-                        {/* タグ */}
-                        <View style={styles.cardTagsRow}>
-                            {project.tags?.slice(0, 1).map((tag, idx) => (
-                                <View key={`theme-${idx}`} style={[styles.themeTag, { backgroundColor: getThemeTagColor(tag) }]}>
-                                    <Text style={[styles.themeTagText, { color: getThemeTagTextColor(tag) }]}>{tag}</Text>
-                                </View>
-                            ))}
-                            {project.content_tags?.slice(0, 2).map((tag, idx) => (
-                                <View key={`content-${idx}`} style={styles.tag}>
-                                    <Text style={styles.tagText}>{tag}</Text>
-                                </View>
-                            ))}
-                        </View>
-                        {/* 統計（モック） */}
-                        <View style={styles.cardStatsRow}>
-                            <Ionicons name="document-text-outline" size={12} color="#9CA3AF" />
-                            <Text style={styles.cardStatText}>{projectData.pendingCount ?? 0}</Text>
-                        </View>
-                    </View>
-                </View>
-            </TouchableOpacity>
+            <ProjectSummaryCard
+                project={projectData}
+                ownerName={ownerName}
+                ownerImage={ownerImage}
+                onPress={onPress}
+            />
         </Animated.View>
     );
 };
@@ -189,9 +102,10 @@ export function UserProjectPage({ currentUser, onChat, sortOrder = 'recommended'
     const [selectedProject, setSelectedProject] = useState<Project | null>(null);
     const queryClient = useQueryClient();
     const { session } = useAuth();
+    const userId = session?.user?.id;
 
     // React Query hook - ブロックユーザーのプロジェクトを除外
-    const projectsQuery = useProjectsList(sortOrder, session?.user?.id);
+    const projectsQuery = useProjectsList(sortOrder, userId);
     const projects: Project[] = projectsQuery.data || [];
     const loading = projectsQuery.isLoading;
 
@@ -206,20 +120,24 @@ export function UserProjectPage({ currentUser, onChat, sortOrder = 'recommended'
         const projectsChannel = supabase
             .channel('public:projects')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'projects' }, () => {
-                queryClient.invalidateQueries({ queryKey: queryKeys.projects.list(sortOrder) });
+                queryClient.invalidateQueries({ queryKey: queryKeys.projects.list(sortOrder, userId), refetchType: 'active' });
             })
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'projects' }, () => {
-                queryClient.invalidateQueries({ queryKey: queryKeys.projects.list(sortOrder) });
+                queryClient.invalidateQueries({ queryKey: queryKeys.projects.list(sortOrder, userId), refetchType: 'active' });
             })
             .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'projects' }, () => {
-                queryClient.invalidateQueries({ queryKey: queryKeys.projects.list(sortOrder) });
+                queryClient.invalidateQueries({ queryKey: queryKeys.projects.list(sortOrder, userId), refetchType: 'active' });
+            })
+            // 参加申請数(pendingCount)は project_applications の変更で変わるため、ここでも更新する
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'project_applications' }, () => {
+                queryClient.invalidateQueries({ queryKey: queryKeys.projects.list(sortOrder, userId), refetchType: 'active' });
             })
             .subscribe();
 
         return () => {
             supabase.removeChannel(projectsChannel);
         };
-    }, [sortOrder, queryClient]);
+    }, [sortOrder, userId, queryClient]);
 
     const handleCreatePress = () => {
         if (!currentUser) {
@@ -649,89 +567,5 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.27,
         shadowRadius: 4.65,
     },
-    // 新しいツイキャス風カードスタイル
-    cardNew: {
-        flexDirection: 'row',
-        backgroundColor: 'white',
-        borderRadius: 12,
-        overflow: 'hidden',
-        marginBottom: 12,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 8,
-        elevation: 3,
-    },
-    cardThumbnail: {
-        width: 140,
-        height: 140,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    cardThumbnailImage: {
-        width: '100%',
-        height: '100%',
-    },
-    cardContentNew: {
-        flex: 1,
-        padding: 12,
-        justifyContent: 'space-between',
-    },
-    cardOwnerRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 6,
-    },
-    cardOwnerAvatar: {
-        width: 22,
-        height: 22,
-        borderRadius: 11,
-        marginRight: 6,
-    },
-    cardOwnerName: {
-        flexShrink: 1,
-        marginRight: 8,
-        fontSize: 11,
-        fontFamily: FONTS.medium,
-        color: '#6B7280',
-    },
-    cardTimeAgo: {
-        fontSize: 10,
-        fontFamily: FONTS.regular,
-        color: '#9CA3AF',
-    },
-    cardTitleNew: {
-        fontSize: 16,
-        fontFamily: FONTS.bold,
-        color: '#111827',
-        lineHeight: 21,
-        marginBottom: 4,
-    },
-    cardTaglineNew: {
-        fontSize: 12,
-        fontFamily: FONTS.regular,
-        color: '#6B7280',
-        lineHeight: 16,
-        marginBottom: 6,
-    },
-    cardBottomRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-    },
-    cardTagsRow: {
-        flexDirection: 'row',
-        gap: 4,
-        flex: 1,
-    },
-    cardStatsRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-    },
-    cardStatText: {
-        fontSize: 11,
-        fontFamily: FONTS.regular,
-        color: '#9CA3AF',
-    },
+    // 旧 cardNew 系スタイルは ProjectSummaryCard へ移行
 });
