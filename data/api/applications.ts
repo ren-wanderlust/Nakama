@@ -23,6 +23,7 @@ export interface Application {
     tags?: string[];
     content_tags?: string[];
     pendingCount?: number; // 参加申請数（pending）
+    applicantCount?: number; // これまで参加申請したユーザー数（status問わず、同一userは1）
     owner?: {
       id: string;
       name: string;
@@ -155,7 +156,7 @@ export async function fetchProjectApplications(userId: string): Promise<ProjectA
     }));
   }
 
-  // 3. Attach pending application count per project
+  // 3. Attach applicant count (unique users across all statuses) per project
   const allProjectIds = Array.from(
     new Set<string>([
       ...recruiting.map(a => a.project_id),
@@ -166,25 +167,28 @@ export async function fetchProjectApplications(userId: string): Promise<ProjectA
   if (allProjectIds.length > 0) {
     const { data: apps, error: countError } = await supabase
       .from('project_applications')
-      .select('project_id')
-      .in('project_id', allProjectIds)
-      .eq('status', 'pending');
+      .select('project_id, user_id')
+      .in('project_id', allProjectIds);
 
     if (countError) {
       console.error('Error fetching pending counts:', countError);
     } else {
-      const counts: Record<string, number> = {};
+      const userSets: Record<string, Set<string>> = {};
       apps?.forEach((app: any) => {
-        counts[app.project_id] = (counts[app.project_id] || 0) + 1;
+        const pid = app.project_id as string | undefined;
+        const uid = app.user_id as string | undefined;
+        if (!pid || !uid) return;
+        if (!userSets[pid]) userSets[pid] = new Set<string>();
+        userSets[pid].add(uid);
       });
 
       recruiting = recruiting.map((a) => ({
         ...a,
-        project: a.project ? { ...a.project, pendingCount: counts[a.project_id] || 0 } : a.project,
+        project: a.project ? { ...a.project, applicantCount: userSets[a.project_id]?.size || 0 } : a.project,
       }));
       applied = applied.map((a) => ({
         ...a,
-        project: a.project ? { ...a.project, pendingCount: counts[a.project_id] || 0 } : a.project,
+        project: a.project ? { ...a.project, applicantCount: userSets[a.project_id]?.size || 0 } : a.project,
       }));
     }
   }
