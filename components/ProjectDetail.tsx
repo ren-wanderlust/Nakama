@@ -1163,6 +1163,7 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                             <Text style={styles.sectionTitle}>ゴール</Text>
                             <Text style={styles.description}>{project.goal}</Text>
                             <View style={styles.sectionSpacer} />
+                            <View style={styles.sectionSpacer} />
                         </>
                     )}
 
@@ -1176,12 +1177,14 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                             {project.commitment_level && (
                                 <>
                                     <View style={styles.sectionSpacer} />
+                                    <View style={styles.sectionSpacer} />
                                     <Text style={styles.sectionTitle}>求めるコミット量</Text>
                                     <Text style={styles.description}>{project.commitment_level}</Text>
                                 </>
                             )}
                             {project.duration && (
                                 <>
+                                    <View style={styles.sectionSpacer} />
                                     <View style={styles.sectionSpacer} />
                                     <Text style={styles.sectionTitle}>期間</Text>
                                     <Text style={styles.description}>{project.duration}</Text>
@@ -1190,68 +1193,6 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                         </>
                     )}
 
-                    {/* Pending Applications Section (Owner Only) - 詳細の下に残す */}
-                    {
-                        currentUser?.id === project.owner_id && (
-                            <>
-                                {/* 上のコンテンツと区切って表示 */}
-                                <View style={styles.ownerApplicantsDivider} />
-
-                                <View style={styles.applicantsSection}>
-                                    <Text style={styles.sectionTitle}>
-                                        申請中のメンバー ({applicants.filter(a => a.status === 'pending').length}人)
-                                    </Text>
-                                    {applicants.filter(a => a.status === 'pending').length > 0 ? (
-                                        <View style={styles.pendingCardsList}>
-                                            {applicants.filter(a => a.status === 'pending').map((applicant) => (
-                                                <View key={applicant.id} style={styles.pendingCard}>
-                                                    <View style={styles.pendingCardHeader}>
-                                                        <Image
-                                                            source={getImageSource(applicant.user.image)}
-                                                            style={styles.pendingCardImage}
-                                                        />
-                                                        <View style={styles.pendingCardInfo}>
-                                                            <Text style={styles.pendingCardName} numberOfLines={1}>
-                                                                {applicant.user.name}
-                                                            </Text>
-                                                            <Text style={styles.pendingCardUniversity} numberOfLines={1}>
-                                                                {applicant.user.university || '所属なし'}
-                                                            </Text>
-                                                        </View>
-                                                    </View>
-                                                    {applicant.message && (
-                                                        <View style={styles.pendingMessageContainer}>
-                                                            <Text style={styles.pendingMessageText}>
-                                                                "{applicant.message}"
-                                                            </Text>
-                                                        </View>
-                                                    )}
-                                                    <View style={styles.pendingCardActions}>
-                                                        <TouchableOpacity
-                                                            style={styles.rejectButton}
-                                                            onPress={() => handleRejectConfirmation(applicant.id, applicant.user.name)}
-                                                        >
-                                                            <Ionicons name="close" size={18} color="#EF4444" />
-                                                            <Text style={styles.rejectButtonText}>棄却</Text>
-                                                        </TouchableOpacity>
-                                                        <TouchableOpacity
-                                                            style={styles.approveButton}
-                                                            onPress={() => updateApplicantStatus(applicant.id, 'approved', applicant.user.name)}
-                                                        >
-                                                            <Ionicons name="checkmark" size={18} color="white" />
-                                                            <Text style={styles.approveButtonText}>承認</Text>
-                                                        </TouchableOpacity>
-                                                    </View>
-                                                </View>
-                                            ))}
-                                        </View>
-                                    ) : (
-                                        <Text style={styles.noApplicantsText}>現在、申請はありません</Text>
-                                    )}
-                                </View>
-                            </>
-                        )
-                    }
                 </View >
                 <View style={{ height: 100 }} />
             </ScrollView >
