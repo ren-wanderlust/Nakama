@@ -51,7 +51,7 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
     const [deadline, setDeadline] = useState<Date | null>(project?.deadline ? new Date(project.deadline) : null);
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [selectedStatus, setSelectedStatus] = useState<string>(project?.status || '');
+    const [selectedStatus, setSelectedStatus] = useState<string>(project?.status || 'idea');
 
     const [selectedRoles, setSelectedRoles] = useState<string[]>(project?.required_roles || []);
     const [selectedThemes, setSelectedThemes] = useState<string[]>(project?.tags || []);
@@ -68,13 +68,7 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
     const [duration, setDuration] = useState(project?.duration || '');
 
     // 進捗状況の選択肢
-    const PROGRESS_STATUS = [
-        { id: 'idea', title: 'アイデア段階', icon: 'bulb-outline', color: '#F59E0B', bgColor: '#FFFBEB' },
-        { id: 'planning', title: '企画中', icon: 'clipboard-outline', color: '#8B5CF6', bgColor: '#F5F3FF' },
-        { id: 'developing', title: '開発中', icon: 'construct-outline', color: '#3B82F6', bgColor: '#EFF6FF' },
-        { id: 'beta', title: 'β版', icon: 'flask-outline', color: '#EC4899', bgColor: '#FDF2F8' },
-        { id: 'released', title: 'リリース済み', icon: 'rocket-outline', color: '#10B981', bgColor: '#ECFDF5' },
-    ];
+
 
     // プリセット内容タグ
     const CONTENT_TAGS = [
@@ -205,10 +199,7 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
             Alert.alert('エラー', 'プロジェクトのテーマを選択してください');
             return;
         }
-        if (!selectedStatus) {
-            Alert.alert('エラー', '進捗状況を選択してください');
-            return;
-        }
+
         if (selectedContentTags.length === 0) {
             Alert.alert('エラー', '内容タグを1つ以上選択してください');
             return;
@@ -459,6 +450,28 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
                         </View>
                     </View>
 
+                    {/* Goal Section */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <View style={styles.sectionIconContainer}>
+                                <Ionicons name="flag" size={18} color="#009688" />
+                            </View>
+                            <Text style={styles.sectionTitle}>ゴール</Text>
+                            <Text style={styles.optionalBadge}>任意</Text>
+                        </View>
+                        <View style={styles.inputWrapper}>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="例: MVP完成、資金調達、サービスリリース"
+                                placeholderTextColor="#9CA3AF"
+                                value={goal}
+                                onChangeText={setGoal}
+                                maxLength={100}
+                            />
+                            <Text style={styles.charCount}>{goal.length}/100</Text>
+                        </View>
+                    </View>
+
                     {/* Roles Section */}
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
@@ -575,52 +588,7 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
                         </View>
                     </View>
 
-                    {/* Progress Status Section */}
-                    <View style={styles.section}>
-                        <View style={styles.sectionHeader}>
-                            <View style={styles.sectionIconContainer}>
-                                <Ionicons name="trending-up" size={18} color="#009688" />
-                            </View>
-                            <Text style={styles.sectionTitle}>進捗状況</Text>
-                            <Text style={styles.requiredBadge}>必須</Text>
-                        </View>
-                        <View style={styles.chipContainer}>
-                            {PROGRESS_STATUS.map((status) => {
-                                const isSelected = selectedStatus === status.id;
-                                return (
-                                    <TouchableOpacity
-                                        key={status.id}
-                                        style={[
-                                            styles.chip,
-                                            isSelected && {
-                                                backgroundColor: status.bgColor,
-                                                borderColor: status.color
-                                            }
-                                        ]}
-                                        onPress={() => {
-                                            triggerHaptic('selection');
-                                            setSelectedStatus(status.id);
-                                        }}
-                                        activeOpacity={0.7}
-                                    >
-                                        <Ionicons
-                                            name={status.icon as any}
-                                            size={16}
-                                            color={isSelected ? status.color : '#9CA3AF'}
-                                            style={{ marginRight: 6 }}
-                                        />
-                                        <Text style={[
-                                            styles.chipText,
-                                            isSelected && {
-                                                color: status.color,
-                                                fontWeight: '600'
-                                            }
-                                        ]}>{status.title}</Text>
-                                    </TouchableOpacity>
-                                );
-                            })}
-                        </View>
-                    </View>
+
 
                     {/* Content Tags Section */}
                     <View style={styles.section}>
@@ -752,6 +720,30 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
                         )}
                     </View>
 
+
+
+                    {/* Description Section */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <View style={styles.sectionIconContainer}>
+                                <Ionicons name="document-text" size={18} color="#009688" />
+                            </View>
+                            <Text style={styles.sectionTitle}>詳細説明</Text>
+                            <Text style={styles.requiredBadge}>必須</Text>
+                        </View>
+                        <View style={styles.textAreaWrapper}>
+                            <TextInput
+                                style={styles.textArea}
+                                placeholder="プロジェクトの目的、背景、求める人物像などを詳しく書きましょう。&#10;&#10;例:&#10;• プロジェクトの目標&#10;• 開発予定の機能&#10;• 活動頻度やコミュニケーション方法"
+                                placeholderTextColor="#9CA3AF"
+                                value={description}
+                                onChangeText={setDescription}
+                                multiline
+                                textAlignVertical="top"
+                            />
+                        </View>
+                    </View>
+
                     {/* Commitment Level Section */}
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
@@ -774,27 +766,7 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
                         </View>
                     </View>
 
-                    {/* Goal Section */}
-                    <View style={styles.section}>
-                        <View style={styles.sectionHeader}>
-                            <View style={styles.sectionIconContainer}>
-                                <Ionicons name="flag" size={18} color="#009688" />
-                            </View>
-                            <Text style={styles.sectionTitle}>ゴール</Text>
-                            <Text style={styles.optionalBadge}>任意</Text>
-                        </View>
-                        <View style={styles.inputWrapper}>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="例: MVP完成、資金調達、サービスリリース"
-                                placeholderTextColor="#9CA3AF"
-                                value={goal}
-                                onChangeText={setGoal}
-                                maxLength={100}
-                            />
-                            <Text style={styles.charCount}>{goal.length}/100</Text>
-                        </View>
-                    </View>
+
 
                     {/* Duration Section */}
                     <View style={styles.section}>
@@ -815,28 +787,6 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
                                 maxLength={50}
                             />
                             <Text style={styles.charCount}>{duration.length}/50</Text>
-                        </View>
-                    </View>
-
-                    {/* Description Section */}
-                    <View style={styles.section}>
-                        <View style={styles.sectionHeader}>
-                            <View style={styles.sectionIconContainer}>
-                                <Ionicons name="document-text" size={18} color="#009688" />
-                            </View>
-                            <Text style={styles.sectionTitle}>詳細説明</Text>
-                            <Text style={styles.requiredBadge}>必須</Text>
-                        </View>
-                        <View style={styles.textAreaWrapper}>
-                            <TextInput
-                                style={styles.textArea}
-                                placeholder="プロジェクトの目的、背景、求める人物像などを詳しく書きましょう。&#10;&#10;例:&#10;• プロジェクトの目標&#10;• 開発予定の機能&#10;• 活動頻度やコミュニケーション方法"
-                                placeholderTextColor="#9CA3AF"
-                                value={description}
-                                onChangeText={setDescription}
-                                multiline
-                                textAlignVertical="top"
-                            />
                         </View>
                     </View>
 

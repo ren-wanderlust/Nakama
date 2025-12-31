@@ -493,9 +493,9 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
         const ownerName = projectData.profiles?.name || projectData.owner?.name || '不明';
         const statusBadge = (
             <View style={[styles.appliedStatusBadgePill, { backgroundColor: statusInfo.color + '20' }]}>
-                    <Ionicons name={statusInfo.icon as any} size={14} color={statusInfo.color} />
+                <Ionicons name={statusInfo.icon as any} size={14} color={statusInfo.color} />
                 <Text style={[styles.appliedStatusTextPill, { color: statusInfo.color }]}>{statusInfo.text}</Text>
-                </View>
+            </View>
         );
 
         return (
@@ -585,6 +585,14 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                         )}
                     </View>
                 </View>
+
+                {item.message && (
+                    <View style={styles.recruitingMessageContainer}>
+                        <Text style={styles.recruitingMessageText} numberOfLines={2}>
+                            "{item.message}"
+                        </Text>
+                    </View>
+                )}
             </TouchableOpacity>
         );
     };
@@ -1767,6 +1775,21 @@ const styles = StyleSheet.create({
         maxWidth: 220,
     },
 
-    // 旧 appliedCardNew 系スタイルは ProjectSummaryCard へ移行
+    recruitingMessageContainer: {
+        marginTop: 8,
+        marginHorizontal: 12,
+        marginBottom: 4,
+        padding: 8,
+        backgroundColor: '#FFFBEB',
+        borderRadius: 8,
+        borderLeftWidth: 3,
+        borderLeftColor: '#F59E0B',
+    },
+    recruitingMessageText: {
+        fontSize: 12,
+        color: '#4B5563',
+        fontStyle: 'italic',
+        lineHeight: 16,
+    },
 });
 
