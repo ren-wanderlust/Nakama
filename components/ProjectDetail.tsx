@@ -746,6 +746,130 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
         }
     };
 
+    // プロジェクト脱退処理（メンバー用）
+    const handleLeaveProject = () => {
+        if (!currentUser) return;
+
+        // 自分がメンバーかどうか確認
+        const myApplication = applicants.find(a => a.user_id === currentUser.id && a.status === 'approved');
+        if (!myApplication) {
+            Alert.alert('エラー', 'あなたはこのプロジェクトのメンバーではありません');
+            return;
+        }
+
+        Alert.alert(
+            'プロジェクトを脱退',
+            `「${project.title}」から脱退しますか？\n\n脱退するとチームチャットからも除外されます。`,
+            [
+                { text: 'キャンセル', style: 'cancel' },
+                {
+                    text: '脱退する',
+                    style: 'destructive',
+                    onPress: () => {
+                        // 2段階確認
+                        Alert.alert(
+                            '最終確認',
+                            '本当にこのプロジェクトから脱退してよろしいですか？',
+                            [
+                                { text: 'やめる', style: 'cancel' },
+                                {
+                                    text: '脱退する',
+                                    style: 'destructive',
+                                    onPress: () => executeLeaveProject(myApplication.id)
+                                }
+                            ]
+                        );
+                    }
+                }
+            ]
+        );
+    };
+
+    const executeLeaveProject = async (applicationId: string) => {
+        if (!currentUser) return;
+
+        try {
+            // 1. プロジェクト応募を rejected に変更（削除ではなく履歴を残す）
+            const { error: leaveError } = await supabase
+                .from('project_applications')
+                .update({ status: 'rejected' })
+                .eq('id', applicationId);
+
+            if (leaveError) throw leaveError;
+
+            // 2. オーナーに通知を送信
+            await supabase
+                .from('notifications')
+                .insert({
+                    user_id: project.owner_id,
+                    sender_id: currentUser.id,
+                    project_id: project.id,
+                    type: 'member_left',
+                    title: 'メンバーがプロジェクトを脱退しました',
+                    content: `${currentUser.name}さんが「${project.title}」から脱退しました。`,
+                    image_url: currentUser.image
+                });
+
+            // 3. オーナーにプッシュ通知を送信
+            try {
+                const tokens = await getUserPushTokens(project.owner_id);
+                for (const token of tokens) {
+                    await sendPushNotification(
+                        token,
+                        'メンバー脱退のお知らせ',
+                        `${currentUser.name}さんが「${project.title}」から脱退しました。`,
+                        { type: 'member_left', projectId: project.id }
+                    );
+                }
+            } catch (pushError) {
+                console.log('Push notification error:', pushError);
+            }
+
+            // 4. チームチャットにシステムメッセージを投稿
+            const { data: chatRoom } = await supabase
+                .from('chat_rooms')
+                .select('id')
+                .eq('project_id', project.id)
+                .eq('type', 'group')
+                .maybeSingle();
+
+            if (chatRoom?.id) {
+                const systemText = `${currentUser.name}がプロジェクトから脱退しました`;
+                await supabase
+                    .from('messages')
+                    .insert({
+                        sender_id: currentUser.id,
+                        receiver_id: currentUser.id,
+                        chat_room_id: chatRoom.id,
+                        content: buildSystemMessage(systemText),
+                    });
+            }
+
+            // 5. React Query のキャッシュを更新
+            queryClient.invalidateQueries({ queryKey: queryKeys.participatingProjects.detail(currentUser.id), refetchType: 'active' });
+            queryClient.invalidateQueries({ queryKey: queryKeys.chatRooms.list(currentUser.id), refetchType: 'active' });
+            queryClient.invalidateQueries({ queryKey: queryKeys.projectApplications.applied(currentUser.id), refetchType: 'active' });
+
+            Alert.alert(
+                '完了',
+                'プロジェクトから脱退しました',
+                [{
+                    text: 'OK',
+                    onPress: () => {
+                        if (onProjectUpdated) onProjectUpdated();
+                        onClose();
+                    }
+                }]
+            );
+        } catch (error) {
+            console.error('Error leaving project:', error);
+            Alert.alert('エラー', 'プロジェクトからの脱退に失敗しました');
+        }
+    };
+
+    // 現在のユーザーがメンバーかどうかを判定
+    const isMember = currentUser && applicants.some(a => a.user_id === currentUser.id && a.status === 'approved');
+
     const formatDate = (dateString?: string | null) => {
         if (!dateString) return '期限なし';
         const date = new Date(dateString);
@@ -766,7 +890,7 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                 <TouchableOpacity onPress={onClose} style={styles.closeButton}>
                     <Ionicons name="close" size={28} color="#374151" />
                 </TouchableOpacity>
-                {currentUser?.id === project.owner_id && (
+                {currentUser?.id === project.owner_id ? (
                     <View style={styles.headerActions}>
                         <TouchableOpacity onPress={() => setShowEditModal(true)} style={styles.actionButton}>
                             <Ionicons name="create-outline" size={24} color="#374151" />
@@ -775,7 +899,13 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                             <Ionicons name="trash-outline" size={24} color="#EF4444" />
                         </TouchableOpacity>
                     </View>
-                )}
+                ) : isMember ? (
+                    <View style={styles.headerActions}>
+                        <TouchableOpacity onPress={handleLeaveProject} style={styles.actionButton}>
+                            <Ionicons name="exit-outline" size={24} color="#EF4444" />
+                        </TouchableOpacity>
+                    </View>
+                ) : null}
             </View>
 
             <Modal
