@@ -228,10 +228,35 @@ export function ProfileDetail({ profile, onBack, onLike, onChat, isLiked, onBloc
                     )
                 }
 
-                {/* 3. Bio */}
+                {/* 3. Roles (役割) */}
+                {
+                    skills.length > 0 && (
+                        <View style={styles.section}>
+                            <View style={styles.sectionHeader}>
+                                <Text style={styles.sectionTitle}>役割</Text>
+                            </View>
+                            <View style={styles.tagsContainer}>
+                                {skills.map((skill, index) => {
+                                    const translatedSkill = translateTag(skill);
+                                    const roleColors = getRoleColors(translatedSkill);
+                                    const roleIcon = getRoleIcon(translatedSkill);
+                                    return (
+                                        <View key={index} style={[styles.roleTagNew, { backgroundColor: roleColors.bg, borderColor: roleColors.border }]}>
+                                            <View style={[styles.roleIconCircle, { backgroundColor: roleColors.bg }]}>
+                                                <Ionicons name={roleIcon as any} size={12} color={roleColors.icon} />
+                                            </View>
+                                            <Text style={[styles.roleTagNewText, { color: roleColors.icon }]}>{translatedSkill}</Text>
+                                        </View>
+                                    );
+                                })}
+                            </View>
+                        </View>
+                    )
+                }
+
+                {/* 4. Bio */}
                 <View style={styles.section}>
                     <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionIcon}>📄</Text>
                         <Text style={styles.sectionTitle}>自己紹介</Text>
                     </View>
                     <View style={styles.bioBox}>
@@ -263,60 +288,6 @@ export function ProfileDetail({ profile, onBack, onLike, onChat, isLiked, onBloc
                         </TouchableOpacity>
                     </View>
                 )}
-
-                {/* 4. Skills */}
-                {
-                    skills.length > 0 && (
-                        <View style={styles.section}>
-                            <View style={styles.sectionHeader}>
-                                <Text style={styles.sectionIcon}>⚡️</Text>
-                                <Text style={styles.sectionTitle}>持っているスキル</Text>
-                            </View>
-                            <View style={styles.tagsContainer}>
-                                {skills.map((skill, index) => {
-                                    const translatedSkill = translateTag(skill);
-                                    const roleColors = getRoleColors(translatedSkill);
-                                    const roleIcon = getRoleIcon(translatedSkill);
-                                    return (
-                                        <View key={index} style={[styles.roleTagNew, { backgroundColor: roleColors.bg, borderColor: roleColors.border }]}>
-                                            <View style={[styles.roleIconCircle, { backgroundColor: roleColors.bg }]}>
-                                                <Ionicons name={roleIcon as any} size={14} color={roleColors.icon} />
-                                            </View>
-                                            <Text style={[styles.roleTagNewText, { color: roleColors.icon }]}>{translatedSkill}</Text>
-                                        </View>
-                                    );
-                                })}
-                            </View>
-                        </View>
-                    )
-                }
-
-                {/* 5. Seeking Roles */}
-                {
-                    seekingRoles.length > 0 && (
-                        <View style={styles.section}>
-                            <View style={styles.sectionHeader}>
-                                <Text style={styles.sectionIcon}>🤝</Text>
-                                <Text style={styles.sectionTitle}>求める仲間・条件</Text>
-                            </View>
-                            <View style={styles.tagsContainer}>
-                                {seekingRoles.map((role, index) => {
-                                    const translatedRole = translateTag(role);
-                                    const roleColors = getRoleColors(translatedRole);
-                                    const roleIcon = getRoleIcon(translatedRole);
-                                    return (
-                                        <View key={index} style={[styles.roleTagNew, { backgroundColor: roleColors.bg, borderColor: roleColors.border }]}>
-                                            <View style={[styles.roleIconCircle, { backgroundColor: roleColors.bg }]}>
-                                                <Ionicons name={roleIcon as any} size={14} color={roleColors.icon} />
-                                            </View>
-                                            <Text style={[styles.roleTagNewText, { color: roleColors.icon }]}>{translatedRole}</Text>
-                                        </View>
-                                    );
-                                })}
-                            </View>
-                        </View>
-                    )
-                }
 
             </ScrollView >
 
@@ -550,7 +521,6 @@ const styles = StyleSheet.create({
         fontWeight: '500',
     },
     bioBox: {
-        backgroundColor: '#F5F5F5',
         borderRadius: 16,
         padding: 20,
     },
@@ -611,21 +581,21 @@ const styles = StyleSheet.create({
     roleTagNew: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 12,
+        paddingHorizontal: 8,
+        paddingVertical: 5,
+        borderRadius: 10,
         borderWidth: 1.5,
-        gap: 8,
+        gap: 6,
     },
     roleIconCircle: {
-        width: 28,
-        height: 28,
-        borderRadius: 8,
+        width: 22,
+        height: 22,
+        borderRadius: 6,
         alignItems: 'center',
         justifyContent: 'center',
     },
     roleTagNewText: {
-        fontSize: 13,
+        fontSize: 12,
         fontWeight: '600',
     },
     footer: {
