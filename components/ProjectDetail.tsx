@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Image, Dimensions, Alert, ActivityIndicator, SafeAreaView, FlatList, Modal } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Image, Dimensions, Alert, ActivityIndicator, SafeAreaView, FlatList, Modal, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
@@ -48,6 +48,7 @@ interface Applicant {
     id: string;
     user_id: string;
     status: 'pending' | 'approved' | 'rejected';
+    message?: string | null;
     user: {
         id: string;
         name: string;
@@ -94,6 +95,10 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
     const [showProfileModal, setShowProfileModal] = useState(false);
     const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
     const [loadingProfile, setLoadingProfile] = useState<string | null>(null); // ローディング中のユーザーIDを保持
+
+    // 応募モーダル用のstate
+    const [showApplyModal, setShowApplyModal] = useState(false);
+    const [applyMessage, setApplyMessage] = useState('');
 
     useEffect(() => {
         if (!owner) {
@@ -180,6 +185,7 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
           id,
           user_id,
           status,
+          message,
           user:profiles!user_id (
             id,
             name,
@@ -197,6 +203,7 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                     id: item.id,
                     user_id: item.user_id,
                     status: item.status,
+                    message: item.message,
                     user: item.user
                 }));
                 setApplicants(formattedApplicants);
@@ -260,7 +267,8 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
         };
     }, [project.id, fetchApplicants]);
 
-    const handleApply = async () => {
+    // 応募ボタンを押したときにモーダルを開く
+    const handleApply = () => {
         if (!currentUser) {
             Alert.alert('エラー', 'ログインが必要です');
             return;
@@ -273,8 +281,18 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
             Alert.alert('通知', 'すでに応募済みです');
             return;
         }
+        // モーダルを開く
+        setApplyMessage('');
+        setShowApplyModal(true);
+    };
+
+    // 実際の応募処理
+    const submitApplication = async () => {
+        if (!currentUser) return;
 
         setApplying(true);
+        setShowApplyModal(false);
+
         try {
             // Check current application count (pending + approved applications)
             const { count, error: countError } = await supabase
@@ -294,11 +312,17 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                 return;
             }
 
+            const messageToSave = applyMessage.trim() || null;
+
             if (hasApplied && applicationStatus === 'rejected') {
                 // Re-apply: update existing application status to pending
                 const { error: updateError } = await supabase
                     .from('project_applications')
-                    .update({ status: 'pending', created_at: new Date().toISOString() })
+                    .update({
+                        status: 'pending',
+                        created_at: new Date().toISOString(),
+                        message: messageToSave
+                    })
                     .eq('project_id', project.id)
                     .eq('user_id', currentUser.id);
 
@@ -310,13 +334,18 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                     .insert({
                         project_id: project.id,
                         user_id: currentUser.id,
-                        status: 'pending'
+                        status: 'pending',
+                        message: messageToSave
                     });
 
                 if (appError) throw appError;
             }
 
             // Send notification to owner
+            const notificationContent = messageToSave
+                ? `${currentUser.name}さんが「${project.title}」に応募しました！\n\n💬 ${messageToSave}`
+                : `${currentUser.name}さんが「${project.title}」に応募しました！`;
+
             const { error: notifError } = await supabase
                 .from('notifications')
                 .insert({
@@ -325,7 +354,7 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                     project_id: project.id,  // プロジェクトID
                     type: 'application',
                     title: 'プロジェクトへの応募',
-                    content: `${currentUser.name}さんが「${project.title}」に応募しました！`,
+                    content: notificationContent,
                     image_url: currentUser.image
                 });
 
@@ -348,6 +377,7 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
 
             Alert.alert('完了', '応募が完了しました！オーナーからの連絡をお待ちください。');
             setHasApplied(true);
+            setApplyMessage('');
             // 応募直後に「応募」一覧（LikesPage等）を即時更新
             queryClient.invalidateQueries({ queryKey: queryKeys.projectApplications.applied(currentUser.id), refetchType: 'active' });
             fetchApplicants(); // Refresh list
@@ -562,9 +592,13 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
         if (currentUser?.id !== project.owner_id) return;
 
         if (applicant.status === 'pending') {
+            const messageContent = applicant.message
+                ? `${applicant.user.name}さんからの申請をどうしますか？\n\n💬 メッセージ:\n「${applicant.message}」`
+                : `${applicant.user.name}さんからの申請をどうしますか？`;
+
             Alert.alert(
                 '申請の管理',
-                `${applicant.user.name}さんからの申請をどうしますか？`,
+                messageContent,
                 [
                     { text: 'キャンセル', style: 'cancel' },
                     {
@@ -932,6 +966,71 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                         project={project}
                     />
                 )}
+            </Modal>
+
+            {/* Apply Modal */}
+            <Modal
+                visible={showApplyModal}
+                animationType="fade"
+                transparent={true}
+                onRequestClose={() => setShowApplyModal(false)}
+            >
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    style={styles.applyModalOverlay}
+                >
+                    <View style={styles.applyModalContainer}>
+                        <View style={styles.applyModalHeader}>
+                            <Text style={styles.applyModalTitle}>プロジェクトに応募</Text>
+                            <TouchableOpacity
+                                onPress={() => setShowApplyModal(false)}
+                                style={styles.applyModalCloseButton}
+                            >
+                                <Ionicons name="close" size={24} color="#6B7280" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <Text style={styles.applyModalSubtitle}>
+                            「{project.title}」への参加を希望します
+                        </Text>
+
+                        <View style={styles.applyMessageContainer}>
+                            <Text style={styles.applyMessageLabel}>
+                                一言メッセージ（任意）
+                            </Text>
+                            <TextInput
+                                style={styles.applyMessageInput}
+                                placeholder="例: エンジニア経験3年です。&#10;一緒に開発できると嬉しいです！"
+                                placeholderTextColor="#9CA3AF"
+                                value={applyMessage}
+                                onChangeText={setApplyMessage}
+                                multiline
+                                numberOfLines={4}
+                                textAlignVertical="top"
+                                maxLength={200}
+                            />
+                            <Text style={styles.applyMessageCharCount}>
+                                {applyMessage.length}/200
+                            </Text>
+                        </View>
+
+                        <View style={styles.applyModalButtons}>
+                            <TouchableOpacity
+                                style={styles.applyModalCancelButton}
+                                onPress={() => setShowApplyModal(false)}
+                            >
+                                <Text style={styles.applyModalCancelText}>キャンセル</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={styles.applyModalSubmitButton}
+                                onPress={submitApplication}
+                            >
+                                <Ionicons name="paper-plane" size={18} color="white" />
+                                <Text style={styles.applyModalSubmitText}>応募する</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </KeyboardAvoidingView>
             </Modal>
 
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -1630,5 +1729,101 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '500',
         color: '#111827',
+    },
+    // Apply Modal Styles
+    applyModalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+    applyModalContainer: {
+        backgroundColor: 'white',
+        borderRadius: 20,
+        padding: 24,
+        width: '100%',
+        maxWidth: 400,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.25,
+        shadowRadius: 20,
+        elevation: 10,
+    },
+    applyModalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    applyModalTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#111827',
+    },
+    applyModalCloseButton: {
+        padding: 4,
+    },
+    applyModalSubtitle: {
+        fontSize: 14,
+        color: '#6B7280',
+        marginBottom: 20,
+    },
+    applyMessageContainer: {
+        marginBottom: 24,
+    },
+    applyMessageLabel: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#374151',
+        marginBottom: 8,
+    },
+    applyMessageInput: {
+        backgroundColor: '#F9FAFB',
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        borderRadius: 12,
+        padding: 14,
+        fontSize: 15,
+        color: '#111827',
+        minHeight: 100,
+        textAlignVertical: 'top',
+    },
+    applyMessageCharCount: {
+        fontSize: 12,
+        color: '#9CA3AF',
+        textAlign: 'right',
+        marginTop: 4,
+    },
+    applyModalButtons: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    applyModalCancelButton: {
+        flex: 1,
+        backgroundColor: '#F3F4F6',
+        paddingVertical: 14,
+        borderRadius: 12,
+        alignItems: 'center',
+    },
+    applyModalCancelText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#6B7280',
+    },
+    applyModalSubmitButton: {
+        flex: 1,
+        backgroundColor: '#009688',
+        paddingVertical: 14,
+        borderRadius: 12,
+        alignItems: 'center',
+        flexDirection: 'row',
+        justifyContent: 'center',
+        gap: 8,
+    },
+    applyModalSubmitText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: 'white',
     },
 });
