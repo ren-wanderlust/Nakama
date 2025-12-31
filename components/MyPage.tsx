@@ -341,6 +341,7 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                 <TouchableOpacity
                     style={styles.editProfileButtonLarge}
                     onPress={() => onEditProfile && onEditProfile()}
+                    activeOpacity={0.7}
                 >
                     <Ionicons name="pencil" size={16} color="white" style={{ marginRight: 8 }} />
                     <Text style={styles.editProfileButtonTextLarge}>プロフィール編集</Text>
@@ -808,8 +809,7 @@ const styles = StyleSheet.create({
     },
     discordHeader: {
         backgroundColor: 'white',
-        marginBottom: -50, // タブ用のスペーサー分を重ねる
-        zIndex: 0,
+        // marginBottom削除: タッチイベントブロック問題を解消
     },
     headerCoverArea: {
         width: '100%',
@@ -910,10 +910,9 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.05,
         shadowRadius: 4,
         elevation: 2,
-        zIndex: 1, // プロフィールの上に重ねる（ただしpointerEventsで透過させる）
     },
     stickyHeaderSpacer: {
-        height: 50, // ステータスバーの高さ分（または下げたい分量）
+        height: 0, // 重複問題解消のため一時的に0に設定
         // backgroundColorは動的に制御
     },
     // 横並びタブスタイル

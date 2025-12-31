@@ -1970,11 +1970,13 @@ function AppContent() {
 
       <Modal visible={showProfileEdit} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowProfileEdit(false)}>
         <SafeAreaProvider>
-          <ProfileEdit
-            initialProfile={currentUser!}
-            onSave={handleSaveProfile}
-            onCancel={() => setShowProfileEdit(false)}
-          />
+          {currentUser && (
+            <ProfileEdit
+              initialProfile={currentUser}
+              onSave={handleSaveProfile}
+              onCancel={() => setShowProfileEdit(false)}
+            />
+          )}
         </SafeAreaProvider>
       </Modal>
 
