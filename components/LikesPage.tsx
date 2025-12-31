@@ -1849,8 +1849,8 @@ const styles = StyleSheet.create({
         elevation: 3,
     },
     appliedCardThumbnail: {
-        width: 120,
-        height: 120,
+        width: 140,
+        height: 140,
         alignItems: 'center',
         justifyContent: 'center',
     },
