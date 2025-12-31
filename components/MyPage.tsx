@@ -264,19 +264,12 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
     // Discord風ヘッダー（グラデーション拡張）
     const renderDiscordHeader = () => (
         <LinearGradient
-            colors={['#FBA535', '#FFCC66', '#FFF3E0']}
+            colors={['#F7B555', '#F7B555', '#FFF3E0']}
             locations={[0, 0.5, 1]}
             style={styles.discordHeader}
         >
             {/* ロゴ部分 */}
             <View style={styles.discordBannerContent}>
-                <View style={styles.logoContainer}>
-                    <Image
-                        source={require('../assets/adaptive-icon.png')}
-                        style={styles.discordBannerLogo}
-                        resizeMode="contain"
-                    />
-                </View>
                 <Text style={styles.discordBannerText}>Pogg</Text>
             </View>
 
@@ -824,22 +817,20 @@ const styles = StyleSheet.create({
     logoContainer: {
         width: 64,
         height: 64,
-        borderRadius: 16,
-        backgroundColor: 'white',
         alignItems: 'center',
         justifyContent: 'center',
-        ...SHADOWS.sm,
     },
     discordBannerLogo: {
         width: 48,
         height: 48,
     },
     discordBannerText: {
-        fontSize: 34,
+        fontSize: 40,
         fontWeight: '700',
         color: 'white',
         letterSpacing: 0.5,
         fontFamily: FONTS.bold,
+        marginTop: 10,
     },
     discordSettingsBtn: {
         position: 'absolute',
