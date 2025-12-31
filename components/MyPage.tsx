@@ -254,10 +254,22 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
         { id: 'logout', icon: 'log-out-outline', label: 'ログアウト', color: '#EF4444' },
     ];
 
-    // 登録日をフォーマット
-    const formatRegistrationDate = () => {
-        if (!profile.createdAt) return '不明';
-        const date = new Date(profile.createdAt);
+    const [isSticky, setIsSticky] = useState(false);
+
+    const handleScroll = (event: any) => {
+        const offsetY = event.nativeEvent.contentOffset.y;
+        // プロフィールの高さ - 50px くらいを目安に切り替える
+        // 実際には見た目で調整。仮に220pxとする
+        if (offsetY > 220 && !isSticky) {
+            setIsSticky(true);
+        } else if (offsetY <= 220 && isSticky) {
+            setIsSticky(false);
+        }
+    };
+
+    // 日付フォーマット
+    const formatDate = (dateString: string) => {
+        const date = new Date(dateString);
         return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
     };
 
@@ -417,36 +429,45 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
             <ScrollView
                 style={styles.scrollView}
                 refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F39800" />
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F57C00" />
                 }
                 showsVerticalScrollIndicator={false}
                 stickyHeaderIndices={[1]}
+                onScroll={handleScroll}
+                scrollEventThrottle={16}
             >
                 {/* Discord風ヘッダー */}
                 {renderDiscordHeader()}
 
                 {/* セクションリスト（固定） */}
-                <View style={styles.stickyHeaderWrapper}>
-                    {/* ステータスバー避け用スペーサー */}
-                    <View style={styles.stickyHeaderSpacer} />
-                    <View style={styles.horizontalTabsContainer}>
-                        {/* マイプロジェクト */}
-                        <TouchableOpacity
-                            style={[styles.horizontalTabItem, activeTab === 'myProjects' && styles.horizontalTabItemActive]}
-                            onPress={() => setActiveTab('myProjects')}
-                        >
-                            <Ionicons name="grid-outline" size={18} color={activeTab === 'myProjects' ? 'white' : '#E5A33D'} />
-                            <Text style={[styles.horizontalTabLabel, activeTab === 'myProjects' && styles.horizontalTabLabelActive]}>マイプロジェクト</Text>
-                        </TouchableOpacity>
+                <View
+                    style={[styles.stickyHeaderWrapper, { backgroundColor: 'transparent' }]}
+                    pointerEvents="box-none"
+                >
+                    {/* ステータスバー避け用スペーサー（スクロール時は白、初期は透明） */}
+                    <View style={[styles.stickyHeaderSpacer, { backgroundColor: isSticky ? 'white' : 'transparent' }]} />
 
-                        {/* 参加中プロジェクト */}
-                        <TouchableOpacity
-                            style={[styles.horizontalTabItem, activeTab === 'participatingProjects' && styles.horizontalTabItemActive]}
-                            onPress={() => setActiveTab('participatingProjects')}
-                        >
-                            <Ionicons name="people-outline" size={18} color={activeTab === 'participatingProjects' ? 'white' : '#E5A33D'} />
-                            <Text style={[styles.horizontalTabLabel, activeTab === 'participatingProjects' && styles.horizontalTabLabelActive]}>参加中</Text>
-                        </TouchableOpacity>
+                    {/* 背景色を白にするためのラッパー（スクロール時にタブ背景が透けないようにする） */}
+                    <View style={{ backgroundColor: 'white' }}>
+                        <View style={styles.horizontalTabsContainer}>
+                            {/* マイプロジェクト */}
+                            <TouchableOpacity
+                                style={[styles.horizontalTabItem, activeTab === 'myProjects' && styles.horizontalTabItemActive]}
+                                onPress={() => setActiveTab('myProjects')}
+                            >
+                                <Ionicons name="grid-outline" size={18} color={activeTab === 'myProjects' ? 'white' : '#E5A33D'} />
+                                <Text style={[styles.horizontalTabLabel, activeTab === 'myProjects' && styles.horizontalTabLabelActive]}>マイプロジェクト</Text>
+                            </TouchableOpacity>
+
+                            {/* 参加中プロジェクト */}
+                            <TouchableOpacity
+                                style={[styles.horizontalTabItem, activeTab === 'participatingProjects' && styles.horizontalTabItemActive]}
+                                onPress={() => setActiveTab('participatingProjects')}
+                            >
+                                <Ionicons name="people-outline" size={18} color={activeTab === 'participatingProjects' ? 'white' : '#E5A33D'} />
+                                <Text style={[styles.horizontalTabLabel, activeTab === 'participatingProjects' && styles.horizontalTabLabelActive]}>参加中</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </View>
 
@@ -751,7 +772,8 @@ const styles = StyleSheet.create({
     },
     discordHeader: {
         backgroundColor: 'white',
-        // marginBottomを削除して隙間をなくす
+        marginBottom: -50, // タブ用のスペーサー分を重ねる
+        zIndex: 0,
     },
     headerCoverArea: {
         width: '100%',
@@ -825,26 +847,25 @@ const styles = StyleSheet.create({
         fontFamily: FONTS.bold,
     },
     stickyHeaderWrapper: {
-        backgroundColor: 'white', // 背景を白にしてプロフィールと一体化
-        paddingBottom: 8, // 下部に少し余白
-        borderBottomLeftRadius: 24, // 下部を丸くしてカード感を出す
-        borderBottomRightRadius: 24,
+        backgroundColor: 'transparent', // 透明にして、中の要素で背景を制御
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.05,
         shadowRadius: 4,
         elevation: 2,
+        zIndex: 1, // プロフィールの上に重ねる（ただしpointerEventsで透過させる）
     },
     stickyHeaderSpacer: {
-        height: 0, // スペーサー不要（通常スクロール内に入るため）
+        height: 50, // ステータスバーの高さ分（または下げたい分量）
+        // backgroundColorは動的に制御
     },
     // 横並びタブスタイル
     horizontalTabsContainer: {
         flexDirection: 'row',
         backgroundColor: 'white', // 背景白
-        marginHorizontal: 16,
-        // borderRadius, shadowなどを削除してフラットに
-        padding: 4,
+        paddingHorizontal: 16, // marginではなくpaddingにして背景を端まで伸ばす
+        paddingVertical: 8,
+        gap: 12, // ボタン間の隙間
     },
     horizontalTabItem: {
         flex: 1,
