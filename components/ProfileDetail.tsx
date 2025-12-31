@@ -291,28 +291,6 @@ export function ProfileDetail({ profile, onBack, onLike, onChat, isLiked, onBloc
 
             </ScrollView >
 
-            {/* Footer Action Button - GitHubリンクがある場合のみ表示 */}
-            {profile.githubUrl && (
-                <View style={styles.footer}>
-                    <TouchableOpacity
-                        style={styles.githubFooterButton}
-                        onPress={() => {
-                            const url = profile.githubUrl!.startsWith('http')
-                                ? profile.githubUrl!
-                                : `https://${profile.githubUrl}`;
-                            Linking.openURL(url).catch(err => {
-                                console.error('Failed to open URL:', err);
-                                Alert.alert('エラー', 'URLを開けませんでした');
-                            });
-                        }}
-                        activeOpacity={0.8}
-                    >
-                        <Ionicons name="logo-github" size={22} color="white" />
-                        <Text style={styles.githubFooterButtonText}>GitHubを見る</Text>
-                    </TouchableOpacity>
-                </View>
-            )}
-
             {/* Report Modal */}
             <Modal
                 visible={showReportModal}
