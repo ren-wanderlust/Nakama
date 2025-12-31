@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, Image, TouchableOpacity, ScrollView, SafeAreaView, Alert, Modal, FlatList, Dimensions, RefreshControl } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { StyleSheet, Text, View, Image, TouchableOpacity, ScrollView, SafeAreaView, Alert, Modal, FlatList, Dimensions, RefreshControl, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
@@ -54,94 +54,84 @@ const ROLE_COLORS: { [key: string]: { bg: string; icon: string } } = {
     '誰でも': { bg: '#E8F5E9', icon: '#388E3C' },        // Green
 };
 
-// UserProjectPageと同じProjectCardコンポーネント（自分のプロジェクト用）
+// UserProjectPageと同じProjectCardコンポーネント（自分のプロジェクト用）- サムネイル式
 const ProjectCard = ({ project, ownerProfile, onPress }: { project: any; ownerProfile: Profile; onPress: () => void }) => {
-    const deadlineDate = project.deadline ? new Date(project.deadline) : null;
-    const deadlineString = deadlineDate
-        ? `${deadlineDate.getMonth() + 1}/${deadlineDate.getDate()}まで`
-        : '';
-
-    // 作成日を取得
-    const createdDate = project.created_at ? new Date(project.created_at) : null;
-    const createdDateString = createdDate
-        ? `${createdDate.getFullYear()}/${createdDate.getMonth() + 1}/${createdDate.getDate()}`
-        : '';
-
-    // Get roles with icons and colors, limit to 4
-    const rolesWithIcons = project.required_roles
-        ?.slice(0, 4)
-        .map((role: string) => ({
-            role,
-            icon: ROLE_ICONS[role] || 'help-circle-outline',
-            colors: ROLE_COLORS[role] || { bg: '#F3F4F6', icon: '#6B7280' }
-        })) || [];
-
-    const iconCount = rolesWithIcons.length;
-
-    // Determine layout based on icon count (same as UserProjectPage)
-    // Determine layout based on icon count (same as UserProjectPage)
-    const getIconLayout = () => {
-        return (
-            <Image
-                source={{ uri: ownerProfile.image }}
-                style={[projectCardStyles.authorIcon, { marginRight: 0 }]}
-            />
-        );
-    };
-
     const isClosed = project.status === 'closed';
+    const coverImage = project.cover_image;
+
+    // デフォルトカバー画像
+    const defaultCoverImage = require('../assets/default-project-cover.png');
 
     return (
-        <ModernCard
+        <TouchableOpacity
+            style={[projectCardStyles.cardNew, isClosed && { opacity: 0.7 }]}
             onPress={onPress}
-            style={[
-                projectCardStyles.card,
-                isClosed && { backgroundColor: '#F3F4F6' }
-            ]}
-            padding="none"
+            activeOpacity={0.85}
         >
+            {/* 停止中バッジ */}
             {isClosed && (
-                <View style={projectCardStyles.recruitmentClosedBadge}>
-                    <Text style={projectCardStyles.recruitmentClosedText}>停止中</Text>
+                <View style={projectCardStyles.closedBadge}>
+                    <Text style={projectCardStyles.closedBadgeText}>停止中</Text>
                 </View>
             )}
 
-            <View style={[projectCardStyles.cardInner, isClosed && { opacity: 0.7 }]}>
-                {/* Role Icons Container */}
-                {getIconLayout()}
-                <View style={projectCardStyles.cardContent}>
-                    {/* Title */}
-                    <Text style={projectCardStyles.cardTitle} numberOfLines={1}>{project.title}</Text>
+            {/* 左側: サムネイル画像 */}
+            <View style={projectCardStyles.cardThumbnail}>
+                <Image
+                    source={coverImage ? { uri: coverImage } : defaultCoverImage}
+                    style={projectCardStyles.cardThumbnailImage}
+                    resizeMode="cover"
+                />
+            </View>
 
-                    {/* Tagline */}
-                    {project.tagline && (
-                        <Text style={projectCardStyles.cardTagline} numberOfLines={1}>{project.tagline}</Text>
-                    )}
-
-                    {/* Tags - Theme + Content Tags */}
-                    {((project.tags && project.tags.length > 0) || (project.content_tags && project.content_tags.length > 0)) && (
-                        <View style={projectCardStyles.tagsRow}>
-                            {/* Theme Tag (大枠) */}
-                            {project.tags?.slice(0, 1).map((tag: string, index: number) => (
-                                <View key={`theme-${index}`} style={projectCardStyles.themeTag}>
-                                    <Text style={projectCardStyles.themeTagText}>{tag}</Text>
-                                </View>
-                            ))}
-                            {/* Content Tags - 最大4つまで */}
-                            {project.content_tags?.slice(0, 4).map((tag: string, index: number) => (
-                                <View key={`content-${index}`} style={projectCardStyles.tag}>
-                                    <Text style={projectCardStyles.tagText}>{tag}</Text>
-                                </View>
-                            ))}
-                            {/* 省略表示 */}
-                            {(project.content_tags?.length || 0) > 4 && (
-                                <Text style={projectCardStyles.moreTagsText}>...</Text>
-                            )}
+            {/* 右側: コンテンツ */}
+            <View style={projectCardStyles.cardContentNew}>
+                {/* オーナー情報 */}
+                <View style={projectCardStyles.cardOwnerRow}>
+                    {ownerProfile.image ? (
+                        <Image
+                            source={{ uri: ownerProfile.image }}
+                            style={projectCardStyles.cardOwnerAvatar}
+                        />
+                    ) : (
+                        <View style={[projectCardStyles.cardOwnerAvatar, { backgroundColor: '#E5E7EB', alignItems: 'center', justifyContent: 'center' }]}>
+                            <Ionicons name="person" size={12} color="#9CA3AF" />
                         </View>
                     )}
+                    <Text style={projectCardStyles.cardOwnerName} numberOfLines={1}>{ownerProfile.name}</Text>
+                </View>
+
+                {/* タイトル */}
+                <Text style={projectCardStyles.cardTitleNew} numberOfLines={1}>{project.title}</Text>
+
+                {/* タグライン/説明 */}
+                {project.tagline && (
+                    <Text style={projectCardStyles.cardTaglineNew} numberOfLines={2}>{project.tagline}</Text>
+                )}
+
+                {/* 下部: タグ + 統計 */}
+                <View style={projectCardStyles.cardBottomRow}>
+                    {/* タグ */}
+                    <View style={projectCardStyles.cardTagsRow}>
+                        {project.tags?.slice(0, 1).map((tag: string, idx: number) => (
+                            <View key={`theme-${idx}`} style={projectCardStyles.themeTag}>
+                                <Text style={projectCardStyles.themeTagText}>{tag}</Text>
+                            </View>
+                        ))}
+                        {project.content_tags?.slice(0, 2).map((tag: string, idx: number) => (
+                            <View key={`content-${idx}`} style={projectCardStyles.tag}>
+                                <Text style={projectCardStyles.tagText}>{tag}</Text>
+                            </View>
+                        ))}
+                    </View>
+                    {/* 統計 */}
+                    <View style={projectCardStyles.cardStatsRow}>
+                        <Ionicons name="people-outline" size={12} color="#9CA3AF" />
+                        <Text style={projectCardStyles.cardStatText}>{project.max_members || '?'}</Text>
+                    </View>
                 </View>
             </View>
-        </ModernCard>
+        </TouchableOpacity>
     );
 };
 
@@ -152,6 +142,17 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
     const [activeTab, setActiveTab] = useState<'myProjects' | 'participatingProjects'>('myProjects');
     const [refreshing, setRefreshing] = useState(false);
     const queryClient = useQueryClient();
+
+    // フェードインアニメーション
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 300,
+            useNativeDriver: true,
+        }).start();
+    }, []);
 
     // React Query hooks
     const myProjectsQuery = useMyProjects(profile.id);
@@ -260,23 +261,23 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
         return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
     };
 
-    // Discord風ヘッダー
+    // Discord風ヘッダー（グラデーション拡張）
     const renderDiscordHeader = () => (
-        <View style={styles.discordHeader}>
-            {/* 背景色 + ロゴ (グラデーションを削除し、ロゴの背景色に合わせる) */}
-            <View
-                style={[styles.discordBanner, { backgroundColor: '#FBA535' }]} // 推定されるロゴ背景色
-            >
-                <View style={styles.discordBannerContent}>
-                    <View style={styles.logoContainer}>
-                        <Image
-                            source={require('../assets/adaptive-icon.png')}
-                            style={styles.discordBannerLogo}
-                            resizeMode="contain"
-                        />
-                    </View>
-                    <Text style={styles.discordBannerText}>Pogg</Text>
+        <LinearGradient
+            colors={['#FBA535', '#FFCC66', '#FFF3E0']}
+            locations={[0, 0.5, 1]}
+            style={styles.discordHeader}
+        >
+            {/* ロゴ部分 */}
+            <View style={styles.discordBannerContent}>
+                <View style={styles.logoContainer}>
+                    <Image
+                        source={require('../assets/adaptive-icon.png')}
+                        style={styles.discordBannerLogo}
+                        resizeMode="contain"
+                    />
                 </View>
+                <Text style={styles.discordBannerText}>Pogg</Text>
             </View>
 
             {/* 設定アイコン（右上） */}
@@ -301,6 +302,9 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                 <Text style={styles.discordProfileHandle}>
                     {profile.university}{profile.grade ? ` / ${profile.grade}` : ''}
                 </Text>
+                <Text style={styles.memberSinceText}>
+                    {formatRegistrationDate()}からメンバー
+                </Text>
             </View>
 
             {/* プロフィール編集ボタン - アウトラインスタイルに変更 */}
@@ -311,7 +315,7 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                 <Ionicons name="pencil" size={14} color="#F57C00" style={{ marginRight: 6 }} />
                 <Text style={styles.discordEditButtonText}>プロフィール編集</Text>
             </TouchableOpacity>
-        </View>
+        </LinearGradient>
     );
 
     // Discord風セクション
@@ -371,172 +375,151 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
     );
 
     const renderParticipatingProjectItem = ({ item }: { item: any }) => {
-        // Get roles with icons and colors, limit to 4
-        const rolesWithIcons = item.required_roles
-            ?.slice(0, 4)
-            .map((role: string) => ({
-                role,
-                icon: ROLE_ICONS[role] || 'help-circle-outline',
-                colors: ROLE_COLORS[role] || { bg: '#F3F4F6', icon: '#6B7280' }
-            })) || [];
+        const coverImage = item.cover_image;
+        const ownerImage = item.profiles?.image || item.owner?.image;
+        const ownerName = item.profiles?.name || item.owner?.name || '不明';
 
-        const iconCount = rolesWithIcons.length;
-
-        // Same icon layout logic as ProjectCard
-        const getIconLayout = () => {
-            // participatingProjectsのitemにprofilesが含まれていると仮定
-            // もし含まれていなければ、プロジェクト作成者の画像を取得する必要があるが
-            // ここでは簡易的にitem.profiles?.imageを使用する
-            const imageUri = item.profiles?.image || item.owner?.image;
-
-            if (imageUri) {
-                return (
-                    <Image
-                        source={{ uri: imageUri }}
-                        style={[projectCardStyles.authorIcon, { marginRight: 0 }]}
-                    />
-                );
-            }
-
-            // 画像がない場合のフォールバック（デフォルトアイコン）
-            return (
-                <View style={[projectCardStyles.authorIcon, { marginRight: 0, alignItems: 'center', justifyContent: 'center' }]}>
-                    <Ionicons name="person" size={24} color="#9CA3AF" />
-                </View>
-            );
-        };
-
-        // 作成日を取得
-        const createdDate = item.created_at ? new Date(item.created_at) : null;
-        const createdDateString = createdDate
-            ? `${createdDate.getFullYear()}/${createdDate.getMonth() + 1}/${createdDate.getDate()}`
-            : '';
+        // デフォルトカバー画像
+        const defaultCoverImage = require('../assets/default-project-cover.png');
 
         return (
-            <ModernCard
+            <TouchableOpacity
+                style={projectCardStyles.cardNew}
                 onPress={() => setSelectedProject(item)}
-                style={projectCardStyles.card}
-                padding="none"
+                activeOpacity={0.85}
             >
-                <View style={projectCardStyles.participatingBadge}>
-                    <Text style={projectCardStyles.participatingBadgeText}>参加中</Text>
+                {/* 参加中バッジ */}
+                <View style={projectCardStyles.participatingBadgeNew}>
+                    <Text style={projectCardStyles.participatingBadgeTextNew}>参加中</Text>
                 </View>
-                <View style={projectCardStyles.cardInner}>
-                    {getIconLayout()}
-                    <View style={projectCardStyles.cardContent}>
-                        {/* Title */}
-                        <Text style={projectCardStyles.cardTitle} numberOfLines={1}>{item.title}</Text>
 
-                        {/* Tagline */}
-                        {item.tagline && (
-                            <Text style={projectCardStyles.cardTagline} numberOfLines={1}>{item.tagline}</Text>
-                        )}
+                {/* 左側: サムネイル画像 */}
+                <View style={projectCardStyles.cardThumbnail}>
+                    <Image
+                        source={coverImage ? { uri: coverImage } : defaultCoverImage}
+                        style={projectCardStyles.cardThumbnailImage}
+                        resizeMode="cover"
+                    />
+                </View>
 
-                        {/* Tags - Theme + Content Tags */}
-                        {((item.tags && item.tags.length > 0) || (item.content_tags && item.content_tags.length > 0)) && (
-                            <View style={projectCardStyles.tagsRow}>
-                                {/* Theme Tag (大枠) */}
-                                {item.tags?.slice(0, 1).map((tag: string, index: number) => (
-                                    <View key={`theme-${index}`} style={projectCardStyles.themeTag}>
-                                        <Text style={projectCardStyles.themeTagText}>{tag}</Text>
-                                    </View>
-                                ))}
-                                {/* Content Tags - 最大4つまで */}
-                                {item.content_tags?.slice(0, 4).map((tag: string, index: number) => (
-                                    <View key={`content-${index}`} style={projectCardStyles.tag}>
-                                        <Text style={projectCardStyles.tagText}>{tag}</Text>
-                                    </View>
-                                ))}
-                                {/* 省略表示 */}
-                                {(item.content_tags?.length || 0) > 4 && (
-                                    <Text style={projectCardStyles.moreTagsText}>...</Text>
-                                )}
+                {/* 右側: コンテンツ */}
+                <View style={projectCardStyles.cardContentNew}>
+                    {/* オーナー情報 */}
+                    <View style={projectCardStyles.cardOwnerRow}>
+                        {ownerImage ? (
+                            <Image
+                                source={{ uri: ownerImage }}
+                                style={projectCardStyles.cardOwnerAvatar}
+                            />
+                        ) : (
+                            <View style={[projectCardStyles.cardOwnerAvatar, { backgroundColor: '#E5E7EB', alignItems: 'center', justifyContent: 'center' }]}>
+                                <Ionicons name="person" size={12} color="#9CA3AF" />
                             </View>
                         )}
+                        <Text style={projectCardStyles.cardOwnerName} numberOfLines={1}>{ownerName}</Text>
+                    </View>
+
+                    {/* タイトル */}
+                    <Text style={projectCardStyles.cardTitleNew} numberOfLines={1}>{item.title}</Text>
+
+                    {/* タグライン/説明 */}
+                    {item.tagline && (
+                        <Text style={projectCardStyles.cardTaglineNew} numberOfLines={2}>{item.tagline}</Text>
+                    )}
+
+                    {/* 下部: タグ + 統計 */}
+                    <View style={projectCardStyles.cardBottomRow}>
+                        {/* タグ */}
+                        <View style={projectCardStyles.cardTagsRow}>
+                            {item.tags?.slice(0, 1).map((tag: string, idx: number) => (
+                                <View key={`theme-${idx}`} style={projectCardStyles.themeTag}>
+                                    <Text style={projectCardStyles.themeTagText}>{tag}</Text>
+                                </View>
+                            ))}
+                            {item.content_tags?.slice(0, 2).map((tag: string, idx: number) => (
+                                <View key={`content-${idx}`} style={projectCardStyles.tag}>
+                                    <Text style={projectCardStyles.tagText}>{tag}</Text>
+                                </View>
+                            ))}
+                        </View>
+                        {/* 統計 */}
+                        <View style={projectCardStyles.cardStatsRow}>
+                            <Ionicons name="people-outline" size={12} color="#9CA3AF" />
+                            <Text style={projectCardStyles.cardStatText}>{item.max_members || '?'}</Text>
+                        </View>
                     </View>
                 </View>
-            </ModernCard>
+            </TouchableOpacity>
         );
     };
 
     return (
-        <SafeAreaView style={styles.container}>
+        <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
             <ScrollView
                 style={styles.scrollView}
                 refreshControl={
                     <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F39800" />
                 }
                 showsVerticalScrollIndicator={false}
+                stickyHeaderIndices={[1]}
             >
                 {/* Discord風ヘッダー */}
                 {renderDiscordHeader()}
 
-                {/* セクションリスト */}
-                <View style={styles.discordSectionsContainer}>
-                    {/* マイプロジェクト */}
-                    {renderSectionItem(
-                        'grid-outline',
-                        'マイプロジェクト',
-                        <Text style={styles.discordSectionCount}>{projects.length}</Text>,
-                        () => setActiveTab('myProjects')
-                    )}
+                {/* セクションリスト（固定） */}
+                <View style={styles.stickyHeaderWrapper}>
+                    {/* ステータスバー避け用スペーサー */}
+                    <View style={styles.stickyHeaderSpacer} />
+                    <View style={styles.discordSectionsContainer}>
+                        {/* マイプロジェクト */}
+                        <TouchableOpacity
+                            style={[styles.discordSectionItem, activeTab === 'myProjects' && styles.discordSectionItemActive]}
+                            onPress={() => setActiveTab('myProjects')}
+                        >
+                            <View style={styles.discordSectionLeft}>
+                                <Ionicons name="grid-outline" size={20} color={activeTab === 'myProjects' ? '#F57C00' : '#6B7280'} />
+                                <Text style={[styles.discordSectionLabel, activeTab === 'myProjects' && styles.discordSectionLabelActive]}>マイプロジェクト</Text>
+                            </View>
+                            <View style={styles.discordSectionRight}>
+                                <Text style={styles.discordSectionCount}>{projects.length}</Text>
+                                <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                            </View>
+                        </TouchableOpacity>
 
-                    {/* 参加中プロジェクト */}
-                    {renderSectionItem(
-                        'people-outline',
-                        '参加中プロジェクト',
-                        <Text style={styles.discordSectionCount}>{participatingProjects.length}</Text>,
-                        () => setActiveTab('participatingProjects')
-                    )}
-
-                    {/* 仕切り線 */}
-                    <View style={styles.discordDivider} />
-
-                    {/* 登録日 */}
-                    {renderSectionItem(
-                        'calendar-outline',
-                        'メンバーになった日',
-                        <Text style={styles.discordSectionMeta}>{formatRegistrationDate()}</Text>,
-                        undefined,
-                        false
-                    )}
-
-                    {/* GitHub / SNS リンク（将来実装用） */}
-                    {profile.githubUrl && renderSectionItem(
-                        'logo-github',
-                        'GitHub',
-                        undefined,
-                        () => { /* TODO: Open GitHub */ }
-                    )}
+                        {/* 参加中プロジェクト */}
+                        <TouchableOpacity
+                            style={[styles.discordSectionItem, activeTab === 'participatingProjects' && styles.discordSectionItemActive]}
+                            onPress={() => setActiveTab('participatingProjects')}
+                        >
+                            <View style={styles.discordSectionLeft}>
+                                <Ionicons name="people-outline" size={20} color={activeTab === 'participatingProjects' ? '#F57C00' : '#6B7280'} />
+                                <Text style={[styles.discordSectionLabel, activeTab === 'participatingProjects' && styles.discordSectionLabelActive]}>参加中プロジェクト</Text>
+                            </View>
+                            <View style={styles.discordSectionRight}>
+                                <Text style={styles.discordSectionCount}>{participatingProjects.length}</Text>
+                                <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                            </View>
+                        </TouchableOpacity>
+                    </View>
                 </View>
 
-                {/* プロジェクトリスト（タブ選択時に表示） */}
-                {(activeTab === 'myProjects' || activeTab === 'participatingProjects') && (
-                    <View style={styles.discordProjectSection}>
-                        <View style={styles.discordProjectHeader}>
-                            <Text style={styles.discordProjectTitle}>
-                                {activeTab === 'myProjects' ? 'マイプロジェクト' : '参加中プロジェクト'}
-                            </Text>
-                            <TouchableOpacity onPress={() => setActiveTab(null as any)}>
-                                <Ionicons name="close" size={24} color="#6B7280" />
-                            </TouchableOpacity>
-                        </View>
-                        <FlatList
-                            data={activeTab === 'myProjects' ? projects : participatingProjects}
-                            renderItem={activeTab === 'myProjects' ? renderProjectItem : renderParticipatingProjectItem}
-                            keyExtractor={(item) => item.id}
-                            contentContainerStyle={styles.projectListContent}
-                            showsVerticalScrollIndicator={false}
-                            scrollEnabled={false}
-                            ItemSeparatorComponent={() => <View style={{ height: 4 }} />}
-                            ListEmptyComponent={
-                                (activeTab === 'myProjects' ? !loadingProjects : !loadingParticipating) ? (
-                                    <MyProjectsEmptyState type={activeTab} />
-                                ) : null
-                            }
-                        />
-                    </View>
-                )}
+                {/* プロジェクトリスト */}
+                <View style={styles.projectListContainer}>
+                    <FlatList
+                        data={activeTab === 'myProjects' ? projects : participatingProjects}
+                        renderItem={activeTab === 'myProjects' ? renderProjectItem : renderParticipatingProjectItem}
+                        keyExtractor={(item) => item.id}
+                        contentContainerStyle={styles.projectListContent}
+                        showsVerticalScrollIndicator={false}
+                        scrollEnabled={false}
+                        ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+                        ListEmptyComponent={
+                            (activeTab === 'myProjects' ? !loadingProjects : !loadingParticipating) ? (
+                                <MyProjectsEmptyState type={activeTab} />
+                            ) : null
+                        }
+                    />
+                </View>
             </ScrollView>
 
             {/* Menu Modal */}
@@ -617,14 +600,14 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                     />
                 )}
             </Modal>
-        </SafeAreaView>
+        </Animated.View>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#FFF3E0',
+        backgroundColor: '#FFF3E0', // 元のクリーム色
     },
     header: {
         flexDirection: 'row',
@@ -828,26 +811,21 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     discordHeader: {
-        backgroundColor: '#F9FAFB', // 全体の背景色に合わせる
-        paddingBottom: 20,
-    },
-    discordBanner: {
-        height: 120, // 少し高さを増やす
-        marginBottom: -50, // アバターの食い込みを調整
-        justifyContent: 'center',
+        paddingTop: 60, // ステータスバーエリアをカバー
+        paddingBottom: 8, // タブとの間隔を縮める
     },
     discordBannerContent: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingBottom: 20, // コンテンツが真ん中に来すぎないように少し調整
+        paddingBottom: 20,
         gap: 8,
     },
     logoContainer: {
         width: 64,
         height: 64,
-        borderRadius: 16, // 角丸
-        backgroundColor: 'white', // 白背景
+        borderRadius: 16,
+        backgroundColor: 'white',
         alignItems: 'center',
         justifyContent: 'center',
         ...SHADOWS.sm,
@@ -865,7 +843,7 @@ const styles = StyleSheet.create({
     },
     discordSettingsBtn: {
         position: 'absolute',
-        top: 16, // ステータスバー避け
+        top: 60, // ステータスバー + paddingTop
         right: 16,
         width: 36,
         height: 36,
@@ -904,6 +882,12 @@ const styles = StyleSheet.create({
         color: '#6B7280',
         fontFamily: FONTS.medium,
     },
+    memberSinceText: {
+        fontSize: 12,
+        color: '#9CA3AF',
+        fontFamily: FONTS.regular,
+        marginTop: 4,
+    },
     discordEditButton: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -922,13 +906,20 @@ const styles = StyleSheet.create({
         color: '#F57C00', // 濃い目のオレンジ文字
         fontFamily: FONTS.semiBold,
     },
+    stickyHeaderWrapper: {
+        backgroundColor: '#FFF3E0', // 背景色と同じ
+    },
+    stickyHeaderSpacer: {
+        height: 50, // ステータスバーの高さ分
+        backgroundColor: '#FFF3E0',
+    },
     discordSectionsContainer: {
         backgroundColor: 'white',
         marginHorizontal: 16,
         borderRadius: 16,
         paddingVertical: 8,
-        ...SHADOWS.sm, // 浮き上がり効果
-        marginBottom: 16,
+        ...SHADOWS.sm,
+        marginBottom: 12,
         overflow: 'hidden',
     },
     discordSectionItem: {
@@ -950,6 +941,14 @@ const styles = StyleSheet.create({
     discordSectionLabel: {
         fontSize: 15,
         color: '#111827',
+        marginLeft: 12,
+    },
+    discordSectionLabelActive: {
+        color: '#F57C00',
+        fontWeight: '600',
+    },
+    discordSectionItemActive: {
+        backgroundColor: '#FFF8F0',
     },
     discordSectionCount: {
         fontSize: 15,
@@ -966,25 +965,45 @@ const styles = StyleSheet.create({
         marginHorizontal: 20,
         marginVertical: 8,
     },
-    discordProjectSection: {
-        backgroundColor: 'transparent',
-        paddingBottom: 100,
-        paddingHorizontal: 16,
-        marginTop: 8, // 上のマージンを追加
-    },
-    discordProjectHeader: {
+    // Sticky Tabs Styles
+    stickyTabContainer: {
         flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 4,
-        paddingVertical: 12,
-        marginBottom: 12, // カードとの間隔を広げる
-        borderBottomWidth: 0,
+        backgroundColor: '#FFF3E0', // 背景色と同じにして違和感をなくす
+        paddingTop: 50, // 固定時にステータスバーを避けるために上部を広げる
+        paddingBottom: 12,
+        paddingHorizontal: 16,
+        gap: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(0,0,0,0.05)',
+        zIndex: 100,
     },
-    discordProjectTitle: {
-        fontSize: 16,
+    stickyTab: {
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        borderRadius: 20,
+        backgroundColor: 'rgba(255,255,255,0.5)',
+        borderWidth: 1,
+        borderColor: 'transparent',
+    },
+    stickyTabActive: {
+        backgroundColor: 'white',
+        borderColor: '#FFB74D',
+        ...SHADOWS.sm,
+    },
+    stickyTabText: {
+        fontSize: 14,
         fontWeight: '600',
-        color: '#111827',
+        color: '#6B7280',
+        fontFamily: FONTS.medium,
+    },
+    stickyTabTextActive: {
+        color: '#F57C00',
+        fontFamily: FONTS.semiBold,
+    },
+    projectListContainer: {
+        paddingTop: 16,
+        paddingHorizontal: 16,
+        paddingBottom: 100,
     },
 });
 
@@ -1240,6 +1259,116 @@ const projectCardStyles = StyleSheet.create({
         fontFamily: FONTS.medium,
         color: '#9CA3AF',
         alignSelf: 'center',
+    },
+
+    // 新しいサムネイル式カードスタイル（UserProjectPageと統一）
+    cardNew: {
+        flexDirection: 'row',
+        backgroundColor: 'white',
+        borderRadius: 12,
+        overflow: 'hidden',
+        marginBottom: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+        elevation: 3,
+    },
+    cardThumbnail: {
+        width: 140,
+        height: 140,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    cardThumbnailImage: {
+        width: '100%',
+        height: '100%',
+    },
+    cardContentNew: {
+        flex: 1,
+        padding: 12,
+        justifyContent: 'space-between',
+    },
+    cardOwnerRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 6,
+    },
+    cardOwnerAvatar: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        marginRight: 6,
+    },
+    cardOwnerName: {
+        flex: 1,
+        fontSize: 12,
+        fontFamily: FONTS.medium,
+        color: '#6B7280',
+    },
+    cardTitleNew: {
+        fontSize: 15,
+        fontFamily: FONTS.bold,
+        color: '#111827',
+        lineHeight: 20,
+        marginBottom: 4,
+    },
+    cardTaglineNew: {
+        fontSize: 12,
+        fontFamily: FONTS.regular,
+        color: '#6B7280',
+        lineHeight: 16,
+        marginBottom: 6,
+    },
+    cardBottomRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    cardTagsRow: {
+        flexDirection: 'row',
+        gap: 4,
+        flex: 1,
+    },
+    cardStatsRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    cardStatText: {
+        fontSize: 11,
+        fontFamily: FONTS.regular,
+        color: '#9CA3AF',
+    },
+    closedBadge: {
+        position: 'absolute',
+        top: 8,
+        right: 8,
+        backgroundColor: '#6B7280',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 12,
+        zIndex: 10,
+    },
+    closedBadgeText: {
+        color: 'white',
+        fontSize: 11,
+        fontFamily: FONTS.bold,
+    },
+    participatingBadgeNew: {
+        position: 'absolute',
+        top: 8,
+        right: 8,
+        backgroundColor: '#009688',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 12,
+        zIndex: 10,
+    },
+    participatingBadgeTextNew: {
+        color: 'white',
+        fontSize: 11,
+        fontFamily: FONTS.bold,
     },
 });
 

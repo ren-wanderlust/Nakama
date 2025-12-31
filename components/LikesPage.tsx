@@ -466,7 +466,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
         '誰でも': { bg: '#E8F5E9', icon: '#388E3C' },
     };
 
-    // Project Card for "応募" tab
+    // Project Card for "応募" tab - UserProjectPageと同じカードデザイン
     const renderApplicationProjectCard = ({ item }: { item: Application }) => {
         const project = item.project;
         if (!project) return null;
@@ -486,88 +486,18 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
 
         const statusInfo = getStatusInfo();
 
-        // Get roles with icons and colors, limit to 4
-        const rolesWithIcons = project.required_roles
-            ?.slice(0, 4)
-            .map(role => ({
-                role,
-                icon: ROLE_ICONS[role] || 'help-circle-outline',
-                colors: ROLE_COLORS[role] || { bg: '#F3F4F6', icon: '#6B7280' }
-            })) || [];
+        // オーナー情報
+        const projectData = project as any;
+        const ownerImage = projectData.profiles?.image || projectData.owner?.image;
+        const ownerName = projectData.profiles?.name || projectData.owner?.name || '不明';
+        const coverImage = projectData.cover_image;
 
-        const iconCount = rolesWithIcons.length;
-
-        // Determine layout based on icon count
-        const getIconLayout = () => {
-            if (iconCount === 0) {
-                return null;
-            } else if (iconCount === 1) {
-                return (
-                    <View style={styles.iconsContainer}>
-                        <View style={styles.iconSlotCenter}>
-                            <View style={[styles.iconCircleLarge, { backgroundColor: rolesWithIcons[0].colors.bg }]}>
-                                <Ionicons
-                                    name={rolesWithIcons[0].icon as any}
-                                    size={30}
-                                    color={rolesWithIcons[0].colors.icon}
-                                />
-                            </View>
-                        </View>
-                    </View>
-                );
-            } else if (iconCount === 2) {
-                return (
-                    <View style={styles.iconsContainer}>
-                        <View style={styles.iconSlotTwo}>
-                            <View style={[styles.iconCircle, { backgroundColor: rolesWithIcons[0].colors.bg }]}>
-                                <Ionicons name={rolesWithIcons[0].icon as any} size={20} color={rolesWithIcons[0].colors.icon} />
-                            </View>
-                        </View>
-                        <View style={styles.iconSlotTwo}>
-                            <View style={[styles.iconCircle, { backgroundColor: rolesWithIcons[1].colors.bg }]}>
-                                <Ionicons name={rolesWithIcons[1].icon as any} size={20} color={rolesWithIcons[1].colors.icon} />
-                            </View>
-                        </View>
-                    </View>
-                );
-            } else if (iconCount === 3) {
-                return (
-                    <View style={styles.iconsContainer}>
-                        <View style={styles.iconSlotTop}>
-                            <View style={[styles.iconCircle, { backgroundColor: rolesWithIcons[0].colors.bg }]}>
-                                <Ionicons name={rolesWithIcons[0].icon as any} size={20} color={rolesWithIcons[0].colors.icon} />
-                            </View>
-                        </View>
-                        <View style={styles.iconSlotTop}>
-                            <View style={[styles.iconCircle, { backgroundColor: rolesWithIcons[1].colors.bg }]}>
-                                <Ionicons name={rolesWithIcons[1].icon as any} size={20} color={rolesWithIcons[1].colors.icon} />
-                            </View>
-                        </View>
-                        <View style={styles.iconSlotBottomCenter}>
-                            <View style={[styles.iconCircle, { backgroundColor: rolesWithIcons[2].colors.bg }]}>
-                                <Ionicons name={rolesWithIcons[2].icon as any} size={20} color={rolesWithIcons[2].colors.icon} />
-                            </View>
-                        </View>
-                    </View>
-                );
-            } else {
-                return (
-                    <View style={styles.iconsContainer}>
-                        {rolesWithIcons.map((iconItem, i) => (
-                            <View key={`icon-${i}`} style={styles.iconSlotGrid}>
-                                <View style={[styles.iconCircle, { backgroundColor: iconItem.colors.bg }]}>
-                                    <Ionicons name={iconItem.icon as any} size={20} color={iconItem.colors.icon} />
-                                </View>
-                            </View>
-                        ))}
-                    </View>
-                );
-            }
-        };
+        // デフォルトカバー画像
+        const defaultCoverImage = require('../assets/default-project-cover.png');
 
         return (
             <TouchableOpacity
-                style={styles.appliedProjectCard}
+                style={styles.appliedCardNew}
                 activeOpacity={0.85}
                 onPress={() => handleProjectSelect(project.id)}
             >
@@ -577,41 +507,60 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                     <Text style={[styles.appliedStatusTextCorner, { color: statusInfo.color }]}>{statusInfo.text}</Text>
                 </View>
 
-                <View style={styles.appliedCardInner}>
-                    {/* Role Icons Container */}
-                    {getIconLayout()}
+                {/* 左側: サムネイル画像 */}
+                <View style={styles.appliedCardThumbnail}>
+                    <Image
+                        source={coverImage ? { uri: coverImage } : defaultCoverImage}
+                        style={styles.appliedCardThumbnailImage}
+                        resizeMode="cover"
+                    />
+                </View>
 
-                    {/* Card Content */}
-                    <View style={styles.appliedCardContent}>
-                        {/* Title */}
-                        <Text style={styles.appliedCardTitle} numberOfLines={1}>{project.title}</Text>
-
-                        {/* Tagline */}
-                        {project.tagline && (
-                            <Text style={styles.appliedCardTagline} numberOfLines={1}>{project.tagline}</Text>
-                        )}
-
-                        {/* Tags - Theme + Content Tags */}
-                        {((project.tags && project.tags.length > 0) || (project.content_tags && project.content_tags.length > 0)) && (
-                            <View style={styles.appliedTagsRow}>
-                                {/* Theme Tag (大枠) */}
-                                {project.tags?.slice(0, 1).map((tag: string, index: number) => (
-                                    <View key={`theme-${index}`} style={styles.appliedThemeTag}>
-                                        <Text style={styles.appliedThemeTagText}>{tag}</Text>
-                                    </View>
-                                ))}
-                                {/* Content Tags - 最大4つまで */}
-                                {project.content_tags?.slice(0, 4).map((tag: string, index: number) => (
-                                    <View key={`content-${index}`} style={styles.appliedContentTag}>
-                                        <Text style={styles.appliedContentTagText}>{tag}</Text>
-                                    </View>
-                                ))}
-                                {/* 省略表示 */}
-                                {(project.content_tags?.length || 0) > 4 && (
-                                    <Text style={styles.appliedMoreTagsText}>...</Text>
-                                )}
+                {/* 右側: コンテンツ */}
+                <View style={styles.appliedCardContentNew}>
+                    {/* オーナー情報 */}
+                    <View style={styles.appliedCardOwnerRow}>
+                        {ownerImage ? (
+                            <Image
+                                source={{ uri: ownerImage }}
+                                style={styles.appliedCardOwnerAvatar}
+                            />
+                        ) : (
+                            <View style={[styles.appliedCardOwnerAvatar, { backgroundColor: '#E5E7EB', alignItems: 'center', justifyContent: 'center' }]}>
+                                <Ionicons name="person" size={12} color="#9CA3AF" />
                             </View>
                         )}
+                        <Text style={styles.appliedCardOwnerName} numberOfLines={1}>{ownerName}</Text>
+                    </View>
+
+                    {/* タイトル */}
+                    <Text style={styles.appliedCardTitleNew} numberOfLines={1}>{project.title}</Text>
+
+                    {/* タグライン/説明 */}
+                    {project.tagline && (
+                        <Text style={styles.appliedCardTaglineNew} numberOfLines={2}>{project.tagline}</Text>
+                    )}
+
+                    {/* 下部: タグ + 統計 */}
+                    <View style={styles.appliedCardBottomRow}>
+                        {/* タグ */}
+                        <View style={styles.appliedCardTagsRow}>
+                            {project.tags?.slice(0, 1).map((tag: string, idx: number) => (
+                                <View key={`theme-${idx}`} style={styles.appliedThemeTag}>
+                                    <Text style={styles.appliedThemeTagText}>{tag}</Text>
+                                </View>
+                            ))}
+                            {project.content_tags?.slice(0, 2).map((tag: string, idx: number) => (
+                                <View key={`content-${idx}`} style={styles.appliedContentTag}>
+                                    <Text style={styles.appliedContentTagText}>{tag}</Text>
+                                </View>
+                            ))}
+                        </View>
+                        {/* 統計 */}
+                        <View style={styles.appliedCardStatsRow}>
+                            <Ionicons name="people-outline" size={12} color="#9CA3AF" />
+                            <Text style={styles.appliedCardStatText}>{projectData.max_members || '?'}</Text>
+                        </View>
                     </View>
                 </View>
             </TouchableOpacity>
@@ -1879,6 +1828,86 @@ const styles = StyleSheet.create({
         fontFamily: FONTS.medium,
         color: '#6B7280',
         maxWidth: 220,
+    },
+
+    // 新しいカードデザイン用スタイル（UserProjectPageと統一）
+    appliedCardNew: {
+        flexDirection: 'row',
+        backgroundColor: 'white',
+        borderRadius: 12,
+        overflow: 'hidden',
+        marginBottom: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+        elevation: 3,
+    },
+    appliedCardThumbnail: {
+        width: 140,
+        height: 140,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    appliedCardThumbnailImage: {
+        width: '100%',
+        height: '100%',
+    },
+    appliedCardContentNew: {
+        flex: 1,
+        padding: 12,
+        justifyContent: 'space-between',
+    },
+    appliedCardOwnerRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 6,
+    },
+    appliedCardOwnerAvatar: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        marginRight: 6,
+    },
+    appliedCardOwnerName: {
+        flex: 1,
+        fontSize: 12,
+        fontFamily: FONTS.medium,
+        color: '#6B7280',
+    },
+    appliedCardTitleNew: {
+        fontSize: 15,
+        fontFamily: FONTS.bold,
+        color: '#111827',
+        lineHeight: 20,
+        marginBottom: 4,
+    },
+    appliedCardTaglineNew: {
+        fontSize: 12,
+        fontFamily: FONTS.regular,
+        color: '#6B7280',
+        lineHeight: 16,
+        marginBottom: 6,
+    },
+    appliedCardBottomRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    appliedCardTagsRow: {
+        flexDirection: 'row',
+        gap: 4,
+        flex: 1,
+    },
+    appliedCardStatsRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    appliedCardStatText: {
+        fontSize: 11,
+        fontFamily: FONTS.regular,
+        color: '#9CA3AF',
     },
 });
 
