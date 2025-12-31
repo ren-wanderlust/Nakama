@@ -214,13 +214,13 @@ const styles = StyleSheet.create({
     minHeight: 0,
   },
   headline: {
-    fontSize: 16,
-    lineHeight: 21,
+    fontSize: 17,
+    lineHeight: 22,
     fontFamily: FONTS.bold,
     color: '#111827',
   },
   projectTitle: {
-    fontSize: 12,
+    fontSize: 13,
     lineHeight: 16,
     fontFamily: FONTS.medium,
     color: '#6B7280',
@@ -238,14 +238,14 @@ const styles = StyleSheet.create({
   },
   ownerName: {
     flexShrink: 1,
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: FONTS.medium,
     color: '#6B7280',
   },
   createdAt: {
     flexShrink: 0,
     marginLeft: 6,
-    fontSize: 10,
+    fontSize: 12,
     fontFamily: FONTS.regular,
     color: '#9CA3AF',
   },
