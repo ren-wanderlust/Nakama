@@ -264,30 +264,32 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
     // Discord風プロフィールデザイン
     const renderDiscordHeader = () => (
         <View style={styles.discordHeader}>
-            {/* 上部背景エリア (カバー画像的役割) */}
+            {/* 上部背景エリア (設定ボタンのみ) */}
             <View style={styles.headerCoverArea}>
                 {/* 右上の設定ボタン */}
                 <TouchableOpacity style={styles.headerSettingsIconBtn} onPress={() => setIsMenuVisible(true)}>
-                    <Ionicons name="settings-outline" size={24} color="white" />
+                    <Ionicons name="settings-outline" size={24} color="#374151" />
                 </TouchableOpacity>
             </View>
 
             {/* プロフィールコンテンツ */}
             <View style={styles.profileContentContainer}>
-                {/* アバター（カバーに少し被せる） */}
-                <View style={styles.avatarContainer}>
-                    <Image
-                        source={getImageSource(profile.image)}
-                        style={styles.avatarImage}
-                    />
-                </View>
+                <View style={styles.profileInfoRow}>
+                    {/* アバター（左側、カバーに少し被せる） */}
+                    <View style={styles.avatarContainer}>
+                        <Image
+                            source={getImageSource(profile.image)}
+                            style={styles.avatarImage}
+                        />
+                    </View>
 
-                {/* ユーザー情報 */}
-                <View style={styles.userInfoSection}>
-                    <Text style={styles.userNameText}>{profile.name}</Text>
-                    <Text style={styles.userHandleText}>
-                        {profile.university} {profile.grade ? `| ${profile.grade}` : ''}
-                    </Text>
+                    {/* ユーザー情報（右側、アバターの横） */}
+                    <View style={styles.userInfoSection}>
+                        <Text style={styles.userNameText}>{profile.name}</Text>
+                        <Text style={styles.userHandleText}>
+                            {profile.university} {profile.grade ? `| ${profile.grade}` : ''}
+                        </Text>
+                    </View>
                 </View>
 
                 {/* プロフィール編集ボタン */}
@@ -752,57 +754,49 @@ const styles = StyleSheet.create({
         // marginBottomを削除して隙間をなくす
     },
     headerCoverArea: {
-        height: 120,
-        backgroundColor: '#F57C00', // オレンジのカバー背景
         width: '100%',
         flexDirection: 'row',
         justifyContent: 'flex-end',
         paddingTop: 50, // ステータスバー考慮
         paddingHorizontal: 16,
+        paddingBottom: 0,
+        backgroundColor: 'white', // 背景白
     },
     headerSettingsIconBtn: {
         width: 40,
         height: 40,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'rgba(0,0,0,0.2)',
+        backgroundColor: '#F3F4F6', // 薄いグレー背景
         borderRadius: 20,
     },
     profileContentContainer: {
         paddingHorizontal: 20,
-        marginTop: -50, // アバターをカバーに食い込ませる
-        paddingBottom: 8, // 下部の余白を縮小
+        marginTop: 10, // 通常のマージンに変更
+        paddingBottom: 8,
+    },
+    profileInfoRow: {
+        flexDirection: 'row',
+        alignItems: 'center', // 真横（中央揃え）
+        marginBottom: 24,
     },
     avatarContainer: {
         position: 'relative',
-        marginBottom: 12,
-        alignSelf: 'flex-start', // 左寄せ
+        marginRight: 16,
     },
     avatarImage: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
-        borderWidth: 6,
-        borderColor: 'white',
+        width: 80, // 少し小さく調整
+        height: 80,
+        borderRadius: 40,
         backgroundColor: '#FFF3E0',
-    },
-    onlineStatus: {
-        position: 'absolute',
-        bottom: 6,
-        right: 6,
-        width: 24,
-        height: 24,
-        borderRadius: 12,
-        backgroundColor: '#4CAF50',
-        borderWidth: 4,
-        borderColor: 'white',
+        // 枠線削除
     },
     userInfoSection: {
-        marginBottom: 20,
-        alignItems: 'flex-start', // 左寄せ
+        flex: 1,
+        justifyContent: 'center',
     },
     userNameText: {
-        fontSize: 26,
+        fontSize: 24,
         fontWeight: 'bold',
         color: '#111827',
         fontFamily: FONTS.bold,
