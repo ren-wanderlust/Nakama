@@ -1907,7 +1907,7 @@ function AppContent() {
               <Modal
                 visible={!!chatProjectDetail}
                 animationType="slide"
-                presentationStyle="pageSheet"
+                presentationStyle="fullScreen"
                 onRequestClose={() => setChatProjectDetail(null)}
               >
                 {chatProjectDetail && currentUser && (
@@ -1929,7 +1929,7 @@ function AppContent() {
       <Modal
         visible={!!chatProjectDetail && !activeChatRoom}
         animationType="slide"
-        presentationStyle="pageSheet"
+        presentationStyle="fullScreen"
         onRequestClose={() => setChatProjectDetail(null)}
       >
         {chatProjectDetail && currentUser && (
