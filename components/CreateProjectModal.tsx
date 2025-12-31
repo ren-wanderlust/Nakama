@@ -38,6 +38,9 @@ interface CreateProjectModalProps {
         tags?: string[];
         content_tags?: string[];
         status?: string;
+        commitment_level?: string | null;
+        goal?: string | null;
+        duration?: string | null;
     };
 }
 
@@ -58,6 +61,11 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
     // カバー画像
     const [coverImageUri, setCoverImageUri] = useState<string | null>(project?.cover_image || null);
     const [uploadingImage, setUploadingImage] = useState(false);
+
+    // 新しいフィールド: コミット量、ゴール、期間
+    const [commitmentLevel, setCommitmentLevel] = useState(project?.commitment_level || '');
+    const [goal, setGoal] = useState(project?.goal || '');
+    const [duration, setDuration] = useState(project?.duration || '');
 
     // 進捗状況の選択肢
     const PROGRESS_STATUS = [
@@ -238,6 +246,9 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
                     tags: selectedThemes,
                     content_tags: selectedContentTags,
                     status: selectedStatus,
+                    commitment_level: commitmentLevel.trim() || null,
+                    goal: goal.trim() || null,
+                    duration: duration.trim() || null,
                 };
 
                 const { error: updateError } = await supabase
@@ -259,6 +270,9 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
                     tags: selectedThemes,
                     content_tags: selectedContentTags,
                     status: selectedStatus,
+                    commitment_level: commitmentLevel.trim() || null,
+                    goal: goal.trim() || null,
+                    duration: duration.trim() || null,
                 };
 
                 const { data: newProject, error: insertError } = await supabase
@@ -736,6 +750,72 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
                                 />
                             </View>
                         )}
+                    </View>
+
+                    {/* Commitment Level Section */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <View style={styles.sectionIconContainer}>
+                                <Ionicons name="time" size={18} color="#009688" />
+                            </View>
+                            <Text style={styles.sectionTitle}>求めるコミット量</Text>
+                            <Text style={styles.optionalBadge}>任意</Text>
+                        </View>
+                        <View style={styles.inputWrapper}>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="例: 週5〜10時間程度、相談して決めたい"
+                                placeholderTextColor="#9CA3AF"
+                                value={commitmentLevel}
+                                onChangeText={setCommitmentLevel}
+                                maxLength={50}
+                            />
+                            <Text style={styles.charCount}>{commitmentLevel.length}/50</Text>
+                        </View>
+                    </View>
+
+                    {/* Goal Section */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <View style={styles.sectionIconContainer}>
+                                <Ionicons name="flag" size={18} color="#009688" />
+                            </View>
+                            <Text style={styles.sectionTitle}>ゴール</Text>
+                            <Text style={styles.optionalBadge}>任意</Text>
+                        </View>
+                        <View style={styles.inputWrapper}>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="例: MVP完成、資金調達、サービスリリース"
+                                placeholderTextColor="#9CA3AF"
+                                value={goal}
+                                onChangeText={setGoal}
+                                maxLength={100}
+                            />
+                            <Text style={styles.charCount}>{goal.length}/100</Text>
+                        </View>
+                    </View>
+
+                    {/* Duration Section */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <View style={styles.sectionIconContainer}>
+                                <Ionicons name="hourglass" size={18} color="#009688" />
+                            </View>
+                            <Text style={styles.sectionTitle}>期間</Text>
+                            <Text style={styles.optionalBadge}>任意</Text>
+                        </View>
+                        <View style={styles.inputWrapper}>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="例: 3ヶ月〜半年、未定（相談して決める）"
+                                placeholderTextColor="#9CA3AF"
+                                value={duration}
+                                onChangeText={setDuration}
+                                maxLength={50}
+                            />
+                            <Text style={styles.charCount}>{duration.length}/50</Text>
+                        </View>
                     </View>
 
                     {/* Description Section */}

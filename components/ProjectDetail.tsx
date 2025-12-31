@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Image, Dimensions, Alert, ActivityIndicator, SafeAreaView, FlatList, Modal } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Image, Dimensions, Alert, ActivityIndicator, SafeAreaView, FlatList, Modal, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
@@ -26,6 +26,9 @@ interface Project {
     tags?: string[];
     content_tags?: string[];
     status?: string; // 'recruiting' | 'closed'
+    commitment_level?: string | null;
+    goal?: string | null;
+    duration?: string | null;
     owner?: {
         id: string;
         name: string;
@@ -46,6 +49,7 @@ interface Applicant {
     id: string;
     user_id: string;
     status: 'pending' | 'approved' | 'rejected';
+    message?: string | null;
     user: {
         id: string;
         name: string;
@@ -92,6 +96,10 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
     const [showProfileModal, setShowProfileModal] = useState(false);
     const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
     const [loadingProfile, setLoadingProfile] = useState<string | null>(null); // ローディング中のユーザーIDを保持
+
+    // 応募モーダル用のstate
+    const [showApplyModal, setShowApplyModal] = useState(false);
+    const [applyMessage, setApplyMessage] = useState('');
 
     useEffect(() => {
         if (!owner) {
@@ -178,6 +186,7 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
           id,
           user_id,
           status,
+          message,
           user:profiles!user_id (
             id,
             name,
@@ -195,6 +204,7 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                     id: item.id,
                     user_id: item.user_id,
                     status: item.status,
+                    message: item.message,
                     user: item.user
                 }));
                 setApplicants(formattedApplicants);
@@ -258,7 +268,8 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
         };
     }, [project.id, fetchApplicants]);
 
-    const handleApply = async () => {
+    // 応募ボタンを押したときにモーダルを開く
+    const handleApply = () => {
         if (!currentUser) {
             Alert.alert('エラー', 'ログインが必要です');
             return;
@@ -271,8 +282,18 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
             Alert.alert('通知', 'すでに応募済みです');
             return;
         }
+        // モーダルを開く
+        setApplyMessage('');
+        setShowApplyModal(true);
+    };
+
+    // 実際の応募処理
+    const submitApplication = async () => {
+        if (!currentUser) return;
 
         setApplying(true);
+        setShowApplyModal(false);
+
         try {
             // Check current application count (pending + approved applications)
             const { count, error: countError } = await supabase
@@ -292,11 +313,17 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                 return;
             }
 
+            const messageToSave = applyMessage.trim() || null;
+
             if (hasApplied && applicationStatus === 'rejected') {
                 // Re-apply: update existing application status to pending
                 const { error: updateError } = await supabase
                     .from('project_applications')
-                    .update({ status: 'pending', created_at: new Date().toISOString() })
+                    .update({
+                        status: 'pending',
+                        created_at: new Date().toISOString(),
+                        message: messageToSave
+                    })
                     .eq('project_id', project.id)
                     .eq('user_id', currentUser.id);
 
@@ -308,13 +335,18 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                     .insert({
                         project_id: project.id,
                         user_id: currentUser.id,
-                        status: 'pending'
+                        status: 'pending',
+                        message: messageToSave
                     });
 
                 if (appError) throw appError;
             }
 
             // Send notification to owner
+            const notificationContent = messageToSave
+                ? `${currentUser.name}さんが「${project.title}」に応募しました！\n\n💬 ${messageToSave}`
+                : `${currentUser.name}さんが「${project.title}」に応募しました！`;
+
             const { error: notifError } = await supabase
                 .from('notifications')
                 .insert({
@@ -323,7 +355,7 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                     project_id: project.id,  // プロジェクトID
                     type: 'application',
                     title: 'プロジェクトへの応募',
-                    content: `${currentUser.name}さんが「${project.title}」に応募しました！`,
+                    content: notificationContent,
                     image_url: currentUser.image
                 });
 
@@ -346,6 +378,7 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
 
             Alert.alert('完了', '応募が完了しました！オーナーからの連絡をお待ちください。');
             setHasApplied(true);
+            setApplyMessage('');
             // 応募直後に「応募」一覧（LikesPage等）を即時更新
             queryClient.invalidateQueries({ queryKey: queryKeys.projectApplications.applied(currentUser.id), refetchType: 'active' });
             fetchApplicants(); // Refresh list
@@ -567,9 +600,13 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
         if (currentUser?.id !== project.owner_id) return;
 
         if (applicant.status === 'pending') {
+            const messageContent = applicant.message
+                ? `${applicant.user.name}さんからの申請をどうしますか？\n\n💬 メッセージ:\n「${applicant.message}」`
+                : `${applicant.user.name}さんからの申請をどうしますか？`;
+
             Alert.alert(
                 '申請の管理',
-                `${applicant.user.name}さんからの申請をどうしますか？`,
+                messageContent,
                 [
                     { text: 'キャンセル', style: 'cancel' },
                     {
@@ -754,6 +791,130 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
         }
     };
 
+    // プロジェクト脱退処理（メンバー用）
+    const handleLeaveProject = () => {
+        if (!currentUser) return;
+
+        // 自分がメンバーかどうか確認
+        const myApplication = applicants.find(a => a.user_id === currentUser.id && a.status === 'approved');
+        if (!myApplication) {
+            Alert.alert('エラー', 'あなたはこのプロジェクトのメンバーではありません');
+            return;
+        }
+
+        Alert.alert(
+            'プロジェクトを脱退',
+            `「${project.title}」から脱退しますか？\n\n脱退するとチームチャットからも除外されます。`,
+            [
+                { text: 'キャンセル', style: 'cancel' },
+                {
+                    text: '脱退する',
+                    style: 'destructive',
+                    onPress: () => {
+                        // 2段階確認
+                        Alert.alert(
+                            '最終確認',
+                            '本当にこのプロジェクトから脱退してよろしいですか？',
+                            [
+                                { text: 'やめる', style: 'cancel' },
+                                {
+                                    text: '脱退する',
+                                    style: 'destructive',
+                                    onPress: () => executeLeaveProject(myApplication.id)
+                                }
+                            ]
+                        );
+                    }
+                }
+            ]
+        );
+    };
+
+    const executeLeaveProject = async (applicationId: string) => {
+        if (!currentUser) return;
+
+        try {
+            // 1. プロジェクト応募を rejected に変更（削除ではなく履歴を残す）
+            const { error: leaveError } = await supabase
+                .from('project_applications')
+                .update({ status: 'rejected' })
+                .eq('id', applicationId);
+
+            if (leaveError) throw leaveError;
+
+            // 2. オーナーに通知を送信
+            await supabase
+                .from('notifications')
+                .insert({
+                    user_id: project.owner_id,
+                    sender_id: currentUser.id,
+                    project_id: project.id,
+                    type: 'member_left',
+                    title: 'メンバーがプロジェクトを脱退しました',
+                    content: `${currentUser.name}さんが「${project.title}」から脱退しました。`,
+                    image_url: currentUser.image
+                });
+
+            // 3. オーナーにプッシュ通知を送信
+            try {
+                const tokens = await getUserPushTokens(project.owner_id);
+                for (const token of tokens) {
+                    await sendPushNotification(
+                        token,
+                        'メンバー脱退のお知らせ',
+                        `${currentUser.name}さんが「${project.title}」から脱退しました。`,
+                        { type: 'member_left', projectId: project.id }
+                    );
+                }
+            } catch (pushError) {
+                console.log('Push notification error:', pushError);
+            }
+
+            // 4. チームチャットにシステムメッセージを投稿
+            const { data: chatRoom } = await supabase
+                .from('chat_rooms')
+                .select('id')
+                .eq('project_id', project.id)
+                .eq('type', 'group')
+                .maybeSingle();
+
+            if (chatRoom?.id) {
+                const systemText = `${currentUser.name}がプロジェクトから脱退しました`;
+                await supabase
+                    .from('messages')
+                    .insert({
+                        sender_id: currentUser.id,
+                        receiver_id: currentUser.id,
+                        chat_room_id: chatRoom.id,
+                        content: buildSystemMessage(systemText),
+                    });
+            }
+
+            // 5. React Query のキャッシュを更新
+            queryClient.invalidateQueries({ queryKey: queryKeys.participatingProjects.detail(currentUser.id), refetchType: 'active' });
+            queryClient.invalidateQueries({ queryKey: queryKeys.chatRooms.list(currentUser.id), refetchType: 'active' });
+            queryClient.invalidateQueries({ queryKey: queryKeys.projectApplications.applied(currentUser.id), refetchType: 'active' });
+
+            Alert.alert(
+                '完了',
+                'プロジェクトから脱退しました',
+                [{
+                    text: 'OK',
+                    onPress: () => {
+                        if (onProjectUpdated) onProjectUpdated();
+                        onClose();
+                    }
+                }]
+            );
+        } catch (error) {
+            console.error('Error leaving project:', error);
+            Alert.alert('エラー', 'プロジェクトからの脱退に失敗しました');
+        }
+    };
+
+    // 現在のユーザーがメンバーかどうかを判定
+    const isMember = currentUser && applicants.some(a => a.user_id === currentUser.id && a.status === 'approved');
+
     const formatDate = (dateString?: string | null) => {
         if (!dateString) return '期限なし';
         const date = new Date(dateString);
@@ -774,7 +935,7 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                 <TouchableOpacity onPress={onClose} style={styles.closeButton}>
                     <Ionicons name="close" size={28} color="#374151" />
                 </TouchableOpacity>
-                {currentUser?.id === project.owner_id && (
+                {currentUser?.id === project.owner_id ? (
                     <View style={styles.headerActions}>
                         <TouchableOpacity onPress={() => setShowEditModal(true)} style={styles.actionButton}>
                             <Ionicons name="create-outline" size={24} color="#374151" />
@@ -783,7 +944,13 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                             <Ionicons name="trash-outline" size={24} color="#EF4444" />
                         </TouchableOpacity>
                     </View>
-                )}
+                ) : isMember ? (
+                    <View style={styles.headerActions}>
+                        <TouchableOpacity onPress={handleLeaveProject} style={styles.actionButton}>
+                            <Ionicons name="exit-outline" size={24} color="#EF4444" />
+                        </TouchableOpacity>
+                    </View>
+                ) : null}
             </View>
 
             <Modal
@@ -807,6 +974,71 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                         project={project}
                     />
                 )}
+            </Modal>
+
+            {/* Apply Modal */}
+            <Modal
+                visible={showApplyModal}
+                animationType="fade"
+                transparent={true}
+                onRequestClose={() => setShowApplyModal(false)}
+            >
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    style={styles.applyModalOverlay}
+                >
+                    <View style={styles.applyModalContainer}>
+                        <View style={styles.applyModalHeader}>
+                            <Text style={styles.applyModalTitle}>プロジェクトに応募</Text>
+                            <TouchableOpacity
+                                onPress={() => setShowApplyModal(false)}
+                                style={styles.applyModalCloseButton}
+                            >
+                                <Ionicons name="close" size={24} color="#6B7280" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <Text style={styles.applyModalSubtitle}>
+                            「{project.title}」への参加を希望します
+                        </Text>
+
+                        <View style={styles.applyMessageContainer}>
+                            <Text style={styles.applyMessageLabel}>
+                                一言メッセージ（任意）
+                            </Text>
+                            <TextInput
+                                style={styles.applyMessageInput}
+                                placeholder="例: エンジニア経験3年です。&#10;一緒に開発できると嬉しいです！"
+                                placeholderTextColor="#9CA3AF"
+                                value={applyMessage}
+                                onChangeText={setApplyMessage}
+                                multiline
+                                numberOfLines={4}
+                                textAlignVertical="top"
+                                maxLength={200}
+                            />
+                            <Text style={styles.applyMessageCharCount}>
+                                {applyMessage.length}/200
+                            </Text>
+                        </View>
+
+                        <View style={styles.applyModalButtons}>
+                            <TouchableOpacity
+                                style={styles.applyModalCancelButton}
+                                onPress={() => setShowApplyModal(false)}
+                            >
+                                <Text style={styles.applyModalCancelText}>キャンセル</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={styles.applyModalSubmitButton}
+                                onPress={submitApplication}
+                            >
+                                <Ionicons name="paper-plane" size={18} color="white" />
+                                <Text style={styles.applyModalSubmitText}>応募する</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </KeyboardAvoidingView>
             </Modal>
 
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -860,6 +1092,45 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                         </View>
                     )}
 
+                    {/* コミット量・ゴール・期間を表示 */}
+                    {(project.commitment_level || project.goal || project.duration) && (
+                        <View style={styles.projectDetailsContainer}>
+                            {project.commitment_level && (
+                                <View style={styles.projectDetailItem}>
+                                    <View style={styles.projectDetailIconContainer}>
+                                        <Ionicons name="time" size={16} color="#3B82F6" />
+                                    </View>
+                                    <View style={styles.projectDetailContent}>
+                                        <Text style={styles.projectDetailLabel}>求めるコミット量</Text>
+                                        <Text style={styles.projectDetailValue}>{project.commitment_level}</Text>
+                                    </View>
+                                </View>
+                            )}
+                            {project.goal && (
+                                <View style={styles.projectDetailItem}>
+                                    <View style={styles.projectDetailIconContainer}>
+                                        <Ionicons name="flag" size={16} color="#10B981" />
+                                    </View>
+                                    <View style={styles.projectDetailContent}>
+                                        <Text style={styles.projectDetailLabel}>ゴール</Text>
+                                        <Text style={styles.projectDetailValue}>{project.goal}</Text>
+                                    </View>
+                                </View>
+                            )}
+                            {project.duration && (
+                                <View style={styles.projectDetailItem}>
+                                    <View style={styles.projectDetailIconContainer}>
+                                        <Ionicons name="hourglass" size={16} color="#8B5CF6" />
+                                    </View>
+                                    <View style={styles.projectDetailContent}>
+                                        <Text style={styles.projectDetailLabel}>期間</Text>
+                                        <Text style={styles.projectDetailValue}>{project.duration}</Text>
+                                    </View>
+                                </View>
+                            )}
+                        </View>
+                    )}
+
                     {/* Applicants Section */}
                     {/* 参加メンバー（横一列） */}
                     <View style={styles.membersRow}>
@@ -908,28 +1179,30 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                     </View>
 
                     {/* 内容（テーマタグ + 内容タグをまとめて表示 / 横一列・横スクロール） */}
-                    {(!!project.tags?.length || !!project.content_tags?.length) && (
-                        <View style={styles.themeContentRow}>
-                            <Text style={styles.themeContentLabel}>内容：</Text>
-                            <ScrollView
-                                horizontal
-                                showsHorizontalScrollIndicator={false}
-                                contentContainerStyle={styles.themeContentScrollContent}
-                                style={styles.themeContentScroll}
-                            >
-                                {!!project.tags?.length && project.tags.map((tag, index) => (
-                                    <View key={`theme-inline-${index}`} style={[styles.themeTag, { backgroundColor: getThemeTagColor(tag) }]}>
-                                        <Text style={[styles.themeTagText, { color: getThemeTagTextColor(tag) }]}>{tag}</Text>
-                                    </View>
-                                ))}
-                                {!!project.content_tags?.length && project.content_tags.map((tag, index) => (
-                                    <View key={`content-inline-${index}`} style={styles.contentTag}>
-                                        <Text style={styles.contentTagText}>{tag}</Text>
-                                    </View>
-                                ))}
-                            </ScrollView>
-                        </View>
-                    )}
+                    {
+                        (!!project.tags?.length || !!project.content_tags?.length) && (
+                            <View style={styles.themeContentRow}>
+                                <Text style={styles.themeContentLabel}>内容：</Text>
+                                <ScrollView
+                                    horizontal
+                                    showsHorizontalScrollIndicator={false}
+                                    contentContainerStyle={styles.themeContentScrollContent}
+                                    style={styles.themeContentScroll}
+                                >
+                                    {!!project.tags?.length && project.tags.map((tag, index) => (
+                                        <View key={`theme-inline-${index}`} style={[styles.themeTag, { backgroundColor: getThemeTagColor(tag) }]}>
+                                            <Text style={[styles.themeTagText, { color: getThemeTagTextColor(tag) }]}>{tag}</Text>
+                                        </View>
+                                    ))}
+                                    {!!project.content_tags?.length && project.content_tags.map((tag, index) => (
+                                        <View key={`content-inline-${index}`} style={styles.contentTag}>
+                                            <Text style={styles.contentTagText}>{tag}</Text>
+                                        </View>
+                                    ))}
+                                </ScrollView>
+                            </View>
+                        )
+                    }
 
                     <View style={styles.divider} />
 
@@ -938,54 +1211,56 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                     <Text style={styles.description}>{project.description}</Text>
 
                     {/* Pending Applications Section (Owner Only) - 詳細の下に残す */}
-                    {currentUser?.id === project.owner_id && (
-                        <View style={styles.applicantsSection}>
-                            <Text style={styles.sectionTitle}>
-                                申請中のメンバー ({applicants.filter(a => a.status === 'pending').length}人)
-                            </Text>
-                            {applicants.filter(a => a.status === 'pending').length > 0 ? (
-                                <View style={styles.pendingCardsList}>
-                                    {applicants.filter(a => a.status === 'pending').map((applicant) => (
-                                        <View key={applicant.id} style={styles.pendingCard}>
-                                            <View style={styles.pendingCardHeader}>
-                                                <Image
-                                                    source={getImageSource(applicant.user.image)}
-                                                    style={styles.pendingCardImage}
-                                                />
-                                                <View style={styles.pendingCardInfo}>
-                                                    <Text style={styles.pendingCardName} numberOfLines={1}>
-                                                        {applicant.user.name}
-                                                    </Text>
-                                                    <Text style={styles.pendingCardUniversity} numberOfLines={1}>
-                                                        {applicant.user.university || '所属なし'}
-                                                    </Text>
+                    {
+                        currentUser?.id === project.owner_id && (
+                            <View style={styles.applicantsSection}>
+                                <Text style={styles.sectionTitle}>
+                                    申請中のメンバー ({applicants.filter(a => a.status === 'pending').length}人)
+                                </Text>
+                                {applicants.filter(a => a.status === 'pending').length > 0 ? (
+                                    <View style={styles.pendingCardsList}>
+                                        {applicants.filter(a => a.status === 'pending').map((applicant) => (
+                                            <View key={applicant.id} style={styles.pendingCard}>
+                                                <View style={styles.pendingCardHeader}>
+                                                    <Image
+                                                        source={getImageSource(applicant.user.image)}
+                                                        style={styles.pendingCardImage}
+                                                    />
+                                                    <View style={styles.pendingCardInfo}>
+                                                        <Text style={styles.pendingCardName} numberOfLines={1}>
+                                                            {applicant.user.name}
+                                                        </Text>
+                                                        <Text style={styles.pendingCardUniversity} numberOfLines={1}>
+                                                            {applicant.user.university || '所属なし'}
+                                                        </Text>
+                                                    </View>
+                                                </View>
+                                                <View style={styles.pendingCardActions}>
+                                                    <TouchableOpacity
+                                                        style={styles.rejectButton}
+                                                        onPress={() => handleRejectConfirmation(applicant.id, applicant.user.name)}
+                                                    >
+                                                        <Ionicons name="close" size={18} color="#EF4444" />
+                                                        <Text style={styles.rejectButtonText}>棄却</Text>
+                                                    </TouchableOpacity>
+                                                    <TouchableOpacity
+                                                        style={styles.approveButton}
+                                                        onPress={() => updateApplicantStatus(applicant.id, 'approved', applicant.user.name)}
+                                                    >
+                                                        <Ionicons name="checkmark" size={18} color="white" />
+                                                        <Text style={styles.approveButtonText}>承認</Text>
+                                                    </TouchableOpacity>
                                                 </View>
                                             </View>
-                                            <View style={styles.pendingCardActions}>
-                                                <TouchableOpacity
-                                                    style={styles.rejectButton}
-                                                    onPress={() => handleRejectConfirmation(applicant.id, applicant.user.name)}
-                                                >
-                                                    <Ionicons name="close" size={18} color="#EF4444" />
-                                                    <Text style={styles.rejectButtonText}>棄却</Text>
-                                                </TouchableOpacity>
-                                                <TouchableOpacity
-                                                    style={styles.approveButton}
-                                                    onPress={() => updateApplicantStatus(applicant.id, 'approved', applicant.user.name)}
-                                                >
-                                                    <Ionicons name="checkmark" size={18} color="white" />
-                                                    <Text style={styles.approveButtonText}>承認</Text>
-                                                </TouchableOpacity>
-                                            </View>
-                                        </View>
-                                    ))}
-                                </View>
-                            ) : (
-                                <Text style={styles.noApplicantsText}>現在、申請はありません</Text>
-                            )}
-                        </View>
-                    )}
-                </View>
+                                        ))}
+                                    </View>
+                                ) : (
+                                    <Text style={styles.noApplicantsText}>現在、申請はありません</Text>
+                                )}
+                            </View>
+                        )
+                    }
+                </View >
                 <View style={{ height: 100 }} />
             </ScrollView >
 
@@ -1562,5 +1837,139 @@ const styles = StyleSheet.create({
         fontSize: 10,
         color: '#F59E0B',
         marginTop: 2,
+    },
+    projectDetailsContainer: {
+        marginTop: 16,
+        backgroundColor: '#F9FAFB',
+        borderRadius: 12,
+        padding: 12,
+        gap: 12,
+    },
+    projectDetailItem: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 12,
+    },
+    projectDetailIconContainer: {
+        width: 32,
+        height: 32,
+        borderRadius: 8,
+        backgroundColor: 'white',
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+        elevation: 1,
+    },
+    projectDetailContent: {
+        flex: 1,
+    },
+    projectDetailLabel: {
+        fontSize: 11,
+        color: '#6B7280',
+        marginBottom: 2,
+    },
+    projectDetailValue: {
+        fontSize: 14,
+        fontWeight: '500',
+        color: '#111827',
+    },
+    // Apply Modal Styles
+    applyModalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+    applyModalContainer: {
+        backgroundColor: 'white',
+        borderRadius: 20,
+        padding: 24,
+        width: '100%',
+        maxWidth: 400,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.25,
+        shadowRadius: 20,
+        elevation: 10,
+    },
+    applyModalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    applyModalTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#111827',
+    },
+    applyModalCloseButton: {
+        padding: 4,
+    },
+    applyModalSubtitle: {
+        fontSize: 14,
+        color: '#6B7280',
+        marginBottom: 20,
+    },
+    applyMessageContainer: {
+        marginBottom: 24,
+    },
+    applyMessageLabel: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#374151',
+        marginBottom: 8,
+    },
+    applyMessageInput: {
+        backgroundColor: '#F9FAFB',
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        borderRadius: 12,
+        padding: 14,
+        fontSize: 15,
+        color: '#111827',
+        minHeight: 100,
+        textAlignVertical: 'top',
+    },
+    applyMessageCharCount: {
+        fontSize: 12,
+        color: '#9CA3AF',
+        textAlign: 'right',
+        marginTop: 4,
+    },
+    applyModalButtons: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    applyModalCancelButton: {
+        flex: 1,
+        backgroundColor: '#F3F4F6',
+        paddingVertical: 14,
+        borderRadius: 12,
+        alignItems: 'center',
+    },
+    applyModalCancelText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#6B7280',
+    },
+    applyModalSubmitButton: {
+        flex: 1,
+        backgroundColor: '#009688',
+        paddingVertical: 14,
+        borderRadius: 12,
+        alignItems: 'center',
+        flexDirection: 'row',
+        justifyContent: 'center',
+        gap: 8,
+    },
+    applyModalSubmitText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: 'white',
     },
 });
