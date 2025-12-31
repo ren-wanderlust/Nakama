@@ -14,6 +14,7 @@ type ProjectLike = {
   tags?: string[] | null;
   content_tags?: string[] | null;
   pendingCount?: number | null;
+  applicantCount?: number | null;
 };
 
 export type ProjectSummaryCardProps = {
@@ -83,7 +84,7 @@ export function ProjectSummaryCard({
   const createdDateText = formatCreatedDate(project?.created_at);
   const themeTag = project?.tags?.[0] || '';
   const contentTags = (project?.content_tags || []).filter(Boolean) as string[];
-  const pendingCount = typeof project?.pendingCount === 'number' ? project.pendingCount : 0;
+  const applicantCount = typeof project?.applicantCount === 'number' ? project.applicantCount : 0;
 
   const defaultCoverImage = require('../assets/default-project-cover.png');
 
@@ -161,7 +162,7 @@ export function ProjectSummaryCard({
           {/* 右端固定: 参加申請数 */}
           <View style={styles.pendingCountBox}>
             <Ionicons name="document-text-outline" size={14} color="#9CA3AF" />
-            <Text style={styles.pendingCountText}>{pendingCount}</Text>
+            <Text style={styles.pendingCountText}>{applicantCount}</Text>
           </View>
         </View>
       </View>
