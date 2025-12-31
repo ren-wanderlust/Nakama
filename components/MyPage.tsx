@@ -43,6 +43,7 @@ const ROLE_ICONS: { [key: string]: string } = {
     'デザイナー': 'color-palette',
     'マーケター': 'megaphone',
     'アイディアマン': 'bulb',
+    'クリエイター': 'videocam',
     '誰でも': 'people',
 };
 
@@ -53,6 +54,16 @@ const ROLE_COLORS: { [key: string]: { bg: string; icon: string } } = {
     'マーケター': { bg: '#FFF3E0', icon: '#E65100' },    // Orange
     'アイディアマン': { bg: '#FFF9C4', icon: '#F57F17' }, // Yellow
     '誰でも': { bg: '#E8F5E9', icon: '#388E3C' },        // Green
+    'クリエイター': { bg: '#FCE4EC', icon: '#C2185B' },   // Pink
+};
+
+// Role ID to Japanese label mapping
+const ROLE_ID_TO_LABEL: { [key: string]: string } = {
+    'engineer': 'エンジニア',
+    'designer': 'デザイナー',
+    'marketer': 'マーケター',
+    'ideaman': 'アイディアマン',
+    'creator': 'クリエイター',
 };
 
 const getTimeAgoText = (createdAt?: string) => {
@@ -272,88 +283,89 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
         { id: 'logout', icon: 'log-out-outline', label: 'ログアウト', color: '#EF4444' },
     ];
 
-    // 登録日をフォーマット
-    const formatRegistrationDate = () => {
-        if (!profile.createdAt) return '不明';
-        const date = new Date(profile.createdAt);
+    const [isSticky, setIsSticky] = useState(false);
+
+    const handleScroll = (event: any) => {
+        const offsetY = event.nativeEvent.contentOffset.y;
+        // プロフィールの高さ - 50px くらいを目安に切り替える
+        // 実際には見た目で調整。仮に220pxとする
+        if (offsetY > 220 && !isSticky) {
+            setIsSticky(true);
+        } else if (offsetY <= 220 && isSticky) {
+            setIsSticky(false);
+        }
+    };
+
+    // 日付フォーマット
+    const formatDate = (dateString: string) => {
+        const date = new Date(dateString);
         return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
     };
 
-    // Discord風ヘッダー（グラデーション拡張）
+    // Discord風プロフィールデザイン
     const renderDiscordHeader = () => (
-        <LinearGradient
-            colors={['#F7B555', '#F7B555', '#FFF3E0']}
-            locations={[0, 0.5, 1]}
-            style={styles.discordHeader}
-        >
-            {/* ロゴ部分 */}
-            <View style={styles.discordBannerContent}>
-                <Text style={styles.discordBannerText}>Pogg</Text>
+        <View style={styles.discordHeader}>
+            {/* 上部背景エリア (設定ボタンのみ) */}
+            <View style={styles.headerCoverArea}>
+                {/* 右上の設定ボタン */}
+                <TouchableOpacity style={styles.headerSettingsIconBtn} onPress={() => setIsMenuVisible(true)}>
+                    <Ionicons name="settings-outline" size={24} color="#374151" />
+                </TouchableOpacity>
             </View>
 
-            {/* 設定アイコン（右上） */}
-            <TouchableOpacity
-                style={styles.discordSettingsBtn}
-                onPress={() => setIsMenuVisible(true)}
-            >
-                <Ionicons name="settings-outline" size={20} color="#555" />
-            </TouchableOpacity>
+            {/* プロフィールコンテンツ */}
+            <View style={styles.profileContentContainer}>
+                <View style={styles.profileInfoRow}>
+                    {/* アバター（左側、カバーに少し被せる） */}
+                    <View style={styles.avatarContainer}>
+                        <Image
+                            source={getImageSource(profile.image)}
+                            style={styles.avatarImage}
+                        />
+                    </View>
 
-            {/* アバター（左側に大きく配置） */}
-            <View style={styles.discordAvatarWrapper}>
-                <Image
-                    source={getImageSource(profile.image)}
-                    style={styles.discordAvatar}
-                />
-            </View>
+                    {/* ユーザー情報（右側、アバターの横） */}
+                    <View style={styles.userInfoSection}>
+                        <Text style={styles.userNameText}>{profile.name}</Text>
+                        <Text style={styles.userHandleText}>
+                            {profile.university} {profile.grade ? `| ${profile.grade}` : ''}
+                        </Text>
 
-            {/* プロフィール情報 */}
-            <View style={styles.discordProfileInfo}>
-                <Text style={styles.discordProfileName}>{profile.name}</Text>
-                <Text style={styles.discordProfileHandle}>
-                    {profile.university}{profile.grade ? ` / ${profile.grade}` : ''}
-                </Text>
-                <Text style={styles.memberSinceText}>
-                    {formatRegistrationDate()}からメンバー
-                </Text>
-            </View>
+                        {/* ロールタグ表示 */}
 
-            {/* プロフィール編集ボタン - アウトラインスタイルに変更 */}
-            <TouchableOpacity
-                style={styles.discordEditButton}
-                onPress={() => onEditProfile && onEditProfile()}
-            >
-                <Ionicons name="pencil" size={14} color="#F57C00" style={{ marginRight: 6 }} />
-                <Text style={styles.discordEditButtonText}>プロフィール編集</Text>
-            </TouchableOpacity>
-        </LinearGradient>
-    );
 
-    // Discord風セクション
-    const renderSectionItem = (
-        icon: string,
-        label: string,
-        rightContent?: React.ReactNode,
-        onPress?: () => void,
-        showChevron: boolean = true
-    ) => (
-        <TouchableOpacity
-            style={styles.discordSectionItem}
-            onPress={onPress}
-            disabled={!onPress}
-            activeOpacity={onPress ? 0.7 : 1}
-        >
-            <View style={styles.discordSectionLeft}>
-                <Ionicons name={icon as any} size={20} color="#6B7280" style={{ marginRight: 12 }} />
-                <Text style={styles.discordSectionLabel}>{label}</Text>
+                    </View>
+                </View>
+
+                {/* ロールタグ表示 (プロフィール情報の下に移動) */}
+                <View style={styles.roleTagsWrapper}>
+                    {profile.skills?.map(skill => {
+                        const roleLabel = ROLE_ID_TO_LABEL[skill] || skill;
+                        const roleColor = ROLE_COLORS[roleLabel];
+                        const roleIcon = ROLE_ICONS[roleLabel];
+
+                        if (!roleColor) return null;
+
+                        return (
+                            <View key={roleLabel} style={[styles.roleTag, { backgroundColor: roleColor.bg, borderColor: roleColor.icon }]}>
+                                {roleIcon && <Ionicons name={roleIcon as any} size={10} color={roleColor.icon} />}
+                                <Text style={[styles.roleTagText, { color: roleColor.icon }]}>{roleLabel}</Text>
+                            </View>
+                        );
+                    })}
+                </View>
+
+                {/* プロフィール編集ボタン */}
+                <TouchableOpacity
+                    style={styles.editProfileButtonLarge}
+                    onPress={() => onEditProfile && onEditProfile()}
+                    activeOpacity={0.7}
+                >
+                    <Ionicons name="pencil" size={16} color="white" style={{ marginRight: 8 }} />
+                    <Text style={styles.editProfileButtonTextLarge}>プロフィール編集</Text>
+                </TouchableOpacity>
             </View>
-            <View style={styles.discordSectionRight}>
-                {rightContent}
-                {showChevron && onPress && (
-                    <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
-                )}
-            </View>
-        </TouchableOpacity>
+        </View >
     );
 
     const renderTabs = () => (
@@ -471,48 +483,48 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
             <ScrollView
                 style={styles.scrollView}
                 refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F39800" />
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F57C00" />
                 }
                 showsVerticalScrollIndicator={false}
                 stickyHeaderIndices={[1]}
+                onScroll={handleScroll}
+                scrollEventThrottle={16}
             >
                 {/* Discord風ヘッダー */}
                 {renderDiscordHeader()}
 
                 {/* セクションリスト（固定） */}
-                <View style={styles.stickyHeaderWrapper}>
-                    {/* ステータスバー避け用スペーサー */}
-                    <View style={styles.stickyHeaderSpacer} />
-                    <View style={styles.discordSectionsContainer}>
-                        {/* マイプロジェクト */}
-                        <TouchableOpacity
-                            style={[styles.discordSectionItem, activeTab === 'myProjects' && styles.discordSectionItemActive]}
-                            onPress={() => setActiveTab('myProjects')}
-                        >
-                            <View style={styles.discordSectionLeft}>
-                                <Ionicons name="grid-outline" size={20} color={activeTab === 'myProjects' ? '#F57C00' : '#6B7280'} />
-                                <Text style={[styles.discordSectionLabel, activeTab === 'myProjects' && styles.discordSectionLabelActive]}>マイプロジェクト</Text>
-                            </View>
-                            <View style={styles.discordSectionRight}>
-                                <Text style={styles.discordSectionCount}>{projects.length}</Text>
-                                <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
-                            </View>
-                        </TouchableOpacity>
+                <View
+                    style={[styles.stickyHeaderWrapper, { backgroundColor: 'transparent' }]}
+                    pointerEvents="box-none"
+                >
+                    {/* ステータスバー避け用スペーサー（スクロール時は白、初期は透明） */}
+                    <View
+                        style={[styles.stickyHeaderSpacer, { backgroundColor: isSticky ? 'white' : 'transparent' }]}
+                        pointerEvents={isSticky ? 'auto' : 'none'}
+                    />
 
-                        {/* 参加中プロジェクト */}
-                        <TouchableOpacity
-                            style={[styles.discordSectionItem, activeTab === 'participatingProjects' && styles.discordSectionItemActive]}
-                            onPress={() => setActiveTab('participatingProjects')}
-                        >
-                            <View style={styles.discordSectionLeft}>
-                                <Ionicons name="people-outline" size={20} color={activeTab === 'participatingProjects' ? '#F57C00' : '#6B7280'} />
-                                <Text style={[styles.discordSectionLabel, activeTab === 'participatingProjects' && styles.discordSectionLabelActive]}>参加中プロジェクト</Text>
-                            </View>
-                            <View style={styles.discordSectionRight}>
-                                <Text style={styles.discordSectionCount}>{participatingProjects.length}</Text>
-                                <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
-                            </View>
-                        </TouchableOpacity>
+                    {/* 背景色を白にするためのラッパー（スクロール時にタブ背景が透けないようにする） */}
+                    <View style={{ backgroundColor: 'white' }}>
+                        <View style={styles.horizontalTabsContainer}>
+                            {/* マイプロジェクト */}
+                            <TouchableOpacity
+                                style={[styles.horizontalTabItem, activeTab === 'myProjects' && styles.horizontalTabItemActive]}
+                                onPress={() => setActiveTab('myProjects')}
+                            >
+                                <Ionicons name="grid-outline" size={18} color={activeTab === 'myProjects' ? 'white' : '#E5A33D'} />
+                                <Text style={[styles.horizontalTabLabel, activeTab === 'myProjects' && styles.horizontalTabLabelActive]}>マイプロジェクト</Text>
+                            </TouchableOpacity>
+
+                            {/* 参加中プロジェクト */}
+                            <TouchableOpacity
+                                style={[styles.horizontalTabItem, activeTab === 'participatingProjects' && styles.horizontalTabItemActive]}
+                                onPress={() => setActiveTab('participatingProjects')}
+                            >
+                                <Ionicons name="people-outline" size={18} color={activeTab === 'participatingProjects' ? 'white' : '#E5A33D'} />
+                                <Text style={[styles.horizontalTabLabel, activeTab === 'participatingProjects' && styles.horizontalTabLabelActive]}>参加中</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </View>
 
@@ -642,14 +654,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
     },
-    headerSettingsButton: {
-        width: 40,
-        height: 40,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderRadius: 20,
-        backgroundColor: '#F9FAFB',
-    },
     // Settings button inside profile card
     settingsButtonInCard: {
         width: 32,
@@ -690,10 +694,10 @@ const styles = StyleSheet.create({
         gap: 6,
     },
     profileName: {
-        fontSize: 22,
+        fontSize: 17,
         fontFamily: FONTS.bold,
         color: '#111827',
-        letterSpacing: -0.5,
+        lineHeight: 22,
     },
     universityContainer: {
         flexDirection: 'row',
@@ -824,147 +828,146 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     discordHeader: {
-        paddingTop: 60, // ステータスバーエリアをカバー
-        paddingBottom: 8, // タブとの間隔を縮める
+        backgroundColor: 'white',
+        // marginBottom削除: タッチイベントブロック問題を解消
     },
-    discordBannerContent: {
+    headerCoverArea: {
+        width: '100%',
         flexDirection: 'row',
+        justifyContent: 'flex-end',
+        paddingTop: 50, // ステータスバー考慮
+        paddingHorizontal: 16,
+        paddingBottom: 0,
+        backgroundColor: 'white', // 背景白
+    },
+    headerSettingsIconBtn: {
+        width: 40,
+        height: 40,
         alignItems: 'center',
         justifyContent: 'center',
-        paddingBottom: 20,
-        gap: 8,
+        backgroundColor: '#F3F4F6', // 薄いグレー背景
+        borderRadius: 20,
     },
-    logoContainer: {
-        width: 64,
-        height: 64,
-        alignItems: 'center',
-        justifyContent: 'center',
+    profileContentContainer: {
+        paddingHorizontal: 20,
+        marginTop: -10, // 少し上に移動
+        paddingBottom: 8,
     },
-    discordBannerLogo: {
-        width: 48,
-        height: 48,
+    profileInfoRow: {
+        flexDirection: 'row',
+        alignItems: 'center', // 真横（中央揃え）
+        marginBottom: 16, // タグとの間隔
     },
-    discordBannerText: {
-        fontSize: 40,
-        fontWeight: '700',
-        color: 'white',
-        letterSpacing: 0.5,
-        fontFamily: FONTS.bold,
-        marginTop: 10,
+    avatarContainer: {
+        position: 'relative',
+        marginRight: 16,
     },
-    discordSettingsBtn: {
-        position: 'absolute',
-        top: 60, // ステータスバー + paddingTop
-        right: 16,
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: 'rgba(255,255,255,0.9)', // 半透明白
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 10,
-        ...SHADOWS.sm,
-    },
-    discordAvatarWrapper: {
-        marginLeft: 24,
-        marginBottom: 12,
-    },
-    discordAvatar: {
-        width: 96,
-        height: 96,
-        borderRadius: 48,
-        borderWidth: 4,
-        borderColor: 'white', // 背景との境界を白く
+    avatarImage: {
+        width: 80, // 少し小さく調整
+        height: 80,
+        borderRadius: 40,
         backgroundColor: '#FFF3E0',
+        // 枠線削除
     },
-    discordProfileInfo: {
-        paddingHorizontal: 24,
-        marginBottom: 20,
+    userInfoSection: {
+        flex: 1,
+        justifyContent: 'center',
     },
-    discordProfileName: {
+    userNameText: {
         fontSize: 24,
         fontWeight: 'bold',
         color: '#111827',
-        marginBottom: 4,
         fontFamily: FONTS.bold,
+        marginBottom: 4,
     },
-    discordProfileHandle: {
+    userHandleText: {
         fontSize: 14,
         color: '#6B7280',
+        fontFamily: FONTS.regular,
+        marginBottom: 8,
+    },
+    roleTagsWrapper: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+        marginBottom: 20, // プロフィールボタンとの間隔
+    },
+    roleTag: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 16,
+        borderWidth: 1,
+        gap: 4,
+    },
+    roleTagText: {
+        fontSize: 11, // 少し大きく
+        fontWeight: 'bold',
         fontFamily: FONTS.medium,
     },
-    memberSinceText: {
-        fontSize: 12,
-        color: '#9CA3AF',
-        fontFamily: FONTS.regular,
-        marginTop: 4,
-    },
-    discordEditButton: {
+    editProfileButtonLarge: {
+        backgroundColor: '#E5A33D',
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        marginHorizontal: 24,
-        paddingVertical: 10,
-        borderRadius: 20, // 丸みを強く
-        backgroundColor: 'white',
-        borderWidth: 1.5,
-        borderColor: '#FFB74D', // 薄めのオレンジ枠
+        paddingVertical: 12,
+        borderRadius: 24,
+        width: '100%',
+        // marginBottom: 20, // 不要な余白を削除
         ...SHADOWS.sm,
     },
-    discordEditButtonText: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#F57C00', // 濃い目のオレンジ文字
-        fontFamily: FONTS.semiBold,
+    editProfileButtonTextLarge: {
+        color: 'white',
+        fontSize: 15,
+        fontWeight: 'bold',
+        fontFamily: FONTS.bold,
     },
     stickyHeaderWrapper: {
-        backgroundColor: '#FFF3E0', // 背景色と同じ
+        backgroundColor: 'transparent', // 透明にして、中の要素で背景を制御
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 2,
     },
     stickyHeaderSpacer: {
-        height: 50, // ステータスバーの高さ分
-        backgroundColor: '#FFF3E0',
+        height: 0, // 重複問題解消のため一時的に0に設定
+        // backgroundColorは動的に制御
     },
-    discordSectionsContainer: {
-        backgroundColor: 'white',
-        marginHorizontal: 16,
-        borderRadius: 16,
+    // 横並びタブスタイル
+    horizontalTabsContainer: {
+        flexDirection: 'row',
+        backgroundColor: 'white', // 背景白
+        paddingHorizontal: 16, // marginではなくpaddingにして背景を端まで伸ばす
         paddingVertical: 8,
-        ...SHADOWS.sm,
-        marginBottom: 12,
-        overflow: 'hidden',
+        gap: 12, // ボタン間の隙間
     },
-    discordSectionItem: {
+    horizontalTabItem: {
+        flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 20,
-        paddingVertical: 14,
+        justifyContent: 'center',
+        paddingVertical: 12,
+        paddingHorizontal: 12,
+        borderRadius: 24,
+        gap: 6,
+        backgroundColor: 'white',
+        borderWidth: 1,
+        borderColor: '#E5A33D',
     },
-    discordSectionLeft: {
-        flexDirection: 'row',
-        alignItems: 'center',
+    horizontalTabItemActive: {
+        backgroundColor: '#E5A33D',
+        borderColor: '#E5A33D',
     },
-    discordSectionRight: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
+    horizontalTabLabel: {
+        fontSize: 14,
+        color: '#E5A33D',
+        fontFamily: FONTS.medium,
     },
-    discordSectionLabel: {
-        fontSize: 15,
-        color: '#111827',
-        marginLeft: 12,
-    },
-    discordSectionLabelActive: {
-        color: '#F57C00',
-        fontWeight: '600',
-    },
-    discordSectionItemActive: {
-        backgroundColor: '#FFF8F0',
-    },
-    discordSectionCount: {
-        fontSize: 15,
-        color: '#6B7280',
-        fontWeight: '500',
+    horizontalTabLabelActive: {
+        color: 'white',
+        fontFamily: FONTS.semiBold,
     },
     discordSectionMeta: {
         fontSize: 14,

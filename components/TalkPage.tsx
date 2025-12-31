@@ -237,7 +237,7 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject, onOpenNotif
                                     {coverImage ? (
                                         <Image source={{ uri: coverImage }} style={styles.projectCardThumbnailImage} resizeMode="cover" />
                                     ) : (
-                                        <Ionicons name="image-outline" size={36} color="rgba(255,255,255,0.5)" />
+                                        <Image source={require('../assets/default-project-cover.png')} style={styles.projectCardThumbnailImage} resizeMode="cover" />
                                     )}
                                 </View>
 
