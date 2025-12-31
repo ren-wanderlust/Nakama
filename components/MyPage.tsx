@@ -445,7 +445,10 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                     pointerEvents="box-none"
                 >
                     {/* ステータスバー避け用スペーサー（スクロール時は白、初期は透明） */}
-                    <View style={[styles.stickyHeaderSpacer, { backgroundColor: isSticky ? 'white' : 'transparent' }]} />
+                    <View
+                        style={[styles.stickyHeaderSpacer, { backgroundColor: isSticky ? 'white' : 'transparent' }]}
+                        pointerEvents={isSticky ? 'auto' : 'none'}
+                    />
 
                     {/* 背景色を白にするためのラッパー（スクロール時にタブ背景が透けないようにする） */}
                     <View style={{ backgroundColor: 'white' }}>
@@ -794,7 +797,7 @@ const styles = StyleSheet.create({
     },
     profileContentContainer: {
         paddingHorizontal: 20,
-        marginTop: 10, // 通常のマージンに変更
+        marginTop: -10, // 少し上に移動
         paddingBottom: 8,
     },
     profileInfoRow: {
