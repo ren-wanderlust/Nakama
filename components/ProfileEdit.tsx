@@ -281,6 +281,7 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
                             contentContainerStyle={styles.scrollContent}
                             showsVerticalScrollIndicator={false}
                             keyboardShouldPersistTaps="handled"
+                            keyboardDismissMode="on-drag"
                         >
                             {/* Profile Image */}
                             <View style={styles.imageSection}>
