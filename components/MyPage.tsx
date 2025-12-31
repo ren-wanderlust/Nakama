@@ -314,23 +314,27 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                         </Text>
 
                         {/* ロールタグ表示 */}
-                        <View style={styles.roleTagsContainer}>
-                            {profile.skills?.map(skill => {
-                                const roleLabel = ROLE_ID_TO_LABEL[skill] || skill;
-                                const roleColor = ROLE_COLORS[roleLabel];
-                                const roleIcon = ROLE_ICONS[roleLabel];
 
-                                if (!roleColor) return null;
 
-                                return (
-                                    <View key={roleLabel} style={[styles.roleTag, { backgroundColor: roleColor.bg, borderColor: roleColor.icon }]}>
-                                        {roleIcon && <Ionicons name={roleIcon as any} size={10} color={roleColor.icon} />}
-                                        <Text style={[styles.roleTagText, { color: roleColor.icon }]}>{roleLabel}</Text>
-                                    </View>
-                                );
-                            })}
-                        </View>
                     </View>
+                </View>
+
+                {/* ロールタグ表示 (プロフィール情報の下に移動) */}
+                <View style={styles.roleTagsWrapper}>
+                    {profile.skills?.map(skill => {
+                        const roleLabel = ROLE_ID_TO_LABEL[skill] || skill;
+                        const roleColor = ROLE_COLORS[roleLabel];
+                        const roleIcon = ROLE_ICONS[roleLabel];
+
+                        if (!roleColor) return null;
+
+                        return (
+                            <View key={roleLabel} style={[styles.roleTag, { backgroundColor: roleColor.bg, borderColor: roleColor.icon }]}>
+                                {roleIcon && <Ionicons name={roleIcon as any} size={10} color={roleColor.icon} />}
+                                <Text style={[styles.roleTagText, { color: roleColor.icon }]}>{roleLabel}</Text>
+                            </View>
+                        );
+                    })}
                 </View>
 
                 {/* プロフィール編集ボタン */}
@@ -342,7 +346,7 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                     <Text style={styles.editProfileButtonTextLarge}>プロフィール編集</Text>
                 </TouchableOpacity>
             </View>
-        </View>
+        </View >
     );
 
     const renderTabs = () => (
@@ -832,7 +836,7 @@ const styles = StyleSheet.create({
     profileInfoRow: {
         flexDirection: 'row',
         alignItems: 'center', // 真横（中央揃え）
-        marginBottom: 24,
+        marginBottom: 16, // タグとの間隔
     },
     avatarContainer: {
         position: 'relative',
@@ -862,22 +866,23 @@ const styles = StyleSheet.create({
         fontFamily: FONTS.regular,
         marginBottom: 8,
     },
-    roleTagsContainer: {
+    roleTagsWrapper: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 6,
+        gap: 8,
+        marginBottom: 20, // プロフィールボタンとの間隔
     },
     roleTag: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 8,
-        paddingVertical: 2,
-        borderRadius: 12,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 16,
         borderWidth: 1,
         gap: 4,
     },
     roleTagText: {
-        fontSize: 10,
+        fontSize: 11, // 少し大きく
         fontWeight: 'bold',
         fontFamily: FONTS.medium,
     },
