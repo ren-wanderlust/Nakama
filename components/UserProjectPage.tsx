@@ -130,7 +130,15 @@ const ProjectCard = ({ project, onPress, index = 0 }: { project: Project; onPres
 
                 {/* 右側: コンテンツ */}
                 <View style={styles.cardContentNew}>
-                    {/* オーナー情報 */}
+                    {/* タイトル */}
+                    <Text style={styles.cardTitleNew} numberOfLines={1}>{project.title}</Text>
+
+                    {/* タグライン/説明 */}
+                    {project.tagline && (
+                        <Text style={styles.cardTaglineNew} numberOfLines={2}>{project.tagline}</Text>
+                    )}
+
+                    {/* オーナー情報（タグラインの下） */}
                     <View style={styles.cardOwnerRow}>
                         {ownerImage ? (
                             <Image
@@ -145,14 +153,6 @@ const ProjectCard = ({ project, onPress, index = 0 }: { project: Project; onPres
                         <Text style={styles.cardOwnerName} numberOfLines={1}>{ownerName}</Text>
                         <Text style={styles.cardTimeAgo}>{timeAgo}</Text>
                     </View>
-
-                    {/* タイトル */}
-                    <Text style={styles.cardTitleNew} numberOfLines={1}>{project.title}</Text>
-
-                    {/* タグライン/説明 */}
-                    {project.tagline && (
-                        <Text style={styles.cardTaglineNew} numberOfLines={2}>{project.tagline}</Text>
-                    )}
 
                     {/* 下部: タグ + 統計 */}
                     <View style={styles.cardBottomRow}>
@@ -681,27 +681,28 @@ const styles = StyleSheet.create({
         marginBottom: 6,
     },
     cardOwnerAvatar: {
-        width: 24,
-        height: 24,
-        borderRadius: 12,
+        width: 22,
+        height: 22,
+        borderRadius: 11,
         marginRight: 6,
     },
     cardOwnerName: {
-        flex: 1,
-        fontSize: 12,
+        flexShrink: 1,
+        marginRight: 8,
+        fontSize: 11,
         fontFamily: FONTS.medium,
         color: '#6B7280',
     },
     cardTimeAgo: {
-        fontSize: 11,
+        fontSize: 10,
         fontFamily: FONTS.regular,
         color: '#9CA3AF',
     },
     cardTitleNew: {
-        fontSize: 15,
+        fontSize: 16,
         fontFamily: FONTS.bold,
         color: '#111827',
-        lineHeight: 20,
+        lineHeight: 21,
         marginBottom: 4,
     },
     cardTaglineNew: {

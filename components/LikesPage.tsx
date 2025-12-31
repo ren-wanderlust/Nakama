@@ -491,6 +491,21 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
         const ownerImage = projectData.profiles?.image || projectData.owner?.image;
         const ownerName = projectData.profiles?.name || projectData.owner?.name || '不明';
         const coverImage = projectData.cover_image;
+        const timeAgo = (() => {
+            const createdAt = (project as any)?.created_at as string | undefined;
+            if (!createdAt) return '';
+            const createdDate = new Date(createdAt);
+            if (Number.isNaN(createdDate.getTime())) return '';
+            const daysAgo = Math.floor((Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
+            // 3日以内は相対表示、4日以上は日付形式
+            return daysAgo === 0
+                ? '今日'
+                : daysAgo === 1
+                    ? '昨日'
+                    : daysAgo <= 3
+                        ? `${daysAgo}日前`
+                        : `${createdDate.getMonth() + 1}/${createdDate.getDate()}`;
+        })();
 
         // デフォルトカバー画像
         const defaultCoverImage = require('../assets/default-project-cover.png');
@@ -518,7 +533,15 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
 
                 {/* 右側: コンテンツ */}
                 <View style={styles.appliedCardContentNew}>
-                    {/* オーナー情報 */}
+                    {/* タイトル */}
+                    <Text style={styles.appliedCardTitleNew} numberOfLines={1}>{project.title}</Text>
+
+                    {/* タグライン/説明 */}
+                    {project.tagline && (
+                        <Text style={styles.appliedCardTaglineNew} numberOfLines={2}>{project.tagline}</Text>
+                    )}
+
+                    {/* オーナー情報（タグラインの下） */}
                     <View style={styles.appliedCardOwnerRow}>
                         {ownerImage ? (
                             <Image
@@ -531,15 +554,8 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                             </View>
                         )}
                         <Text style={styles.appliedCardOwnerName} numberOfLines={1}>{ownerName}</Text>
+                        {!!timeAgo && <Text style={styles.appliedCardTimeAgo}>{timeAgo}</Text>}
                     </View>
-
-                    {/* タイトル */}
-                    <Text style={styles.appliedCardTitleNew} numberOfLines={1}>{project.title}</Text>
-
-                    {/* タグライン/説明 */}
-                    {project.tagline && (
-                        <Text style={styles.appliedCardTaglineNew} numberOfLines={2}>{project.tagline}</Text>
-                    )}
 
                     {/* 下部: タグ + 統計 */}
                     <View style={styles.appliedCardBottomRow}>
@@ -1864,22 +1880,28 @@ const styles = StyleSheet.create({
         marginBottom: 6,
     },
     appliedCardOwnerAvatar: {
-        width: 24,
-        height: 24,
-        borderRadius: 12,
+        width: 22,
+        height: 22,
+        borderRadius: 11,
         marginRight: 6,
     },
     appliedCardOwnerName: {
-        flex: 1,
-        fontSize: 12,
+        flexShrink: 1,
+        marginRight: 8,
+        fontSize: 11,
         fontFamily: FONTS.medium,
         color: '#6B7280',
     },
+    appliedCardTimeAgo: {
+        fontSize: 10,
+        fontFamily: FONTS.regular,
+        color: '#9CA3AF',
+    },
     appliedCardTitleNew: {
-        fontSize: 15,
+        fontSize: 16,
         fontFamily: FONTS.bold,
         color: '#111827',
-        lineHeight: 20,
+        lineHeight: 21,
         marginBottom: 4,
     },
     appliedCardTaglineNew: {

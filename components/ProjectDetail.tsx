@@ -358,6 +358,7 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
 
 
     const updateApplicantStatus = async (applicationId: string, newStatus: 'approved' | 'rejected', userName: string) => {
+        Alert.alert('Debug 1', `Start: status=${newStatus}, user=${userName}`);
         try {
             const { error } = await supabase
                 .from('project_applications')
@@ -410,6 +411,7 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
 
             let teamChatCreated = false;
             if (newStatus === 'approved') {
+                Alert.alert('Debug 2', 'In approved block');
                 // 承認されたユーザーの「参加中」を即時更新（実行者ではなく対象ユーザー）
                 if (applicant?.user_id) {
                     queryClient.invalidateQueries({ queryKey: queryKeys.participatingProjects.detail(applicant.user_id), refetchType: 'active' });
@@ -423,6 +425,7 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                     .eq('status', 'approved');
 
                 const totalMembers = (count || 0) + 1; // +1 for owner
+                Alert.alert('Debug 3', `count=${count}, totalMembers=${totalMembers}`);
 
                 if (totalMembers >= 2) {
                     // Check if chat room already exists
@@ -440,6 +443,7 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                     }
 
                     let chatRoomId: string | null = existingRoom?.id ?? null;
+                    console.log('[SystemMessage] existingRoomId:', existingRoom?.id);
 
                     if (!existingRoom) {
                         // Create team chat room
@@ -468,16 +472,19 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                     // NOTE: 既存スキーマを変えずに表示を「システム」扱いにするため、contentにプレフィックスを付ける
                     if (chatRoomId && currentUser?.id) {
                         const systemText = `${userName}がプロジェクトに参加しました`;
+                        console.log('[SystemMessage] Inserting message. chatRoomId:', chatRoomId, 'sender:', currentUser.id);
                         const { error: systemMsgError } = await supabase
                             .from('messages')
                             .insert({
                                 sender_id: currentUser.id,
-                                receiver_id: currentUser.id, // グループチャットの既存実装に合わせる
+                                receiver_id: null, // グループチャットなので null
                                 chat_room_id: chatRoomId,
                                 content: buildSystemMessage(systemText),
                             });
                         if (systemMsgError) {
-                            console.error('Error inserting system message:', systemMsgError);
+                            Alert.alert('Debug Error', `Insert error: ${JSON.stringify(systemMsgError)}`);
+                        } else {
+                            Alert.alert('Debug 4', 'Insert success');
                         }
                         // チャット一覧/未読を即時更新
                         queryClient.invalidateQueries({ queryKey: queryKeys.chatRooms.list(currentUser.id), refetchType: 'active' });
