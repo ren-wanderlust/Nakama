@@ -68,6 +68,10 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
     const [isRecruitingFilterOpen, setIsRecruitingFilterOpen] = useState(false);
     const [selectedRecruitingProjectId, setSelectedRecruitingProjectId] = useState<string | null>(null);
 
+    // Message modal state
+    const [showMessageModal, setShowMessageModal] = useState(false);
+    const [selectedMessage, setSelectedMessage] = useState<string>('');
+
     // React Query hooks
     const receivedLikesQuery = useReceivedLikes(session?.user?.id);
     const projectApplicationsQuery = useProjectApplications(session?.user?.id);
@@ -554,6 +558,18 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                     <View style={styles.recruitingActionsRight}>
                         {isPending ? (
                             <>
+                                {item.message && (
+                                    <TouchableOpacity
+                                        style={styles.messageIconButton}
+                                        onPress={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedMessage(item.message || '');
+                                            setShowMessageModal(true);
+                                        }}
+                                    >
+                                        <Ionicons name="chatbubble-outline" size={20} color="#009688" />
+                                    </TouchableOpacity>
+                                )}
                                 <TouchableOpacity
                                     style={styles.actionIconButtonReject}
                                     onPress={(e) => {
@@ -585,14 +601,6 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                         )}
                     </View>
                 </View>
-
-                {item.message && (
-                    <View style={styles.recruitingMessageContainer}>
-                        <Text style={styles.recruitingMessageText} numberOfLines={2}>
-                            "{item.message}"
-                        </Text>
-                    </View>
-                )}
             </TouchableOpacity>
         );
     };
@@ -1116,6 +1124,39 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                 title="絞り込み"
                 subtitle="募集中のプロジェクトを選択"
             />
+
+            {/* Message modal */}
+            <Modal
+                visible={showMessageModal}
+                animationType="fade"
+                transparent={true}
+                onRequestClose={() => setShowMessageModal(false)}
+            >
+                <View style={styles.messageModalOverlay}>
+                    <View style={styles.messageModalContainer}>
+                        <View style={styles.messageModalHeader}>
+                            <Text style={styles.messageModalTitle}>応募メッセージ</Text>
+                            <TouchableOpacity
+                                onPress={() => setShowMessageModal(false)}
+                                style={styles.messageModalCloseButton}
+                            >
+                                <Ionicons name="close" size={24} color="#6B7280" />
+                            </TouchableOpacity>
+                        </View>
+                        <View style={styles.messageModalContent}>
+                            <Text style={styles.messageModalText}>
+                                {selectedMessage}
+                            </Text>
+                        </View>
+                        <TouchableOpacity
+                            style={styles.messageModalOkButton}
+                            onPress={() => setShowMessageModal(false)}
+                        >
+                            <Text style={styles.messageModalOkText}>OK</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -1435,6 +1476,16 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: 8,
         paddingLeft: 4,
+    },
+    messageIconButton: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: '#E0F2F1',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: '#B2DFDB',
     },
     actionIconButtonReject: {
         width: 36,
@@ -1790,6 +1841,62 @@ const styles = StyleSheet.create({
         color: '#4B5563',
         fontStyle: 'italic',
         lineHeight: 16,
+    },
+    // Message modal styles
+    messageModalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+    messageModalContainer: {
+        backgroundColor: 'white',
+        borderRadius: 20,
+        padding: 24,
+        width: '100%',
+        maxWidth: 400,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.25,
+        shadowRadius: 20,
+        elevation: 10,
+    },
+    messageModalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    messageModalTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#111827',
+    },
+    messageModalCloseButton: {
+        padding: 4,
+    },
+    messageModalContent: {
+        marginBottom: 24,
+        padding: 16,
+        backgroundColor: '#FFFBEB',
+        borderRadius: 12,
+    },
+    messageModalText: {
+        fontSize: 15,
+        color: '#4B5563',
+        lineHeight: 24,
+    },
+    messageModalOkButton: {
+        backgroundColor: '#009688',
+        paddingVertical: 14,
+        borderRadius: 12,
+        alignItems: 'center',
+    },
+    messageModalOkText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: 'white',
     },
 });
 

@@ -104,6 +104,7 @@ export async function fetchProjectApplications(userId: string): Promise<ProjectA
         status: app.status,
         created_at: app.created_at,
         is_read: app.is_read,
+        message: app.message,
         user: app.user ? mapProfileRowToProfile(app.user) : undefined,
         project: app.project,
       }));
