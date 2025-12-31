@@ -684,7 +684,7 @@ function AppContent() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, name, age, university, company, grade, image, bio, skills, seeking_for, seeking_roles, status_tags, is_student, created_at')
+        .select('id, name, age, university, company, grade, image, bio, skills, seeking_for, seeking_roles, status_tags, is_student, created_at, github_url')
         .eq('id', session.user.id)
         .maybeSingle();
 
@@ -708,6 +708,7 @@ function AppContent() {
           statusTags: data.status_tags || [],
           isStudent: data.is_student,
           createdAt: data.created_at,
+          githubUrl: data.github_url,
         };
         setCurrentUser(mappedUser);
       } else {

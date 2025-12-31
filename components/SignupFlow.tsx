@@ -32,7 +32,7 @@ interface SignupFlowProps {
 }
 
 export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
-    const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6>(1);
+    const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
 
     // Step 1: Email and Password
     const [email, setEmail] = useState('');
@@ -514,14 +514,12 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
             if (validateStep3()) setStep(4);
         } else if (step === 4) {
             if (validateStep4()) setStep(5);
-        } else if (step === 5) {
-            if (validateStep5()) setStep(6);
         }
     };
 
     const handleBack = () => {
         if (step > 1) {
-            setStep((step - 1) as 1 | 2 | 3 | 4 | 5 | 6);
+            setStep((step - 1) as 1 | 2 | 3 | 4 | 5);
         } else {
             onCancel();
         }
@@ -652,7 +650,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
     const renderProgressBar = () => (
         <View style={styles.progressBarContainer}>
             <View style={styles.progressBarBg}>
-                <View style={[styles.progressBarFill, { width: `${(step / 6) * 100}%` }]} />
+                <View style={[styles.progressBarFill, { width: `${(step / 5) * 100}%` }]} />
             </View>
         </View>
     );
@@ -1200,7 +1198,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                 </View>
 
                 <TouchableOpacity
-                    onPress={step === 6 ? handleComplete : handleNext}
+                    onPress={step === 5 ? handleComplete : handleNext}
                     activeOpacity={0.7}
                     disabled={isSubmitting || isCheckingEmail}
                     style={styles.nextButtonHeader}
@@ -1209,7 +1207,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                         <ActivityIndicator color="#FF8C00" size="small" />
                     ) : (
                         <Text style={styles.nextButtonText}>
-                            {step === 6 ? '登録' : '次へ'}
+                            {step === 5 ? '登録' : '次へ'}
                         </Text>
                     )}
                 </TouchableOpacity>
@@ -1232,8 +1230,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                             {step === 2 && renderStep2()}
                             {step === 3 && renderStep3()}
                             {step === 4 && renderStep4()}
-                            {step === 5 && renderStep5()}
-                            {step === 6 && renderStep6()}
+                            {step === 5 && renderStep6()}
                         </View>
                     </TouchableWithoutFeedback>
                 </ScrollView>
