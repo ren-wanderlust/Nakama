@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, Image, TouchableOpacity, ScrollView, SafeAreaView, Dimensions, Alert, TextInput, Modal, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, Image, TouchableOpacity, ScrollView, SafeAreaView, Dimensions, Alert, TextInput, Modal, ActivityIndicator, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Profile } from '../types';
 import { AnimatedLikeButton } from './AnimatedLikeButton';
@@ -248,8 +248,9 @@ export function ProfileDetail({ profile, onBack, onLike, onChat, isLiked, onBloc
                                 const url = profile.githubUrl!.startsWith('http')
                                     ? profile.githubUrl!
                                     : `https://${profile.githubUrl}`;
-                                import('react-native').then(({ Linking }) => {
-                                    Linking.openURL(url);
+                                Linking.openURL(url).catch(err => {
+                                    console.error('Failed to open URL:', err);
+                                    Alert.alert('エラー', 'URLを開けませんでした');
                                 });
                             }}
                             activeOpacity={0.7}
@@ -328,8 +329,9 @@ export function ProfileDetail({ profile, onBack, onLike, onChat, isLiked, onBloc
                             const url = profile.githubUrl!.startsWith('http')
                                 ? profile.githubUrl!
                                 : `https://${profile.githubUrl}`;
-                            import('react-native').then(({ Linking }) => {
-                                Linking.openURL(url);
+                            Linking.openURL(url).catch(err => {
+                                console.error('Failed to open URL:', err);
+                                Alert.alert('エラー', 'URLを開けませんでした');
                             });
                         }}
                         activeOpacity={0.8}
