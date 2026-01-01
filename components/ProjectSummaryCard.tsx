@@ -1,9 +1,13 @@
 import React from 'react';
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { getImageSource } from '../constants/DefaultImages';
 import { FONTS } from '../constants/DesignSystem';
 import { getThemeTagColor, getThemeTagTextColor } from '../constants/ThemeConstants';
+
+// コンポーネント外でrequireを行い、事前にロードされるようにする
+const DEFAULT_COVER_IMAGE = require('../assets/default-project-cover.png');
 
 type ProjectLike = {
   id?: string;
@@ -86,7 +90,7 @@ export function ProjectSummaryCard({
   const contentTags = (project?.content_tags || []).filter(Boolean) as string[];
   const applicantCount = typeof project?.applicantCount === 'number' ? project.applicantCount : 0;
 
-  const defaultCoverImage = require('../assets/default-project-cover.png');
+
 
   return (
     <TouchableOpacity
@@ -100,9 +104,11 @@ export function ProjectSummaryCard({
       <View style={styles.topSection}>
         <View style={styles.thumbnail}>
           <Image
-            source={coverImage ? { uri: coverImage } : defaultCoverImage}
+            source={coverImage ? { uri: coverImage } : DEFAULT_COVER_IMAGE}
             style={styles.thumbnailImage}
-            resizeMode="cover"
+            contentFit="cover"
+            cachePolicy="memory-disk"
+            transition={150}
           />
         </View>
 
