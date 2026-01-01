@@ -377,7 +377,7 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                                 style={[styles.horizontalTabItem, activeTab === 'myProjects' && styles.horizontalTabItemActive]}
                                 onPress={() => setActiveTab('myProjects')}
                             >
-                                <Ionicons name="grid-outline" size={18} color={activeTab === 'myProjects' ? 'white' : '#E5A33D'} />
+                                <Ionicons name="grid-outline" size={18} color={activeTab === 'myProjects' ? 'white' : '#F39800'} />
                                 <Text style={[styles.horizontalTabLabel, activeTab === 'myProjects' && styles.horizontalTabLabelActive]}>マイプロジェクト</Text>
                             </TouchableOpacity>
 
@@ -386,7 +386,7 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                                 style={[styles.horizontalTabItem, activeTab === 'participatingProjects' && styles.horizontalTabItemActive]}
                                 onPress={() => setActiveTab('participatingProjects')}
                             >
-                                <Ionicons name="people-outline" size={18} color={activeTab === 'participatingProjects' ? 'white' : '#E5A33D'} />
+                                <Ionicons name="people-outline" size={18} color={activeTab === 'participatingProjects' ? 'white' : '#F39800'} />
                                 <Text style={[styles.horizontalTabLabel, activeTab === 'participatingProjects' && styles.horizontalTabLabelActive]}>参加中</Text>
                             </TouchableOpacity>
                         </View>
@@ -821,15 +821,15 @@ const styles = StyleSheet.create({
         gap: 6,
         backgroundColor: 'white',
         borderWidth: 1,
-        borderColor: '#E5A33D',
+        borderColor: '#F39800',
     },
     horizontalTabItemActive: {
-        backgroundColor: '#E5A33D',
-        borderColor: '#E5A33D',
+        backgroundColor: '#F39800',
+        borderColor: '#F39800',
     },
     horizontalTabLabel: {
         fontSize: 14,
-        color: '#E5A33D',
+        color: '#F39800',
         fontFamily: FONTS.medium,
     },
     horizontalTabLabelActive: {
