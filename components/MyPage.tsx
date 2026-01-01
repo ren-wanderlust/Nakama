@@ -360,9 +360,12 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                     style={[styles.stickyHeaderWrapper, { backgroundColor: 'transparent' }]}
                     pointerEvents="box-none"
                 >
-                    {/* ステータスバー避け用スペーサー（スクロール時は白、初期は透明） */}
+                    {/* ステータスバー避け用スペーサー（スクロール時のみ高さを持つ） */}
                     <View
-                        style={[styles.stickyHeaderSpacer, { backgroundColor: isSticky ? 'white' : 'transparent' }]}
+                        style={[styles.stickyHeaderSpacer, {
+                            backgroundColor: isSticky ? 'white' : 'transparent',
+                            height: isSticky ? 50 : 0
+                        }]}
                         pointerEvents={isSticky ? 'auto' : 'none'}
                     />
 
@@ -374,7 +377,7 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                                 style={[styles.horizontalTabItem, activeTab === 'myProjects' && styles.horizontalTabItemActive]}
                                 onPress={() => setActiveTab('myProjects')}
                             >
-                                <Ionicons name="grid-outline" size={18} color={activeTab === 'myProjects' ? 'white' : '#E5A33D'} />
+                                <Ionicons name="grid-outline" size={18} color={activeTab === 'myProjects' ? 'white' : '#F39800'} />
                                 <Text style={[styles.horizontalTabLabel, activeTab === 'myProjects' && styles.horizontalTabLabelActive]}>マイプロジェクト</Text>
                             </TouchableOpacity>
 
@@ -383,7 +386,7 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                                 style={[styles.horizontalTabItem, activeTab === 'participatingProjects' && styles.horizontalTabItemActive]}
                                 onPress={() => setActiveTab('participatingProjects')}
                             >
-                                <Ionicons name="people-outline" size={18} color={activeTab === 'participatingProjects' ? 'white' : '#E5A33D'} />
+                                <Ionicons name="people-outline" size={18} color={activeTab === 'participatingProjects' ? 'white' : '#F39800'} />
                                 <Text style={[styles.horizontalTabLabel, activeTab === 'participatingProjects' && styles.horizontalTabLabelActive]}>参加中</Text>
                             </TouchableOpacity>
                         </View>
@@ -713,7 +716,7 @@ const styles = StyleSheet.create({
     profileContentContainer: {
         paddingHorizontal: 20,
         marginTop: -10, // 少し上に移動
-        paddingBottom: 8,
+        paddingBottom: 0, // タブとの間隔を詰める
     },
     profileInfoRow: {
         flexDirection: 'row',
@@ -796,7 +799,7 @@ const styles = StyleSheet.create({
         elevation: 2,
     },
     stickyHeaderSpacer: {
-        height: 0, // 重複問題解消のため一時的に0に設定
+        height: 50, // ステータスバー分の高さを確保
         // backgroundColorは動的に制御
     },
     // 横並びタブスタイル
@@ -818,15 +821,15 @@ const styles = StyleSheet.create({
         gap: 6,
         backgroundColor: 'white',
         borderWidth: 1,
-        borderColor: '#E5A33D',
+        borderColor: '#F39800',
     },
     horizontalTabItemActive: {
-        backgroundColor: '#E5A33D',
-        borderColor: '#E5A33D',
+        backgroundColor: '#F39800',
+        borderColor: '#F39800',
     },
     horizontalTabLabel: {
         fontSize: 14,
-        color: '#E5A33D',
+        color: '#F39800',
         fontFamily: FONTS.medium,
     },
     horizontalTabLabelActive: {
