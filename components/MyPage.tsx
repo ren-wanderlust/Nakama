@@ -402,7 +402,9 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                         contentContainerStyle={styles.projectListContent}
                         showsVerticalScrollIndicator={false}
                         scrollEnabled={false}
-                        ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+                        // 探すページ（UserProjectPage）のカード間隔に合わせる：
+                        // ProjectSummaryCard 自体に marginBottom: 12 があるため、追加の間隔は +4 に統一する
+                        ItemSeparatorComponent={() => <View style={{ height: 4 }} />}
                         ListEmptyComponent={
                             (activeTab === 'myProjects' ? !loadingProjects : !loadingParticipating) ? (
                                 <MyProjectsEmptyState type={activeTab} />
