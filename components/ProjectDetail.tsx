@@ -398,7 +398,7 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
             if (newStatus === 'approved') {
                 updateData.approved_at = new Date().toISOString();
             }
-            
+
             const { error } = await supabase
                 .from('project_applications')
                 .update(updateData)
@@ -1123,6 +1123,7 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                                     key={applicant.id}
                                     style={styles.memberAvatarButton}
                                     onPress={() => fetchMemberProfile(applicant.user_id)}
+                                    onLongPress={() => handleKickMember(applicant)}
                                     activeOpacity={0.7}
                                     disabled={loadingProfile === applicant.user_id}
                                 >
