@@ -6,6 +6,7 @@ interface CustomRefreshControlProps {
     refreshing: boolean;
     onRefresh: () => void;
     title?: string;
+    progressViewOffset?: number;
 }
 
 // Brand colors
@@ -23,6 +24,7 @@ export function CustomRefreshControl({
     refreshing,
     onRefresh,
     title = '引っ張って更新',
+    progressViewOffset = 0,
 }: CustomRefreshControlProps) {
     return (
         <RNRefreshControl
@@ -35,8 +37,8 @@ export function CustomRefreshControl({
             // Android styling - multiple colors for gradient effect
             colors={[BRAND_COLOR, BRAND_COLOR_LIGHT, BRAND_COLOR_DARK]}
             progressBackgroundColor="#FFFFFF"
-            // iOS - progress view offset
-            progressViewOffset={Platform.OS === 'android' ? 0 : 0}
+            // progress view offset for headers
+            progressViewOffset={progressViewOffset}
         />
     );
 }
