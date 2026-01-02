@@ -228,17 +228,10 @@ export function UserProjectPage({ currentUser, onChat, sortOrder = 'recommended'
                         refreshing={refreshing}
                         onRefresh={onRefresh}
                         tintColor="gray"
-                        progressViewOffset={180}
                     />
                 }
             >
-                <View style={[
-                    styles.gridContainer,
-                    // フィルタータグがアクティブな時は追加のパディング
-                    ((filterCriteria?.themes && filterCriteria.themes.length > 0) ||
-                        (filterCriteria?.seekingRoles && filterCriteria.seekingRoles.length > 0)) &&
-                    { paddingTop: 172 }
-                ]}>
+                <View style={styles.gridContainer}>
                     {filteredProjects.length > 0 ? (
                         <View style={styles.grid}>
                             {filteredProjects.map((item, index) => (
@@ -320,7 +313,6 @@ const styles = StyleSheet.create({
     },
     gridContainer: {
         padding: 16,
-        paddingTop: 132, // ヘッダー（absolute）の高さ分 + 余白
     },
     grid: {
         flexDirection: 'column',
