@@ -68,7 +68,15 @@
           "cameraPermission": "プロフィール写真の撮影やチャットで画像を送信するためにカメラへのアクセスが必要です。"
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static"
+          }
+        }
+      ]
     ],
     "extra": {
       "router": {},
