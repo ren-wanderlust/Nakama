@@ -227,7 +227,7 @@ export function UserProjectPage({ currentUser, onChat, sortOrder = 'recommended'
                     <RefreshControl
                         refreshing={refreshing}
                         onRefresh={onRefresh}
-                        tintColor="#F39800"
+                        tintColor="gray"
                         progressViewOffset={180}
                     />
                 }

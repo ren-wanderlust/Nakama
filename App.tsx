@@ -1608,7 +1608,7 @@ function AppContent() {
                 {/* リフレッシュ中のスピナー表示 */}
                 {searchRefreshing && (
                   <View style={styles.searchRefreshIndicator}>
-                    <ActivityIndicator size="small" color="#F39800" />
+                    <ActivityIndicator size="small" color="gray" />
                   </View>
                 )}
 
