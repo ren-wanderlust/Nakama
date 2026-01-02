@@ -1,13 +1,10 @@
 import React from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { getImageSource } from '../constants/DefaultImages';
 import { FONTS } from '../constants/DesignSystem';
-import { getThemeTagColor, getThemeTagTextColor } from '../constants/ThemeConstants';
-
-// コンポーネント外でrequireを行い、事前にロードされるようにする
-const DEFAULT_COVER_IMAGE = require('../assets/default-project-cover.png');
+import { getThemeTagColor, getThemeTagTextColor, getThemeEmoji, getThemeOptionByTitle } from '../constants/ThemeConstants';
 
 type ProjectLike = {
   id?: string;
@@ -101,7 +98,10 @@ export function ProjectSummaryCard({
   const contentTags = (project?.content_tags || []).filter(Boolean) as string[];
   const applicantCount = typeof project?.applicantCount === 'number' ? project.applicantCount : 0;
 
-
+  // Zennスタイル: カバー画像がない場合はテーマに応じた絵文字を表示
+  const themeOption = getThemeOptionByTitle(themeTag);
+  const themeEmoji = getThemeEmoji(themeTag);
+  const themeBgColor = themeOption?.bgColor || '#F3F4F6';
 
   return (
     <TouchableOpacity
@@ -113,14 +113,18 @@ export function ProjectSummaryCard({
 
       {/* 上段 */}
       <View style={styles.topSection}>
-        <View style={styles.thumbnail}>
-          <Image
-            source={coverImage ? { uri: coverImage } : DEFAULT_COVER_IMAGE}
-            style={styles.thumbnailImage}
-            contentFit="cover"
-            cachePolicy="memory-disk"
-            transition={150}
-          />
+        <View style={[styles.thumbnail, !coverImage && { backgroundColor: themeBgColor }]}>
+          {coverImage ? (
+            <Image
+              source={{ uri: coverImage }}
+              style={styles.thumbnailImage}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              transition={150}
+            />
+          ) : (
+            <Text style={styles.emojiDisplay}>{themeEmoji}</Text>
+          )}
         </View>
 
         <View style={styles.topRight}>
@@ -224,6 +228,10 @@ const styles = StyleSheet.create({
   thumbnailImage: {
     width: '100%',
     height: '100%',
+  },
+  emojiDisplay: {
+    fontSize: 48,
+    textAlign: 'center',
   },
   topRight: {
     flex: 1,
