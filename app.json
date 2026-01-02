@@ -51,6 +51,15 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static",
+            "deploymentTarget": "15.0"
+          }
+        }
+      ],
       "expo-router",
       [
         "expo-notifications",
@@ -67,16 +76,7 @@
           "cameraPermission": "プロフィール写真の撮影やチャットで画像を送信するためにカメラへのアクセスが必要です。"
         }
       ],
-      "expo-secure-store",
-      [
-        "expo-build-properties",
-        {
-          "ios": {
-            "useFrameworks": "static",
-            "deploymentTarget": "15.0"
-          }
-        }
-      ]
+      "expo-secure-store"
     ],
     "extra": {
       "router": {},
