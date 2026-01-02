@@ -15,10 +15,8 @@ import { queryKeys } from '../data/queryKeys';
 import { ChatRoom } from '../data/api/chatRooms';
 import { getImageSource } from '../constants/DefaultImages';
 import { useAuth } from '../contexts/AuthContext';
-import { getThemeTagColor, getThemeTagTextColor } from '../constants/ThemeConstants';
+import { getThemeTagColor, getThemeTagTextColor, getThemeEmoji, getThemeOptionByTitle } from '../constants/ThemeConstants';
 
-// 探すページと同じ「カバー画像未設定時の色」ロジック
-const PROJECT_COVER_FALLBACK_COLORS = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F'];
 // オーナータグ内の画像は表示しない（要件）
 
 interface TalkPageProps {
@@ -208,8 +206,11 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject, onOpenNotif
                     const timestamp = room?.timestamp || '';
                     const unreadCount = room?.unreadCount || 0;
                     const coverImage = (project as any)?.cover_image as string | null | undefined;
-                    const fallbackColor = PROJECT_COVER_FALLBACK_COLORS[index % PROJECT_COVER_FALLBACK_COLORS.length];
                     const themeTag = (project as any)?.tags?.[0] as string | undefined;
+                    // Zennスタイル: カバー画像がない場合はテーマに応じた絵文字を表示
+                    const themeOption = getThemeOptionByTitle(themeTag);
+                    const themeEmoji = getThemeEmoji(themeTag);
+                    const themeBgColor = themeOption?.bgColor || '#F3F4F6';
                     const members = projectMembersMap[project.id] || [];
                     const maxMembersToShow = 5;
                     const shownMembers = members.slice(0, maxMembersToShow);
@@ -233,11 +234,11 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject, onOpenNotif
                         >
                             {/* 上段: さがすページのカードサイズ（左: cover / 右: タイトル・テーマ・詳細のみ） */}
                             <View style={styles.projectTopSection}>
-                                <View style={[styles.projectCardThumbnail, !coverImage && { backgroundColor: fallbackColor }]}>
+                                <View style={[styles.projectCardThumbnail, !coverImage && { backgroundColor: themeBgColor }]}>
                                     {coverImage ? (
                                         <Image source={{ uri: coverImage }} style={styles.projectCardThumbnailImage} resizeMode="cover" />
                                     ) : (
-                                        <Image source={require('../assets/default-project-cover.png')} style={styles.projectCardThumbnailImage} resizeMode="cover" />
+                                        <Text style={styles.emojiDisplay}>{themeEmoji}</Text>
                                     )}
                                 </View>
 
@@ -561,6 +562,10 @@ const styles = StyleSheet.create({
     projectCardThumbnailImage: {
         width: '100%',
         height: '100%',
+    },
+    emojiDisplay: {
+        fontSize: 48,
+        textAlign: 'center',
     },
     projectTopRight: {
         flex: 1,
