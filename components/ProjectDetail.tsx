@@ -1125,6 +1125,13 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                         </ScrollView>
                     </View>
 
+                    {/* オーナー向けメンバー管理ヒント */}
+                    {currentUser?.id === project.owner_id && applicants.filter(a => a.status === 'approved').length > 0 && (
+                        <View style={styles.memberHintContainer}>
+                            <Text style={styles.memberHintText}>💡 メンバーを長押しで管理</Text>
+                        </View>
+                    )}
+
                     {/* 内容（テーマタグ + 内容タグをまとめて表示 / 横一列・横スクロール） */}
                     {
                         (!!project.tags?.length || !!project.content_tags?.length) && (
@@ -1470,6 +1477,16 @@ const styles = StyleSheet.create({
     memberAvatarLoading: {
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    memberHintContainer: {
+        marginTop: -8,
+        marginBottom: 16,
+        paddingLeft: 4,
+    },
+    memberHintText: {
+        fontSize: 12,
+        color: '#9CA3AF',
+        fontStyle: 'italic',
     },
     themeContentRow: {
         flexDirection: 'row',
