@@ -49,6 +49,7 @@ import { useUnreadCount } from './data/hooks/useUnreadCount';
 import { useMatches } from './data/hooks/useMatches';
 import { useReceivedLikes } from './data/hooks/useReceivedLikes';
 import { useProjectApplications } from './data/hooks/useProjectApplications';
+import { useChatRooms } from './data/hooks/useChatRooms';
 import { queryKeys } from './data/queryKeys';
 import { registerForPushNotificationsAsync, savePushToken, setupNotificationListeners, getUserPushTokens, sendPushNotification } from './lib/notifications';
 import { FullPageSkeleton, ProfileListSkeleton } from './components/Skeleton';
@@ -146,7 +147,30 @@ function AppContent() {
   const matchesQuery = useMatches(session?.user?.id);
   const receivedLikesQuery = useReceivedLikes(session?.user?.id);
   const projectApplicationsQuery = useProjectApplications(session?.user?.id);
+  const chatRoomsQuery = useChatRooms(session?.user?.id);
   const unreadMessagesCount = unreadCountQuery.data ?? 0;
+
+  // 参加しているチャットルームIDセット（フィルタリング用）
+  // 個人チャット: partnerId、グループチャット: chat_room_id
+  const participatingRoomIdsRef = useRef<Set<string>>(new Set());
+  
+  // チャットルーム一覧から参加しているルームIDセットを構築
+  React.useEffect(() => {
+    if (!chatRoomsQuery.data) return;
+    
+    const roomIds = new Set<string>();
+    chatRoomsQuery.data.forEach(room => {
+      if (room.id) {
+        roomIds.add(room.id);
+      }
+      // 個人チャットの場合、partnerIdも追加（メッセージ受信時の判定用）
+      if (room.type === 'individual' && room.partnerId) {
+        roomIds.add(room.partnerId);
+      }
+    });
+    
+    participatingRoomIdsRef.current = roomIds;
+  }, [chatRoomsQuery.data]);
 
   // Matches data from React Query
   const matchedProfileIds: Set<string> = (matchesQuery.data?.matchIds instanceof Set)
@@ -360,6 +384,17 @@ function AppContent() {
         async (payload) => {
           const newMessage = payload.new;
 
+          // ✅ フィルタリング: 自分に関係するメッセージかチェック（早期リターン）
+          const isRelevant =
+            newMessage.receiver_id === session.user.id || // 自分宛のメッセージ
+            newMessage.sender_id === session.user.id || // 自分が送ったメッセージ（他デバイスから）
+            (newMessage.chat_room_id && participatingRoomIdsRef.current.has(newMessage.chat_room_id)); // 参加しているグループチャット
+
+          if (!isRelevant) {
+            // 無関係なメッセージはスキップ（スケーラビリティ向上）
+            return;
+          }
+
           // Determine the chat room ID (query key)
           let roomId: string | null = null;
           if (newMessage.chat_room_id) {
@@ -378,16 +413,28 @@ function AppContent() {
             if (newMessage.sender_id === session.user.id) {
               senderName = '自分';
             } else {
-              // Try to get from cache first if possible, or fetch
-              // For simplicity in App.tsx, we fetch. 
-              // Optimization: Could check queryClient.getQueryData(['profile', newMessage.sender_id])
-              const { data } = await supabase
-                .from('profiles')
-                .select('name, image')
-                .eq('id', newMessage.sender_id)
-                .single();
-              senderName = data?.name || '';
-              senderImage = data?.image || '';
+              // ✅ キャッシュから取得を試みる（N+1問題の解決）
+              const profileQueryKey = ['profile', newMessage.sender_id];
+              const cachedProfile = queryClient.getQueryData<any>(profileQueryKey);
+              
+              if (cachedProfile) {
+                senderName = cachedProfile.name || '';
+                senderImage = cachedProfile.image || '';
+              } else {
+                // キャッシュがない場合のみ取得
+                const { data } = await supabase
+                  .from('profiles')
+                  .select('name, image')
+                  .eq('id', newMessage.sender_id)
+                  .single();
+                senderName = data?.name || '';
+                senderImage = data?.image || '';
+                
+                // キャッシュに保存（今後の使用のため）
+                if (data) {
+                  queryClient.setQueryData(profileQueryKey, data);
+                }
+              }
             }
 
             const formattedMessage: Message = {
@@ -446,23 +493,33 @@ function AppContent() {
             });
           }
 
-          // (2) invalidate / refetch 実行
+          // (2) invalidate / refetch 実行（関係するメッセージのみ）
           queryClient.invalidateQueries({ queryKey: queryKeys.unreadCount.detail(session.user.id) });
           queryClient.invalidateQueries({ queryKey: queryKeys.chatRooms.list(session.user.id) });
-          queryClient.refetchQueries({ queryKey: queryKeys.chatRooms.list(session.user.id) });
+          // refetchQueriesは削除（invalidateQueriesで十分。ユーザーが画面を見ている場合のみ自動再取得）
         }
       )
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'messages' },
         (payload) => {
+          const updatedMessage = payload.new as any;
+          
+          // ✅ フィルタリング: 自分に関係するメッセージの更新かチェック
+          const isRelevant =
+            updatedMessage.receiver_id === session.user.id ||
+            updatedMessage.sender_id === session.user.id ||
+            (updatedMessage.chat_room_id && participatingRoomIdsRef.current.has(updatedMessage.chat_room_id));
 
-          // (1) Realtimeイベント受信 - ログ出力済み
+          if (!isRelevant) {
+            // 無関係なメッセージ更新はスキップ
+            return;
+          }
 
-          // (2) invalidate / refetch 実行
+          // (2) invalidate / refetch 実行（関係するメッセージのみ）
           queryClient.invalidateQueries({ queryKey: queryKeys.unreadCount.detail(session.user.id) });
           queryClient.invalidateQueries({ queryKey: queryKeys.chatRooms.list(session.user.id) });
-          queryClient.refetchQueries({ queryKey: queryKeys.chatRooms.list(session.user.id) });
+          // refetchQueriesは削除（invalidateQueriesで十分）
         }
       )
       .subscribe();
@@ -470,7 +527,7 @@ function AppContent() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [session?.user, queryClient]);
+  }, [session?.user, queryClient, chatRoomsQuery.data]);
 
   // Realtime subscription for likes and applications (only invalidate queries)
   React.useEffect(() => {
@@ -596,24 +653,39 @@ function AppContent() {
           // Get groups where user is owner or approved member
           const { data: ownedProjects } = await supabase
             .from('projects')
-            .select('id')
+            .select('id, created_at')
             .eq('owner_id', session.user.id);
 
           const { data: approvedApps } = await supabase
             .from('project_applications')
-            .select('project_id')
+            .select('project_id, approved_at, created_at')
             .eq('user_id', session.user.id)
             .eq('status', 'approved');
 
           const memberProjectIds = new Set<string>();
-          ownedProjects?.forEach((p: any) => memberProjectIds.add(p.id));
-          approvedApps?.forEach((a: any) => memberProjectIds.add(a.project_id));
+          const participationTimeByProject = new Map<string, string>();
+          
+          ownedProjects?.forEach((p: any) => {
+            memberProjectIds.add(p.id);
+            participationTimeByProject.set(p.id, p.created_at);
+          });
+          
+          approvedApps?.forEach((a: any) => {
+            memberProjectIds.add(a.project_id);
+            // approved_at があればそれを使用、なければ created_at を使用
+            const joinedAt = a.approved_at || a.created_at;
+            const existingTime = participationTimeByProject.get(a.project_id);
+            // より早い時点を使用（既に設定されていて、それより早い場合）
+            if (!existingTime || new Date(joinedAt).getTime() < new Date(existingTime).getTime()) {
+              participationTimeByProject.set(a.project_id, joinedAt);
+            }
+          });
 
           let groupCount = 0;
           if (memberProjectIds.size > 0) {
             const { data: groups } = await supabase
               .from('chat_rooms')
-              .select('id, project_id')
+              .select('id, project_id, created_at')
               .eq('type', 'group')
               .in('project_id', Array.from(memberProjectIds));
 
@@ -633,13 +705,31 @@ function AppContent() {
               });
 
               // ✅ Batch Query 2: Fetch unread messages for all groups at once
-              const allLastReadTimes = Array.from(readStatusByRoom.values());
-              const globalMinLastRead =
-                allLastReadTimes.length > 0
-                  ? allLastReadTimes.reduce(
+              // 各ルームごとに、last_read_at または参加時点の早い方を基準に取得
+              const baseTimeByRoom = new Map<string, string>();
+              groups.forEach((g: any) => {
+                const lastReadTime = readStatusByRoom.get(g.id);
+                const participationTime = participationTimeByProject.get(g.project_id);
+                const roomCreatedTime = g.created_at;
+                
+                // 参加時点とチャットルーム作成時点の早い方を基準にする
+                const effectiveParticipationTime = participationTime && roomCreatedTime
+                  ? (new Date(participationTime).getTime() < new Date(roomCreatedTime).getTime()
+                      ? participationTime
+                      : roomCreatedTime)
+                  : (participationTime || roomCreatedTime || '1970-01-01');
+                
+                // last_read_at がある場合はそれを使用、なければ参加時点を使用
+                baseTimeByRoom.set(g.id, lastReadTime || effectiveParticipationTime);
+              });
+
+              const allBaseTimes = Array.from(baseTimeByRoom.values());
+              const globalMinBaseTime =
+                allBaseTimes.length > 0
+                  ? allBaseTimes.reduce(
                     (min, current) =>
                       new Date(current).getTime() < new Date(min).getTime() ? current : min,
-                    allLastReadTimes[0]
+                    allBaseTimes[0]
                   )
                   : '1970-01-01';
 
@@ -647,14 +737,14 @@ function AppContent() {
                 .from('messages')
                 .select('chat_room_id, created_at, sender_id')
                 .in('chat_room_id', groupIds)
-                .gt('created_at', globalMinLastRead)
+                .gt('created_at', globalMinBaseTime)
                 .neq('sender_id', session.user.id);
 
               // Count unread messages per room on client side
               const unreadCountByRoom = new Map<string, number>();
               unreadMessages?.forEach((msg: any) => {
-                const lastReadTime = readStatusByRoom.get(msg.chat_room_id) || '1970-01-01';
-                if (new Date(msg.created_at).getTime() > new Date(lastReadTime).getTime()) {
+                const baseTime = baseTimeByRoom.get(msg.chat_room_id) || '1970-01-01';
+                if (new Date(msg.created_at).getTime() > new Date(baseTime).getTime()) {
                   unreadCountByRoom.set(
                     msg.chat_room_id,
                     (unreadCountByRoom.get(msg.chat_room_id) || 0) + 1

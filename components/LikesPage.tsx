@@ -277,10 +277,15 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
             const applicantUserId = applicationData?.user_id;
             const projectInfo = applicationData?.project;
 
-            // Update the status
+            // Update the status (承認時は approved_at も更新)
+            const updateData: { status: string; approved_at?: string } = { status: newStatus };
+            if (newStatus === 'approved') {
+                updateData.approved_at = new Date().toISOString();
+            }
+            
             const { error } = await supabase
                 .from('project_applications')
-                .update({ status: newStatus })
+                .update(updateData)
                 .eq('id', applicationId);
 
             if (error) throw error;

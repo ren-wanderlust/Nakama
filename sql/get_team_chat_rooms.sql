@@ -86,6 +86,29 @@ begin
     from public.chat_room_read_status rs
     where rs.user_id = p_user_id
   ),
+  -- 4.5. ユーザーが各プロジェクトに参加した時点を取得
+  participation_times as (
+    -- プロジェクトオーナーの場合
+    select
+      p.id as project_id,
+      least(
+        p.created_at,
+        coalesce(cr.created_at, p.created_at)
+      ) as joined_at
+    from public.projects p
+    left join public.chat_rooms cr on cr.project_id = p.id and cr.type = 'group'
+    where p.owner_id = p_user_id
+    
+    union
+    
+    -- 参加者の場合（approved_at を使用）
+    select
+      pa.project_id,
+      coalesce(pa.approved_at, pa.created_at) as joined_at
+    from public.project_applications pa
+    where pa.user_id = p_user_id
+      and pa.status = 'approved'
+  ),
   -- 5. 各ルームの未読数をカウント
   unread_counts as (
     select
@@ -93,9 +116,13 @@ begin
       count(m.id) as unread_count
     from accessible_rooms ar
     left join read_statuses rs on ar.chat_room_id = rs.chat_room_id
+    left join participation_times pt on pt.project_id = ar.project_id
     left join public.messages m on m.chat_room_id = ar.chat_room_id
       and m.sender_id <> p_user_id
-      and m.created_at > coalesce(rs.last_read_at, timestamp with time zone '1970-01-01 00:00:00+00')
+      and m.created_at > coalesce(
+        rs.last_read_at,
+        coalesce(pt.joined_at, timestamp with time zone '1970-01-01 00:00:00+00')
+      )
     group by ar.chat_room_id
   )
   -- 6. すべてのデータを結合して返す
