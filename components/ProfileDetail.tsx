@@ -16,6 +16,7 @@ interface ProfileDetailProps {
     onBack: () => void;
     onLike: () => void;
     onChat: () => void;
+    onBlock?: () => void;
     isLiked: boolean;
     isMatched?: boolean;
 }
@@ -30,7 +31,7 @@ const REPORT_REASONS = [
     { id: 'other', label: 'その他' },
 ];
 
-export function ProfileDetail({ profile, onBack, onLike, onChat, isLiked, isMatched }: ProfileDetailProps) {
+export function ProfileDetail({ profile, onBack, onLike, onChat, onBlock, isLiked, isMatched }: ProfileDetailProps) {
     const seekingFor = profile.seekingFor || [];
     const skills = profile.skills || [];
     const seekingRoles = profile.seekingRoles || [];
