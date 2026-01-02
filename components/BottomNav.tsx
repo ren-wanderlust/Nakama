@@ -122,7 +122,7 @@ export function BottomNav({ activeTab, onTabChange, currentUser, badges, onCreat
                                 <Ionicons
                                     name={iconName}
                                     size={isActive ? 32 : 28}
-                                    color={isActive ? '#F39800' : '#F39800'}
+                                    color={isActive ? '#F39800' : '#9CA3AF'}
                                 />
                                 {renderBadge()}
                             </View>
@@ -186,12 +186,11 @@ const styles = StyleSheet.create({
         height: 32,
         borderRadius: 16,
         borderWidth: 2,
-        borderColor: 'transparent',
+        borderColor: '#D1D5DB', // 非アクティブ時は薄いグレーのボーダー
     },
     profileIconActive: {
         borderColor: '#F39800',
         borderWidth: 2,
-        backgroundColor: '#F39800',
     },
     badge: {
         position: 'absolute',
