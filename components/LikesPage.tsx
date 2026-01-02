@@ -522,6 +522,9 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
         const isPending = item.status === 'pending';
         const isApproved = item.status === 'approved';
 
+        // 役割タグ（skills）の取得
+        const userSkills = user.skills || [];
+
         return (
             <TouchableOpacity
                 style={styles.recruitingCard}
@@ -544,14 +547,45 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                             {user.name}
                         </Text>
                         <Text style={styles.recruitingUserUniversity} numberOfLines={1}>
-                            {user.university || '所属なし'}
+                            {user.university || '所属なし'}{user.grade ? ` / ${user.grade}` : ''}
                         </Text>
+
+                        {/* 役割タグ */}
+                        {userSkills.length > 0 && (
+                            <View style={styles.recruitingRoleTags}>
+                                {userSkills.slice(0, 2).map((skill, index) => {
+                                    const roleColor = ROLE_COLORS[skill] || { bg: '#E5E7EB', icon: '#4B5563' };
+                                    const roleIcon = ROLE_ICONS[skill] || 'person';
+                                    return (
+                                        <View key={index} style={[styles.recruitingRoleTag, { backgroundColor: roleColor.bg }]}>
+                                            <Ionicons name={roleIcon as any} size={10} color={roleColor.icon} />
+                                            <Text style={[styles.recruitingRoleTagText, { color: roleColor.icon }]}>{skill}</Text>
+                                        </View>
+                                    );
+                                })}
+                                {userSkills.length > 2 && (
+                                    <Text style={styles.recruitingMoreRoles}>+{userSkills.length - 2}</Text>
+                                )}
+                            </View>
+                        )}
+
+                        {/* 応募先 */}
                         <View style={styles.appliedProjectContainer}>
                             <Text style={styles.appliedProjectLabel}>応募先:</Text>
                             <Text style={styles.appliedProjectName} numberOfLines={1}>
                                 {item.project?.title}
                             </Text>
                         </View>
+
+                        {/* メッセージプレビュー */}
+                        {item.message && (
+                            <View style={styles.messagePreviewContainer}>
+                                <Ionicons name="chatbubble-ellipses-outline" size={12} color="#9CA3AF" />
+                                <Text style={styles.messagePreviewText} numberOfLines={1}>
+                                    {item.message}
+                                </Text>
+                            </View>
+                        )}
                     </View>
 
                     {/* Right: Actions */}
@@ -1404,14 +1438,14 @@ const styles = StyleSheet.create({
     recruitingCard: {
         backgroundColor: '#FFFFFF',
         borderRadius: 16,
-        marginBottom: 8,
+        marginBottom: 10,
         position: 'relative',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.05,
         shadowRadius: 2,
         elevation: 2,
-        padding: 12,
+        padding: 14,
     },
     recruitingUnreadDot: {
         position: 'absolute',
@@ -1430,9 +1464,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     recruitingAvatar: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
+        width: 54,
+        height: 54,
+        borderRadius: 27,
         marginRight: 12,
         backgroundColor: '#F3F4F6',
     },
@@ -1516,6 +1550,47 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         minWidth: 60,
         alignItems: 'center',
+    },
+    // 役割タグスタイル
+    recruitingRoleTags: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 4,
+        gap: 4,
+        flexWrap: 'wrap',
+    },
+    recruitingRoleTag: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 6,
+        gap: 3,
+    },
+    recruitingRoleTagText: {
+        fontSize: 10,
+        fontWeight: '600',
+    },
+    recruitingMoreRoles: {
+        fontSize: 10,
+        color: '#9CA3AF',
+        fontWeight: '500',
+    },
+    // メッセージプレビュースタイル
+    messagePreviewContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 4,
+        paddingTop: 4,
+        borderTopWidth: 1,
+        borderTopColor: '#F3F4F6',
+        gap: 4,
+    },
+    messagePreviewText: {
+        fontSize: 11,
+        color: '#6B7280',
+        flex: 1,
+        fontStyle: 'italic',
     },
     // Legacy applicant card styles (keep for compatibility)
     applicantCardWrapper: {
