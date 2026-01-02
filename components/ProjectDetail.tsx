@@ -948,8 +948,9 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                     </View>
                 ) : isMember ? (
                     <View style={styles.headerActions}>
-                        <TouchableOpacity onPress={handleLeaveProject} style={styles.actionButton}>
-                            <Ionicons name="exit-outline" size={24} color="#EF4444" />
+                        <TouchableOpacity onPress={handleLeaveProject} style={styles.leaveButtonHeader}>
+                            <Ionicons name="exit-outline" size={16} color="#EF4444" />
+                            <Text style={styles.leaveButtonHeaderText}>退会</Text>
                         </TouchableOpacity>
                     </View>
                 ) : null}
@@ -1058,7 +1059,7 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                         <Text style={styles.tagline}>{project.tagline}</Text>
                     )}
 
-                    <Text style={styles.title}>仮プロジェクト名：{project.title}</Text>
+                    <Text style={styles.title}>プロジェクト名：{project.title}</Text>
 
                     <View style={[styles.divider, styles.dividerTight]} />
 
@@ -1144,7 +1145,9 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                                 <Text style={styles.themeContentLabel}>内容：</Text>
                                 <ScrollView
                                     horizontal
+                                    nestedScrollEnabled
                                     showsHorizontalScrollIndicator={false}
+                                    style={styles.themeContentRowScroll}
                                     contentContainerStyle={styles.themeContentRowContent}
                                 >
                                     {!!project.tags?.length && project.tags.map((tag, index) => (
@@ -1311,6 +1314,22 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
         elevation: 3,
     },
+    leaveButtonHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FEF2F2',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 20,
+        gap: 4,
+        borderWidth: 1,
+        borderColor: '#FECACA',
+    },
+    leaveButtonHeaderText: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#EF4444',
+    },
     content: {
         flex: 1,
     },
@@ -1470,12 +1489,15 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginBottom: 16,
     },
+    themeContentRowScroll: {
+        flex: 1,
+        minWidth: 0,
+    },
     themeContentRowContent: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
-        flex: 1,
-        minWidth: 0,
+        paddingRight: 8,
     },
     moreTagsDotsInline: {
         fontSize: 14,

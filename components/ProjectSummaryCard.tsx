@@ -14,6 +14,7 @@ type ProjectLike = {
   title?: string;
   tagline?: string | null;
   created_at?: string | null;
+  deadline?: string | null;
   cover_image?: string | null;
   tags?: string[] | null;
   content_tags?: string[] | null;
@@ -75,6 +76,15 @@ const formatCreatedDate = (createdAt?: string | null) => {
   return `${y}/${m}/${day}`;
 };
 
+const formatDeadline = (deadline?: string | null) => {
+  if (!deadline) return '';
+  const d = new Date(deadline);
+  if (Number.isNaN(d.getTime())) return '';
+  const m = d.getMonth() + 1;
+  const day = d.getDate();
+  return `${m}/${day}まで`;
+};
+
 export function ProjectSummaryCard({
   project,
   ownerName,
@@ -86,6 +96,7 @@ export function ProjectSummaryCard({
   const coverImage = project?.cover_image;
   const headline = (project?.tagline || '').trim() || (project?.title || '');
   const createdDateText = formatCreatedDate(project?.created_at);
+  const deadlineText = formatDeadline(project?.deadline);
   const themeTag = project?.tags?.[0] || '';
   const contentTags = (project?.content_tags || []).filter(Boolean) as string[];
   const applicantCount = typeof project?.applicantCount === 'number' ? project.applicantCount : 0;
@@ -134,6 +145,12 @@ export function ProjectSummaryCard({
                   {createdDateText}
                 </Text>
               )}
+              {!!deadlineText && (
+                <View style={styles.deadlineBadge}>
+                  <Ionicons name="calendar-outline" size={10} color="#EF4444" />
+                  <Text style={styles.deadlineText}>{deadlineText}</Text>
+                </View>
+              )}
               {/* ステータスバッジ（日時横へ移動） */}
               {!!overlay && <View style={styles.statusBadgeContainer}>{overlay}</View>}
             </View>
@@ -169,7 +186,7 @@ export function ProjectSummaryCard({
 
           {/* 右端固定: 参加申請数 */}
           <View style={styles.pendingCountBox}>
-            <Ionicons name="document-text-outline" size={14} color="#9CA3AF" />
+            <Ionicons name="thumbs-up" size={14} color="#9CA3AF" />
             <Text style={styles.pendingCountText}>{applicantCount}</Text>
           </View>
         </View>
@@ -254,6 +271,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: FONTS.regular,
     color: '#9CA3AF',
+  },
+  deadlineBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    marginLeft: 6,
+    backgroundColor: '#FEF2F2',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  deadlineText: {
+    fontSize: 10,
+    fontFamily: FONTS.semiBold,
+    color: '#EF4444',
   },
   bottomSection: {
     borderTopWidth: 1,
