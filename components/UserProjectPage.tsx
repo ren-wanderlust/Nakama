@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, Alert, Animated, Easing, NativeSyntheticEvent, NativeScrollEvent, Platform, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, Alert, Animated, Easing, NativeSyntheticEvent, NativeScrollEvent, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
@@ -11,7 +11,7 @@ import { CreateProjectModal } from './CreateProjectModal';
 import { FilterCriteria } from './FilterModal';
 import { ProjectDetail } from './ProjectDetail';
 import { ProjectListSkeleton } from './Skeleton';
-import { CustomRefreshControl } from './CustomRefreshControl';
+
 import { RADIUS, COLORS, SHADOWS, SPACING, AVATAR, FONTS } from '../constants/DesignSystem';
 import { ProjectsEmptyState } from './EmptyState';
 import { translateTag } from '../constants/TagConstants';
@@ -44,6 +44,7 @@ interface UserProjectPageProps {
     sortOrder?: 'recommended' | 'newest' | 'deadline';
     filterCriteria?: FilterCriteria | null;
     onScroll?: (scrollY: number) => void;
+    onRefreshingChange?: (refreshing: boolean) => void;
 }
 
 // NOTE: 旧カードUIで使用していたROLE系定数は、ProjectSummaryCard移行により不要になりました。
@@ -97,7 +98,7 @@ const ProjectCard = ({ project, onPress, index = 0 }: { project: Project; onPres
     );
 };
 
-export function UserProjectPage({ currentUser, onChat, sortOrder = 'recommended', filterCriteria, onScroll }: UserProjectPageProps) {
+export function UserProjectPage({ currentUser, onChat, sortOrder = 'recommended', filterCriteria, onScroll, onRefreshingChange }: UserProjectPageProps) {
     const [refreshing, setRefreshing] = useState(false);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -112,9 +113,11 @@ export function UserProjectPage({ currentUser, onChat, sortOrder = 'recommended'
 
     const onRefresh = useCallback(async () => {
         setRefreshing(true);
+        onRefreshingChange?.(true);
         await projectsQuery.refetch();
         setRefreshing(false);
-    }, [projectsQuery]);
+        onRefreshingChange?.(false);
+    }, [projectsQuery, onRefreshingChange]);
 
     // Realtime subscription for projects changes
     useEffect(() => {
@@ -221,20 +224,14 @@ export function UserProjectPage({ currentUser, onChat, sortOrder = 'recommended'
                     onScroll?.(event.nativeEvent.contentOffset.y);
                 }}
                 refreshControl={
-                    <CustomRefreshControl
+                    <RefreshControl
                         refreshing={refreshing}
                         onRefresh={onRefresh}
-                        title="プロジェクトを更新"
+                        tintColor="gray"
                     />
                 }
             >
-                <View style={[
-                    styles.gridContainer,
-                    // フィルタータグがアクティブな時は追加のパディング
-                    ((filterCriteria?.themes && filterCriteria.themes.length > 0) ||
-                        (filterCriteria?.seekingRoles && filterCriteria.seekingRoles.length > 0)) &&
-                    { paddingTop: 172 }
-                ]}>
+                <View style={styles.gridContainer}>
                     {filteredProjects.length > 0 ? (
                         <View style={styles.grid}>
                             {filteredProjects.map((item, index) => (
@@ -313,18 +310,6 @@ const styles = StyleSheet.create({
     },
     content: {
         flex: 1,
-    },
-    refreshIndicator: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 12,
-        gap: 8,
-    },
-    refreshText: {
-        fontSize: 14,
-        color: '#009688',
-        fontFamily: FONTS.medium,
     },
     gridContainer: {
         padding: 16,

@@ -131,6 +131,7 @@ function AppContent() {
   const [isSortModalOpen, setIsSortModalOpen] = useState(false);
 
   const [refreshing, setRefreshing] = useState(false);
+  const [searchRefreshing, setSearchRefreshing] = useState(false);
   const [showCreateProjectModal, setShowCreateProjectModal] = useState(false);
   const [matchedProfile, setMatchedProfile] = useState<Profile | null>(null);
   const [pendingMatches, setPendingMatches] = useState<Profile[]>([]); // Queue of unviewed matches
@@ -1544,7 +1545,6 @@ function AppContent() {
                 zIndex: 100,
                 transform: [{ translateY: headerTranslateY }],
               }}>
-                {/* シンプルなヘッダー - 絞り込み/ソートと通知ボタンを同じ行に配置 */}
                 <View style={[styles.searchHeader, { backgroundColor: 'white' }]}>
                   <View style={[styles.searchHeaderGradient, { paddingTop: insets.top + 20, paddingBottom: 16, backgroundColor: 'white' }]}>
                     <View style={styles.headerTop}>
@@ -1604,6 +1604,13 @@ function AppContent() {
                   </View>
                 </View>
 
+                {/* リフレッシュ中のスピナー表示 */}
+                {searchRefreshing && (
+                  <View style={styles.searchRefreshIndicator}>
+                    <ActivityIndicator size="small" color="gray" />
+                  </View>
+                )}
+
                 {/* アクティブフィルタータグ表示 */}
                 {((filterCriteria?.themes && filterCriteria.themes.length > 0) || (filterCriteria?.seekingRoles && filterCriteria.seekingRoles.length > 0)) && (
                   <View style={styles.activeFilterTagsContainer}>
@@ -1651,8 +1658,9 @@ function AppContent() {
                     </ScrollView>
                   </View>
                 )}
-
-                {/* ユーザータブは将来的な復活のためにコメントで残す
+              </Animated.View>
+            )}
+            {/* ユーザータブは将来的な復活のためにコメントで残す
                 <View style={[styles.searchHeader, { backgroundColor: 'white' }]}>
                   <View style={[styles.searchHeaderGradient, { paddingTop: insets.top + 16, backgroundColor: 'white' }]}>
                     <View style={styles.headerTop}>
@@ -1729,8 +1737,6 @@ function AppContent() {
                   </TouchableOpacity>
                 </View>
                 */}
-              </Animated.View>
-            )}
 
             {activeTab === 'talk' && (
               <View style={[styles.searchHeader, { backgroundColor: 'white' }]}>
@@ -1775,6 +1781,7 @@ function AppContent() {
                 });
               }}
               onScroll={handleSearchScroll}
+              onRefreshingChange={setSearchRefreshing}
             />
             {/* ユーザー検索は将来的な復活のためにコメントで残す
             <FlatList
@@ -2751,6 +2758,13 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 14,
     fontWeight: '600',
+  },
+  searchRefreshIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    backgroundColor: '#FFF3E0',
   },
 });
 
