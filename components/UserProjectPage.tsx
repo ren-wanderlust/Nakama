@@ -225,6 +225,7 @@ export function UserProjectPage({ currentUser, onChat, sortOrder = 'recommended'
                         refreshing={refreshing}
                         onRefresh={onRefresh}
                         title="プロジェクトを更新"
+                        progressViewOffset={130}
                     />
                 }
             >
