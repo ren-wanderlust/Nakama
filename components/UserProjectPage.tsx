@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, Alert, Animated, Easing, NativeSyntheticEvent, NativeScrollEvent, Platform, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, Alert, Animated, Easing, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
@@ -225,6 +225,7 @@ export function UserProjectPage({ currentUser, onChat, sortOrder = 'recommended'
                         refreshing={refreshing}
                         onRefresh={onRefresh}
                         title="プロジェクトを更新"
+                        progressViewOffset={130}
                     />
                 }
             >
@@ -313,18 +314,6 @@ const styles = StyleSheet.create({
     },
     content: {
         flex: 1,
-    },
-    refreshIndicator: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 12,
-        gap: 8,
-    },
-    refreshText: {
-        fontSize: 14,
-        color: '#009688',
-        fontFamily: FONTS.medium,
     },
     gridContainer: {
         padding: 16,
