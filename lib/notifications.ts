@@ -151,7 +151,8 @@ export async function sendPushNotification(
     expoPushToken: string,
     title: string,
     body: string,
-    data?: object
+    data?: object,
+    imageUrl?: string
 ): Promise<boolean> {
     const message = {
         to: expoPushToken,
@@ -159,6 +160,7 @@ export async function sendPushNotification(
         title,
         body,
         data: data || {},
+        ...(imageUrl && { imageUrl }), // Add imageUrl if provided
     };
 
     try {

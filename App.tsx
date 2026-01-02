@@ -153,6 +153,18 @@ function AppContent() {
   // 参加しているチャットルームIDセット（フィルタリング用）
   // 個人チャット: partnerId、グループチャット: chat_room_id
   const participatingRoomIdsRef = useRef<Set<string>>(new Set());
+
+  // Realtimeでのプロフィール取得をスケールさせるためのキャッシュ
+  // - senderProfileCacheRef: メモリキャッシュ（同一セッション内での重複取得を防ぐ）
+  // - senderProfileInFlightRef: 進行中リクエストを共有（同時到着での重複取得を防ぐ）
+  const senderProfileCacheRef = useRef<Map<string, { name: string; image: string }>>(new Map());
+  const senderProfileInFlightRef = useRef<Map<string, Promise<{ name: string; image: string } | null>>>(new Map());
+
+  // Realtimeイベントでのinvalidateの連打を防ぐ（短時間のイベントをまとめる）
+  const invalidateTimersRef = useRef<{
+    unread: ReturnType<typeof setTimeout> | null;
+    chatRooms: ReturnType<typeof setTimeout> | null;
+  }>({ unread: null, chatRooms: null });
   
   // チャットルーム一覧から参加しているルームIDセットを構築
   React.useEffect(() => {
@@ -375,6 +387,25 @@ function AppContent() {
   React.useEffect(() => {
     if (!session?.user) return;
 
+    // invalidateをデバウンス（ユーザー体験を崩さずサーバー負荷を抑える）
+    const scheduleInvalidateUnread = () => {
+      if (!session?.user?.id) return;
+      if (invalidateTimersRef.current.unread) return;
+      invalidateTimersRef.current.unread = setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: queryKeys.unreadCount.detail(session.user.id) });
+        invalidateTimersRef.current.unread = null;
+      }, 250);
+    };
+
+    const scheduleInvalidateChatRooms = () => {
+      if (!session?.user?.id) return;
+      if (invalidateTimersRef.current.chatRooms) return;
+      invalidateTimersRef.current.chatRooms = setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: queryKeys.chatRooms.list(session.user.id) });
+        invalidateTimersRef.current.chatRooms = null;
+      }, 250);
+    };
+
     // Subscribe to messages (Insert and Update) and invalidate queries
     const channel = supabase
       .channel(`unread_messages_${session.user.id}`)
@@ -413,26 +444,54 @@ function AppContent() {
             if (newMessage.sender_id === session.user.id) {
               senderName = '自分';
             } else {
-              // ✅ キャッシュから取得を試みる（N+1問題の解決）
-              const profileQueryKey = ['profile', newMessage.sender_id];
-              const cachedProfile = queryClient.getQueryData<any>(profileQueryKey);
-              
-              if (cachedProfile) {
-                senderName = cachedProfile.name || '';
-                senderImage = cachedProfile.image || '';
-              } else {
-                // キャッシュがない場合のみ取得
-                const { data } = await supabase
-                  .from('profiles')
-                  .select('name, image')
-                  .eq('id', newMessage.sender_id)
-                  .single();
-                senderName = data?.name || '';
-                senderImage = data?.image || '';
-                
-                // キャッシュに保存（今後の使用のため）
-                if (data) {
-                  queryClient.setQueryData(profileQueryKey, data);
+              const senderId: string | null | undefined = newMessage.sender_id;
+              if (senderId) {
+                // 1) メモリキャッシュ
+                const memCached = senderProfileCacheRef.current.get(senderId);
+                if (memCached) {
+                  senderName = memCached.name || '';
+                  senderImage = memCached.image || '';
+                } else {
+                  // 2) React Queryキャッシュ
+                  const profileQueryKey = ['profile', senderId];
+                  const cachedProfile = queryClient.getQueryData<any>(profileQueryKey);
+                  if (cachedProfile) {
+                    senderName = cachedProfile.name || '';
+                    senderImage = cachedProfile.image || '';
+                    senderProfileCacheRef.current.set(senderId, {
+                      name: senderName,
+                      image: senderImage,
+                    });
+                  } else {
+                    // 3) in-flight共有（同時到着時の重複リクエストを防止）
+                    let inFlight = senderProfileInFlightRef.current.get(senderId);
+                    if (!inFlight) {
+                      inFlight = (async () => {
+                        try {
+                          const { data } = await supabase
+                            .from('profiles')
+                            .select('name, image')
+                            .eq('id', senderId)
+                            .single();
+
+                          if (!data) return null;
+                          return { name: data.name || '', image: data.image || '' };
+                        } finally {
+                          // 成否に関わらずin-flightは解放
+                          senderProfileInFlightRef.current.delete(senderId);
+                        }
+                      })();
+                      senderProfileInFlightRef.current.set(senderId, inFlight);
+                    }
+
+                    const fetched = await inFlight;
+                    if (fetched) {
+                      senderName = fetched.name || '';
+                      senderImage = fetched.image || '';
+                      senderProfileCacheRef.current.set(senderId, fetched);
+                      queryClient.setQueryData(profileQueryKey, fetched);
+                    }
+                  }
                 }
               }
             }
@@ -494,9 +553,21 @@ function AppContent() {
           }
 
           // (2) invalidate / refetch 実行（関係するメッセージのみ）
-          queryClient.invalidateQueries({ queryKey: queryKeys.unreadCount.detail(session.user.id) });
-          queryClient.invalidateQueries({ queryKey: queryKeys.chatRooms.list(session.user.id) });
-          // refetchQueriesは削除（invalidateQueriesで十分。ユーザーが画面を見ている場合のみ自動再取得）
+          // - chatRooms: 最新メッセージ表示のため（送信/受信いずれも影響）
+          // - unreadCount: 未読に影響する場合のみ（自分が送ったメッセージでは不要）
+          scheduleInvalidateChatRooms();
+
+          const affectsUnread =
+            newMessage.sender_id !== session.user.id &&
+            (
+              // DM: 自分宛
+              newMessage.receiver_id === session.user.id ||
+              // Group: 参加中ルーム
+              (newMessage.chat_room_id && participatingRoomIdsRef.current.has(newMessage.chat_room_id))
+            );
+          if (affectsUnread) {
+            scheduleInvalidateUnread();
+          }
         }
       )
       .on(
@@ -504,6 +575,7 @@ function AppContent() {
         { event: 'UPDATE', schema: 'public', table: 'messages' },
         (payload) => {
           const updatedMessage = payload.new as any;
+          const oldMessage = (payload as any)?.old as any;
           
           // ✅ フィルタリング: 自分に関係するメッセージの更新かチェック
           const isRelevant =
@@ -516,15 +588,32 @@ function AppContent() {
             return;
           }
 
-          // (2) invalidate / refetch 実行（関係するメッセージのみ）
-          queryClient.invalidateQueries({ queryKey: queryKeys.unreadCount.detail(session.user.id) });
-          queryClient.invalidateQueries({ queryKey: queryKeys.chatRooms.list(session.user.id) });
-          // refetchQueriesは削除（invalidateQueriesで十分）
+          // UPDATEはノイズが多いので「未読に影響する更新」だけ拾う
+          // - DMの既読化（is_read変更）など
+          const isReadChanged = oldMessage?.is_read !== updatedMessage?.is_read;
+          const affectsDmUnread =
+            (updatedMessage.chat_room_id == null) &&
+            (updatedMessage.receiver_id === session.user.id) &&
+            isReadChanged;
+
+          if (affectsDmUnread) {
+            scheduleInvalidateUnread();
+            scheduleInvalidateChatRooms();
+          }
         }
       )
       .subscribe();
 
     return () => {
+      // デバウンスタイマーをクリア
+      if (invalidateTimersRef.current.unread) {
+        clearTimeout(invalidateTimersRef.current.unread);
+        invalidateTimersRef.current.unread = null;
+      }
+      if (invalidateTimersRef.current.chatRooms) {
+        clearTimeout(invalidateTimersRef.current.chatRooms);
+        invalidateTimersRef.current.chatRooms = null;
+      }
       supabase.removeChannel(channel);
     };
   }, [session?.user, queryClient, chatRoomsQuery.data]);

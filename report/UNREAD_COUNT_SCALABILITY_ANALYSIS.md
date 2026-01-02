@@ -38,9 +38,9 @@ const channel = supabase
 
 ### 2. リアルタイムイベントでのプロフィール取得（N+1問題）
 
-**場所**: `App.tsx` L384-390
+**場所**: `App.tsx`（Realtimeメッセージ受信時）
 
-**問題**:
+**問題（修正前）**:
 ```typescript
 // メッセージが来るたびに、毎回プロフィールを取得
 const { data } = await supabase
@@ -50,23 +50,27 @@ const { data } = await supabase
   .single();
 ```
 
-**影響**:
+**影響（修正前）**:
 - ❌ メッセージが来るたびに追加のDBクエリ
 - ❌ チャットが活発な場合、大量のプロフィール取得リクエスト
 - ❌ レイテンシーの増加
 
-**想定される規模での影響**:
+**想定される規模での影響（修正前）**:
 - 1メッセージ/秒 × 1プロフィール取得 = 60リクエスト/分/ユーザー
 - 10メッセージ/秒 = 600リクエスト/分/ユーザー
 - **DB負荷増大**
+
+**現在（修正後）**:
+- ✅ **React Queryキャッシュ + メモリキャッシュ + in-flight共有**で重複取得を防止
+- ✅ 同一送信者のメッセージが短時間に連続しても、プロフィール取得は原則1回（同時到着でも1回）
 
 ---
 
 ### 3. 過剰なクエリ無効化と再取得
 
-**場所**: `App.tsx` L450-452, 463-465
+**場所**: `App.tsx`（Realtimeメッセージ受信/更新時）
 
-**問題**:
+**問題（修正前）**:
 ```typescript
 // 全てのメッセージ変更で以下を実行
 queryClient.invalidateQueries({ queryKey: queryKeys.unreadCount.detail(session.user.id) });
@@ -82,6 +86,12 @@ queryClient.refetchQueries({ queryKey: queryKeys.chatRooms.list(session.user.id)
 **想定される規模での影響**:
 - 1,000イベント/分/ユーザー × 2クエリ = 2,000クエリ/分/ユーザー
 - **DB負荷増大、レスポンス低下**
+
+**現在（修正後）**:
+- ✅ `refetchQueries`は削除（`invalidateQueries`のみ）
+- ✅ `invalidateQueries`は**デバウンス**（短時間の連打を1回に集約）
+- ✅ `unreadCount`は**未読に影響する場合のみ**無効化（自分送信では無効化しない）
+- ✅ `messages`のUPDATEイベントは**DMの既読化（is_read変更）など必要なものだけ**無効化
 
 ---
 

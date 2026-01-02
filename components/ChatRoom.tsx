@@ -1587,7 +1587,8 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                                 token,
                                 partnerName || '新しいメッセージ',
                                 body,
-                                { type: 'message', senderId: currentUserId, chatRoomId: partnerId, isGroup: true }
+                                { type: 'message', senderId: currentUserId, chatRoomId: partnerId, isGroup: true },
+                                partnerImage // Pass project image as notification image for team chat
                             );
                         }
                     }
