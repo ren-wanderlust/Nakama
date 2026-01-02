@@ -190,7 +190,7 @@ export function UserProjectPage({ currentUser, onChat, sortOrder = 'recommended'
                 'marketer': 'マーケター',
                 'ideaman': 'アイディアマン',
                 'creator': 'クリエイター',
-                'other': 'その他'
+                'anyone': '誰でも'
             };
 
             const selectedRoleLabels = seekingRoles.map(r => roleMap[r] || r);

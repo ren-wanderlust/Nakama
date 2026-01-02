@@ -18,6 +18,7 @@ import {
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { Session } from '@supabase/supabase-js';
 import * as SecureStore from 'expo-secure-store';
 import { supabase } from '../lib/supabase';
@@ -178,12 +179,11 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
 
         if (!result.canceled) {
             try {
-                const ImageManipulator = await import('expo-image-manipulator');
                 // プロフィール画像は800x800にリサイズ（アバター用に最適化）
-                const manipulated = await ImageManipulator.manipulateAsync(
+                const manipulated = await manipulateAsync(
                     result.assets[0].uri,
                     [{ resize: { width: 800, height: 800 } }],
-                    { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
+                    { compress: 0.8, format: SaveFormat.JPEG }
                 );
                 setImageUri(manipulated.uri);
             } catch (error) {

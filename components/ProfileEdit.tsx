@@ -18,6 +18,7 @@ import {
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
 import { SHADOWS } from '../constants/DesignSystem';
@@ -48,17 +49,15 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
     const [filteredUniversities, setFilteredUniversities] = useState<string[]>([]);
     const [allUniversities, setAllUniversities] = useState<string[]>([]);
 
-    // その他テキスト
-    const [otherRoleText, setOtherRoleText] = useState('');
 
 
     // 役割オプション（RoleConstantsと統一）
     const roleOptions = [
         { id: 'エンジニア', label: 'エンジニア' },
+        { id: 'デザイナー', label: 'デザイナー' },
         { id: 'アイディアマン', label: 'アイディアマン' },
         { id: 'マーケター', label: 'マーケター' },
         { id: 'クリエイター', label: 'クリエイター' },
-        { id: 'その他', label: 'その他' },
     ];
 
 
@@ -111,12 +110,11 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
 
         if (!result.canceled) {
             try {
-                const ImageManipulator = await import('expo-image-manipulator');
                 // プロフィール画像は800x800にリサイズ（アバター用に最適化）
-                const manipulated = await ImageManipulator.manipulateAsync(
+                const manipulated = await manipulateAsync(
                     result.assets[0].uri,
                     [{ resize: { width: 800, height: 800 } }],
-                    { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
+                    { compress: 0.8, format: SaveFormat.JPEG }
                 );
                 setImage(manipulated.uri);
             } catch (error) {
@@ -190,9 +188,7 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
             }
 
             // Prepare skills array
-            const finalSkills = skills.includes('その他') && otherRoleText.trim()
-                ? [...skills.filter(s => s !== 'その他'), otherRoleText.trim()]
-                : skills;
+            const finalSkills = skills;
 
 
 
@@ -398,17 +394,6 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
                                     })}
                                 </View>
 
-                                {skills.includes('その他') && (
-                                    <View style={styles.otherInputContainer}>
-                                        <TextInput
-                                            value={otherRoleText}
-                                            onChangeText={setOtherRoleText}
-                                            placeholder="その他の役割を記入"
-                                            placeholderTextColor="#9CA3AF"
-                                            style={styles.otherInput}
-                                        />
-                                    </View>
-                                )}
                             </View>
 
                             {/* Bio Card */}

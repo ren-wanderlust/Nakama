@@ -91,6 +91,7 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
         'デザイナー': { bg: '#F3E5F5', icon: '#7B1FA2' },    // Purple
         'マーケター': { bg: '#FFF3E0', icon: '#E65100' },    // Orange
         'アイディアマン': { bg: '#FFF9C4', icon: '#F57F17' }, // Yellow
+        'クリエイター': { bg: '#FCE4EC', icon: '#C2185B' },   // Pink
         '誰でも': { bg: '#E8F5E9', icon: '#388E3C' },        // Green
     };
 

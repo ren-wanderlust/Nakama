@@ -9,6 +9,7 @@ export const ROLES = [
     { id: 'デザイナー', icon: 'color-palette' },
     { id: 'マーケター', icon: 'megaphone' },
     { id: 'アイディアマン', icon: 'bulb' },
+    { id: 'クリエイター', icon: 'brush' },
 ] as const;
 
 // 「誰でも」ロール
