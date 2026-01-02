@@ -25,6 +25,8 @@ import universitiesData from '../assets/japanese_universities.json';
 import { getRoleColors, getRoleIcon } from '../constants/RoleConstants';
 import { ModernInput } from './ModernComponents';
 import { FONTS } from '../constants/DesignSystem';
+import { TermsOfServicePage } from './TermsOfServicePage';
+import { PrivacyPolicyPage } from './PrivacyPolicyPage';
 
 interface SignupFlowProps {
     onComplete: () => void;
@@ -73,6 +75,10 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showEmailExistsModal, setShowEmailExistsModal] = useState(false);
     const [isCheckingEmail, setIsCheckingEmail] = useState(false);
+
+    // 利用規約・プライバシーポリシーモーダル
+    const [showTermsModal, setShowTermsModal] = useState(false);
+    const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
     // Step1で作成されたユーザーのIDを保持（step6でプロフィール作成に使用）
     const [createdUserId, setCreatedUserId] = useState<string | null>(null);
@@ -719,9 +725,9 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                     {isAgreed && <Ionicons name="checkmark" size={16} color="white" />}
                 </View>
                 <Text style={styles.agreementText}>
-                    <Text style={styles.linkText} onPress={() => Alert.alert('利用規約', '不適切なコンテンツの投稿や迷惑行為は禁止されています。違反した場合、アカウント停止等の措置が取られます。')}>利用規約</Text>
+                    <Text style={styles.linkText} onPress={() => setShowTermsModal(true)}>利用規約</Text>
                     と
-                    <Text style={styles.linkText} onPress={() => Alert.alert('プライバシーポリシー', '収集された個人情報は本サービスの提供のみに使用されます。')}>プライバシーポリシー</Text>
+                    <Text style={styles.linkText} onPress={() => setShowPrivacyModal(true)}>プライバシーポリシー</Text>
                     に同意します
                 </Text>
             </TouchableOpacity>
@@ -1267,6 +1273,26 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                         </View>
                     </View>
                 </View>
+            </Modal>
+
+            {/* Terms of Service Modal */}
+            <Modal
+                visible={showTermsModal}
+                animationType="slide"
+                presentationStyle="pageSheet"
+                onRequestClose={() => setShowTermsModal(false)}
+            >
+                <TermsOfServicePage onBack={() => setShowTermsModal(false)} />
+            </Modal>
+
+            {/* Privacy Policy Modal */}
+            <Modal
+                visible={showPrivacyModal}
+                animationType="slide"
+                presentationStyle="pageSheet"
+                onRequestClose={() => setShowPrivacyModal(false)}
+            >
+                <PrivacyPolicyPage onBack={() => setShowPrivacyModal(false)} />
             </Modal>
         </SafeAreaView>
     );

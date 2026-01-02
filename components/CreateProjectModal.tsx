@@ -73,7 +73,7 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
     // プリセット内容タグ
     const CONTENT_TAGS = [
         // 開発形態
-        'WEBサービス', 'AI開発', 'アプリ', '生成AI', 'iOS', 'Android',
+        '個人開発', 'WEBサービス', 'AI開発', 'アプリ', '生成AI', 'iOS', 'Android',
         // ユーティリティ
         '無料', 'ツール', '効率化', 'タスク管理', 'カレンダー', '自動化',
         // 分野
@@ -128,7 +128,7 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
             const result = await ImagePicker.launchImageLibraryAsync({
                 mediaTypes: ImagePicker.MediaTypeOptions.Images,
                 allowsEditing: true,
-                aspect: [16, 9],
+                aspect: [1, 1],
                 quality: 0.8,
             });
 
@@ -384,9 +384,6 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
                                     <Text style={styles.coverImagePlaceholderText}>
                                         タップして画像を選択
                                     </Text>
-                                    <Text style={styles.coverImageHint}>
-                                        16:9の比率で表示されます
-                                    </Text>
                                 </View>
                             )}
                             {uploadingImage && (
@@ -404,28 +401,6 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
                                 <Text style={styles.coverImageRemoveText}>画像を削除</Text>
                             </TouchableOpacity>
                         )}
-                    </View>
-
-                    {/* Project Title Section */}
-                    <View style={styles.section}>
-                        <View style={styles.sectionHeader}>
-                            <View style={styles.sectionIconContainer}>
-                                <Ionicons name="rocket" size={18} color="#009688" />
-                            </View>
-                            <Text style={styles.sectionTitle}>プロジェクト名</Text>
-                            <Text style={styles.requiredBadge}>必須</Text>
-                        </View>
-                        <View style={styles.inputWrapper}>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="AIを使った英語学習アプリ開発"
-                                placeholderTextColor="#9CA3AF"
-                                value={title}
-                                onChangeText={setTitle}
-                                maxLength={50}
-                            />
-                            <Text style={styles.charCount}>{title.length}/50</Text>
-                        </View>
                     </View>
 
                     {/* Tagline Section */}
@@ -450,6 +425,28 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
                         </View>
                     </View>
 
+                    {/* Project Title Section */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <View style={styles.sectionIconContainer}>
+                                <Ionicons name="rocket" size={18} color="#009688" />
+                            </View>
+                            <Text style={styles.sectionTitle}>プロジェクト名</Text>
+                            <Text style={styles.requiredBadge}>必須</Text>
+                        </View>
+                        <View style={styles.inputWrapper}>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="プロジェクト名を入力"
+                                placeholderTextColor="#9CA3AF"
+                                value={title}
+                                onChangeText={setTitle}
+                                maxLength={50}
+                            />
+                            <Text style={styles.charCount}>{title.length}/50</Text>
+                        </View>
+                    </View>
+
                     {/* Goal Section */}
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
@@ -462,7 +459,7 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
                         <View style={styles.inputWrapper}>
                             <TextInput
                                 style={styles.input}
-                                placeholder="例: MVP完成、資金調達、サービスリリース"
+                                placeholder="例: MVP完成、マネタイズ、サービスリリース"
                                 placeholderTextColor="#9CA3AF"
                                 value={goal}
                                 onChangeText={setGoal}
@@ -734,7 +731,7 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
                         <View style={styles.textAreaWrapper}>
                             <TextInput
                                 style={styles.textArea}
-                                placeholder="プロジェクトの目的、背景、求める人物像などを詳しく書きましょう。&#10;&#10;例:&#10;• プロジェクトの目標&#10;• 開発予定の機能&#10;• 活動頻度やコミュニケーション方法"
+                                placeholder="やりたいことの詳細、目的、背景、求める人物等を書きましょう。&#10;&#10;例:&#10;• プロジェクトの目標&#10;• 開発予定の機能&#10;• 活動頻度やコミュニケーション方法"
                                 placeholderTextColor="#9CA3AF"
                                 value={description}
                                 onChangeText={setDescription}
@@ -1128,7 +1125,7 @@ const styles = StyleSheet.create({
     // Cover Image Styles
     coverImagePicker: {
         width: '100%',
-        aspectRatio: 16 / 9,
+        aspectRatio: 1,
         borderRadius: 12,
         backgroundColor: '#F3F4F6',
         borderWidth: 2,
