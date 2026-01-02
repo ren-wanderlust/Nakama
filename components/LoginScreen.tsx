@@ -94,20 +94,6 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
     }
   };
 
-  const handleForgotPassword = async () => {
-    if (!email) {
-      Alert.alert('エラー', 'メールアドレスを入力してください');
-      return;
-    }
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email);
-      if (error) throw error;
-      Alert.alert('送信完了', 'パスワード再設定用のメールを送信しました。');
-    } catch (error: any) {
-      Alert.alert('エラー', error.message || '送信に失敗しました');
-    }
-  };
-
   if (isTermsModalVisible) return <TermsOfServicePage onBack={() => setIsTermsModalVisible(false)} />;
   if (isPrivacyModalVisible) return <PrivacyPolicyPage onBack={() => setIsPrivacyModalVisible(false)} />;
 
@@ -279,15 +265,6 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
                     secureTextEntry
                     icon="lock-closed-outline"
                   />
-
-                  <View style={{ alignItems: 'flex-end', marginTop: -8 }}>
-                    <ModernButton
-                      title="パスワードを忘れた場合"
-                      onPress={handleForgotPassword}
-                      variant="ghost"
-                      size="small"
-                    />
-                  </View>
 
                   <ModernButton
                     title={loading ? "ログイン中..." : "ログイン"}
