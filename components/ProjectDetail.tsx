@@ -942,8 +942,9 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                     </View>
                 ) : isMember ? (
                     <View style={styles.headerActions}>
-                        <TouchableOpacity onPress={handleLeaveProject} style={styles.actionButton}>
-                            <Ionicons name="exit-outline" size={24} color="#EF4444" />
+                        <TouchableOpacity onPress={handleLeaveProject} style={styles.leaveButtonHeader}>
+                            <Ionicons name="exit-outline" size={16} color="#EF4444" />
+                            <Text style={styles.leaveButtonHeaderText}>退会</Text>
                         </TouchableOpacity>
                     </View>
                 ) : null}
@@ -1306,6 +1307,22 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 4,
         elevation: 3,
+    },
+    leaveButtonHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FEF2F2',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 20,
+        gap: 4,
+        borderWidth: 1,
+        borderColor: '#FECACA',
+    },
+    leaveButtonHeaderText: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#EF4444',
     },
     content: {
         flex: 1,

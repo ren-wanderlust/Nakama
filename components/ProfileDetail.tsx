@@ -17,7 +17,6 @@ interface ProfileDetailProps {
     onLike: () => void;
     onChat: () => void;
     isLiked: boolean;
-    onBlock?: () => void;
     isMatched?: boolean;
 }
 
@@ -31,13 +30,12 @@ const REPORT_REASONS = [
     { id: 'other', label: 'その他' },
 ];
 
-export function ProfileDetail({ profile, onBack, onLike, onChat, isLiked, onBlock, isMatched }: ProfileDetailProps) {
+export function ProfileDetail({ profile, onBack, onLike, onChat, isLiked, isMatched }: ProfileDetailProps) {
     const seekingFor = profile.seekingFor || [];
     const skills = profile.skills || [];
     const seekingRoles = profile.seekingRoles || [];
     const queryClient = useQueryClient();
 
-    const [isBlocking, setIsBlocking] = useState(false);
     const [showReportModal, setShowReportModal] = useState(false);
     const [selectedReason, setSelectedReason] = useState<string | null>(null);
     const [reportDetails, setReportDetails] = useState('');
@@ -46,55 +44,6 @@ export function ProfileDetail({ profile, onBack, onLike, onChat, isLiked, onBloc
     // Get status tag style
     const statusTag = profile.statusTags && profile.statusTags.length > 0 ? profile.statusTags[0] : null;
     const statusStyle = statusTag ? getTagStyle(statusTag) : null;
-
-    const handleBlock = async () => {
-        try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                Alert.alert('エラー', 'ログインが必要です');
-                return;
-            }
-
-            setIsBlocking(true);
-
-            const { error } = await supabase
-                .from('blocks')
-                .insert({
-                    blocker_id: user.id,
-                    blocked_id: profile.id,
-                });
-
-            if (error) {
-                if (error.code === '23505') {
-                    Alert.alert('お知らせ', 'すでにブロック済みです');
-                } else {
-                    throw error;
-                }
-            } else {
-                // ブロック成功: 関連するキャッシュを無効化して自動更新
-                queryClient.invalidateQueries({ queryKey: queryKeys.profiles.all });
-                queryClient.invalidateQueries({ queryKey: queryKeys.projects.all });
-                queryClient.invalidateQueries({ queryKey: queryKeys.chatRooms.all });
-                queryClient.invalidateQueries({ queryKey: queryKeys.receivedLikes.all });
-
-                Alert.alert(
-                    '完了',
-                    `${profile.name}さんをブロックしました`,
-                    [{
-                        text: 'OK', onPress: () => {
-                            if (onBlock) onBlock();
-                            onBack();
-                        }
-                    }]
-                );
-            }
-        } catch (error) {
-            console.error('Block error:', error);
-            Alert.alert('エラー', 'ブロックに失敗しました');
-        } finally {
-            setIsBlocking(false);
-        }
-    };
 
     const handleReport = async () => {
         if (!selectedReason) {
@@ -144,18 +93,6 @@ export function ProfileDetail({ profile, onBack, onLike, onChat, isLiked, onBloc
             'メニュー',
             `${profile.name}さんに対する操作`,
             [
-                {
-                    text: 'ブロックする',
-                    style: 'destructive',
-                    onPress: () => Alert.alert(
-                        'ブロック確認',
-                        `${profile.name}さんをブロックしますか？\n\nブロックすると：\n・相手があなたのプロフィールを見れなくなります\n・相手があなたにメッセージを送れなくなります`,
-                        [
-                            { text: 'キャンセル', style: 'cancel' },
-                            { text: 'ブロックする', style: 'destructive', onPress: handleBlock }
-                        ]
-                    )
-                },
                 {
                     text: '通報する',
                     style: 'destructive',
