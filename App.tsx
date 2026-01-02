@@ -1537,63 +1537,79 @@ function AppContent() {
             )}
 
             {activeTab === 'search' && (
-              <View style={styles.searchHeader}>
-                <View style={[styles.searchHeaderGradient, { paddingTop: insets.top + 20, paddingBottom: 16, backgroundColor: 'white' }]}>
-                  <View style={styles.headerTop}>
-                    <View style={styles.headerLeft} />
-                    {/* 絞り込み/ソートを中央に配置 */}
-                    <View style={styles.searchControlBarInHeader}>
-                      <TouchableOpacity
-                        style={[styles.filterButton, isFilterActive && styles.filterButtonActive]}
-                        onPress={() => setIsFilterOpen(true)}
-                      >
-                        <Ionicons name="search" size={16} color="#F39800" />
-                        {filterCriteria?.keyword ? (
-                          <>
-                            <Text style={[styles.controlButtonText, styles.controlButtonTextActive, { flex: 1 }]} numberOfLines={1}>
-                              {filterCriteria.keyword}
+              <Animated.View style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                zIndex: 100,
+                transform: [{ translateY: headerTranslateY }],
+              }}>
+                <View style={[styles.searchHeader, { backgroundColor: 'white' }]}>
+                  <View style={[styles.searchHeaderGradient, { paddingTop: insets.top + 20, paddingBottom: 16, backgroundColor: 'white' }]}>
+                    <View style={styles.headerTop}>
+                      <View style={styles.headerLeft} />
+                      {/* 絞り込み/ソートを中央に配置 */}
+                      <View style={styles.searchControlBarInHeader}>
+                        <TouchableOpacity
+                          style={[styles.filterButton, isFilterActive && styles.filterButtonActive]}
+                          onPress={() => setIsFilterOpen(true)}
+                        >
+                          <Ionicons name="search" size={16} color="#F39800" />
+                          {filterCriteria?.keyword ? (
+                            <>
+                              <Text style={[styles.controlButtonText, styles.controlButtonTextActive, { flex: 1 }]} numberOfLines={1}>
+                                {filterCriteria.keyword}
+                              </Text>
+                              <TouchableOpacity
+                                onPress={(e) => {
+                                  e.stopPropagation();
+                                  setFilterCriteria(prev => prev ? { ...prev, keyword: '' } : null);
+                                }}
+                                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                                style={{ marginLeft: 'auto' }}
+                              >
+                                <Ionicons name="close-circle" size={16} color="#F39800" />
+                              </TouchableOpacity>
+                            </>
+                          ) : (
+                            <Text style={[styles.controlButtonText, isFilterActive && styles.controlButtonTextActive]}>
+                              絞り込み
                             </Text>
-                            <TouchableOpacity
-                              onPress={(e) => {
-                                e.stopPropagation();
-                                setFilterCriteria(prev => prev ? { ...prev, keyword: '' } : null);
-                              }}
-                              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                              style={{ marginLeft: 'auto' }}
-                            >
-                              <Ionicons name="close-circle" size={16} color="#F39800" />
-                            </TouchableOpacity>
-                          </>
-                        ) : (
-                          <Text style={[styles.controlButtonText, isFilterActive && styles.controlButtonTextActive]}>
-                            絞り込み
-                          </Text>
-                        )}
-                      </TouchableOpacity>
+                          )}
+                        </TouchableOpacity>
 
-                      <TouchableOpacity
-                        style={styles.sortButton}
-                        onPress={() => setIsSortModalOpen(true)}
-                      >
-                        <Text style={styles.controlButtonText}>
-                          {sortOrder === 'recommended' ? 'おすすめ順' : sortOrder === 'newest' ? '新着順' : '締め切り順'}
-                        </Text>
-                        <Ionicons name="chevron-down" size={14} color="#F39800" />
-                      </TouchableOpacity>
-                    </View>
-                    <View style={styles.headerRight}>
-                      <TouchableOpacity
-                        style={styles.notificationButton}
-                        onPress={() => setShowNotifications(true)}
-                      >
-                        <Ionicons name="notifications-outline" size={24} color="#F39800" />
-                        {unreadNotificationsCount > 0 && (
-                          <View style={styles.notificationBadgeDot} />
-                        )}
-                      </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.sortButton}
+                          onPress={() => setIsSortModalOpen(true)}
+                        >
+                          <Text style={styles.controlButtonText}>
+                            {sortOrder === 'recommended' ? 'おすすめ順' : sortOrder === 'newest' ? '新着順' : '締め切り順'}
+                          </Text>
+                          <Ionicons name="chevron-down" size={14} color="#F39800" />
+                        </TouchableOpacity>
+                      </View>
+                      <View style={styles.headerRight}>
+                        <TouchableOpacity
+                          style={styles.notificationButton}
+                          onPress={() => setShowNotifications(true)}
+                        >
+                          <Ionicons name="notifications-outline" size={24} color="#F39800" />
+                          {unreadNotificationsCount > 0 && (
+                            <View style={styles.notificationBadgeDot} />
+                          )}
+                        </TouchableOpacity>
+                      </View>
                     </View>
                   </View>
                 </View>
+
+                {/* リフレッシュ中のスピナー表示 */}
+                {searchRefreshing && (
+                  <View style={styles.searchRefreshIndicator}>
+                    <ActivityIndicator size="small" color="gray" />
+                  </View>
+                )}
 
                 {/* アクティブフィルタータグ表示 */}
                 {((filterCriteria?.themes && filterCriteria.themes.length > 0) || (filterCriteria?.seekingRoles && filterCriteria.seekingRoles.length > 0)) && (
@@ -1642,7 +1658,7 @@ function AppContent() {
                     </ScrollView>
                   </View>
                 )}
-              </View>
+              </Animated.View>
             )}
             {/* ユーザータブは将来的な復活のためにコメントで残す
                 <View style={[styles.searchHeader, { backgroundColor: 'white' }]}>

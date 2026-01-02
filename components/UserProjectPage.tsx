@@ -313,6 +313,7 @@ const styles = StyleSheet.create({
     },
     gridContainer: {
         padding: 16,
+        paddingTop: 132, // ヘッダー（absolute）の高さ分 + 余白
     },
     grid: {
         flexDirection: 'column',
