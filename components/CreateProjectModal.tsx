@@ -128,7 +128,7 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
             const result = await ImagePicker.launchImageLibraryAsync({
                 mediaTypes: ImagePicker.MediaTypeOptions.Images,
                 allowsEditing: true,
-                aspect: [16, 9],
+                aspect: [1, 1],
                 quality: 0.8,
             });
 
@@ -383,9 +383,6 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
                                     <Ionicons name="add-circle-outline" size={40} color="#9CA3AF" />
                                     <Text style={styles.coverImagePlaceholderText}>
                                         タップして画像を選択
-                                    </Text>
-                                    <Text style={styles.coverImageHint}>
-                                        16:9の比率で表示されます
                                     </Text>
                                 </View>
                             )}
@@ -1128,7 +1125,7 @@ const styles = StyleSheet.create({
     // Cover Image Styles
     coverImagePicker: {
         width: '100%',
-        aspectRatio: 16 / 9,
+        aspectRatio: 1,
         borderRadius: 12,
         backgroundColor: '#F3F4F6',
         borderWidth: 2,
