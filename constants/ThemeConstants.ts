@@ -7,12 +7,11 @@ export type ThemeOption = {
 
 // CreateProjectModal のテーマ選択と同じ定義（単一のソースに集約）
 export const THEMES: ThemeOption[] = [
-    { id: 'theme-1', title: '個人開発', color: '#3B82F6', bgColor: '#EFF6FF' }, // Blue
-    { id: 'theme-2', title: '起業', color: '#8B5CF6', bgColor: '#F5F3FF' }, // Purple
+    { id: 'theme-1', title: '起業・事業立ち上げ', color: '#8B5CF6', bgColor: '#F5F3FF' }, // Purple
+    { id: 'theme-2', title: 'プロダクト開発', color: '#3B82F6', bgColor: '#EFF6FF' }, // Blue
     { id: 'theme-3', title: 'クリエイティブ', color: '#EC4899', bgColor: '#FDF2F8' }, // Pink
-    { id: 'theme-4', title: 'コミュニティづくり', color: '#F97316', bgColor: '#FFF7ED' }, // Orange
-    { id: 'theme-5', title: '教育', color: '#10B981', bgColor: '#ECFDF5' }, // Green
-    { id: 'theme-6', title: 'コンテスト', color: '#EF4444', bgColor: '#FEF2F2' }, // Red
+    { id: 'theme-4', title: 'コンテスト・ハッカソン', color: '#EF4444', bgColor: '#FEF2F2' }, // Red
+    { id: 'theme-5', title: 'コミュニティ形成', color: '#F97316', bgColor: '#FFF7ED' }, // Orange
 ];
 
 export const DEFAULT_THEME_COLOR = '#3B82F6';

@@ -73,7 +73,7 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
     // プリセット内容タグ
     const CONTENT_TAGS = [
         // 開発形態
-        '個人開発', 'WEBサービス', 'AI開発', 'アプリ', '生成AI', 'iOS', 'Android',
+        'WEBサービス', 'AI開発', 'アプリ', '生成AI', 'iOS', 'Android',
         // ユーティリティ
         '無料', 'ツール', '効率化', 'タスク管理', 'カレンダー', '自動化',
         // 分野
@@ -82,7 +82,7 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
         // フレームワーク・技術
         'Next.js', 'Flutter', 'React', 'Swift',
         // その他
-        'OSS', 'MCP', 'ハッカソン', 'MVP', 'コンテスト向け',
+        'OSS', 'MCP', 'ハッカソン', 'MVP',
     ];
 
     // Role to color mapping (matching UserProjectPage)
