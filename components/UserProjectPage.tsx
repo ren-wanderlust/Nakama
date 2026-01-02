@@ -228,7 +228,13 @@ export function UserProjectPage({ currentUser, onChat, sortOrder = 'recommended'
                     />
                 }
             >
-                <View style={styles.gridContainer}>
+                <View style={[
+                    styles.gridContainer,
+                    // フィルタータグがアクティブな時は追加のパディング
+                    ((filterCriteria?.themes && filterCriteria.themes.length > 0) ||
+                        (filterCriteria?.seekingRoles && filterCriteria.seekingRoles.length > 0)) &&
+                    { paddingTop: 172 }
+                ]}>
                     {filteredProjects.length > 0 ? (
                         <View style={styles.grid}>
                             {filteredProjects.map((item, index) => (
