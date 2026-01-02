@@ -52,7 +52,6 @@ const SEEKING_ROLE_OPTIONS = [
 const THEME_OPTIONS = [
     { id: '起業・事業立ち上げ', label: '起業・事業立ち上げ', color: '#8B5CF6', bgColor: '#F5F3FF' },
     { id: 'プロダクト開発', label: 'プロダクト開発', color: '#3B82F6', bgColor: '#EFF6FF' },
-    { id: 'クリエイティブ', label: 'クリエイティブ', color: '#EC4899', bgColor: '#FDF2F8' },
     { id: 'コンテスト・ハッカソン', label: 'コンテスト・ハッカソン', color: '#EF4444', bgColor: '#FEF2F2' },
     { id: 'コミュニティ形成', label: 'コミュニティ形成', color: '#F97316', bgColor: '#FFF7ED' },
 ];
