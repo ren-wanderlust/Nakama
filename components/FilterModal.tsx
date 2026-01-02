@@ -39,7 +39,7 @@ const GRADE_OPTIONS = [
     { value: 'M2', label: 'M2', icon: '📚' },
 ];
 
-// 探している仲間オプション
+// 募集しているメンバーオプション
 const SEEKING_ROLE_OPTIONS = [
     { id: 'engineer', label: 'エンジニア', icon: '💻' },
     { id: 'designer', label: 'デザイナー', icon: '🎨' },
@@ -405,7 +405,7 @@ export function FilterModal({ visible, onClose, onApply, initialCriteria, mode =
                                 >
                                     <Ionicons name="people" size={14} color="white" />
                                 </LinearGradient>
-                                <Text style={styles.sectionTitle}>探している仲間</Text>
+                                <Text style={styles.sectionTitle}>募集しているメンバー</Text>
                                 {selectedSeekingRoles.length > 0 && (
                                     <View style={styles.countBadge}>
                                         <Text style={styles.countBadgeText}>{selectedSeekingRoles.length}</Text>
