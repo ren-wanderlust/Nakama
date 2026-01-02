@@ -1315,8 +1315,8 @@ const styles = StyleSheet.create({
     },
     infoContainer: {
         padding: 24,
-        // ヘッダー（閉じるボタン）との干渉を避けつつ、最上部の余白を詰める
-        paddingTop: 45,
+        // ヘッダー（position:absolute, top:40）との干渉を避けるため、十分な余白を確保
+        paddingTop: 60,
         backgroundColor: 'white',
     },
     title: {
