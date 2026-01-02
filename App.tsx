@@ -1,6 +1,6 @@
 // Trigger rebuild
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { StyleSheet, Text, View, FlatList, TouchableOpacity, Platform, ActivityIndicator, Modal, UIManager, LayoutAnimation, Dimensions, ScrollView } from 'react-native';
+import { StyleSheet, Text, View, FlatList, TouchableOpacity, Platform, ActivityIndicator, Modal, UIManager, LayoutAnimation, Dimensions, ScrollView, Animated } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as SecureStore from 'expo-secure-store';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -140,6 +140,40 @@ function AppContent() {
   const [showOnboarding, setShowOnboarding] = useState(false); // テスト用: falseで開始
   const [chatProjectDetail, setChatProjectDetail] = useState<any | null>(null); // プロジェクト詳細（チャットから）
 
+  // 探すページのスクロール方向を検知してヘッダーを表示/非表示（サイズ固定）
+  const headerTranslateY = useRef(new Animated.Value(0)).current;
+  const lastScrollY = useRef(0);
+  const isHeaderVisible = useRef(true);
+  // ヘッダーの高さ（safe area top + paddingTop + paddingBottom + コンテンツ）
+  // 実際の高さは insets.top + 20 + 16 + ~40 なので、余裕を持って150に設定
+  const HEADER_TOTAL_HEIGHT = 150;
+
+  // スクロールハンドラー（方向を検知）
+  const handleSearchScroll = useCallback((scrollY: number) => {
+    const isScrollingDown = scrollY > lastScrollY.current && scrollY > 50;
+    const isScrollingUp = scrollY < lastScrollY.current;
+
+    if (isScrollingDown && isHeaderVisible.current) {
+      // 下スクロール：ヘッダーを隠す
+      isHeaderVisible.current = false;
+      Animated.timing(headerTranslateY, {
+        toValue: -HEADER_TOTAL_HEIGHT,
+        duration: 250,
+        useNativeDriver: true,
+      }).start();
+    } else if (isScrollingUp && !isHeaderVisible.current) {
+      // 上スクロール：ヘッダーを表示
+      isHeaderVisible.current = true;
+      Animated.timing(headerTranslateY, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true,
+      }).start();
+    }
+
+    lastScrollY.current = scrollY;
+  }, [headerTranslateY]);
+
   // React Query hooks
   const queryClient = useQueryClient();
   const profilesQuery = useProfilesList(sortOrder === 'newest' ? 'newest' : sortOrder === 'recommended' ? 'recommended' : 'deadline', session?.user?.id);
@@ -165,11 +199,11 @@ function AppContent() {
     unread: ReturnType<typeof setTimeout> | null;
     chatRooms: ReturnType<typeof setTimeout> | null;
   }>({ unread: null, chatRooms: null });
-  
+
   // チャットルーム一覧から参加しているルームIDセットを構築
   React.useEffect(() => {
     if (!chatRoomsQuery.data) return;
-    
+
     const roomIds = new Set<string>();
     chatRoomsQuery.data.forEach(room => {
       if (room.id) {
@@ -180,7 +214,7 @@ function AppContent() {
         roomIds.add(room.partnerId);
       }
     });
-    
+
     participatingRoomIdsRef.current = roomIds;
   }, [chatRoomsQuery.data]);
 
@@ -576,7 +610,7 @@ function AppContent() {
         (payload) => {
           const updatedMessage = payload.new as any;
           const oldMessage = (payload as any)?.old as any;
-          
+
           // ✅ フィルタリング: 自分に関係するメッセージの更新かチェック
           const isRelevant =
             updatedMessage.receiver_id === session.user.id ||
@@ -753,12 +787,12 @@ function AppContent() {
 
           const memberProjectIds = new Set<string>();
           const participationTimeByProject = new Map<string, string>();
-          
+
           ownedProjects?.forEach((p: any) => {
             memberProjectIds.add(p.id);
             participationTimeByProject.set(p.id, p.created_at);
           });
-          
+
           approvedApps?.forEach((a: any) => {
             memberProjectIds.add(a.project_id);
             // approved_at があればそれを使用、なければ created_at を使用
@@ -800,14 +834,14 @@ function AppContent() {
                 const lastReadTime = readStatusByRoom.get(g.id);
                 const participationTime = participationTimeByProject.get(g.project_id);
                 const roomCreatedTime = g.created_at;
-                
+
                 // 参加時点とチャットルーム作成時点の早い方を基準にする
                 const effectiveParticipationTime = participationTime && roomCreatedTime
                   ? (new Date(participationTime).getTime() < new Date(roomCreatedTime).getTime()
-                      ? participationTime
-                      : roomCreatedTime)
+                    ? participationTime
+                    : roomCreatedTime)
                   : (participationTime || roomCreatedTime || '1970-01-01');
-                
+
                 // last_read_at がある場合はそれを使用、なければ参加時点を使用
                 baseTimeByRoom.set(g.id, lastReadTime || effectiveParticipationTime);
               });
@@ -1502,7 +1536,14 @@ function AppContent() {
             )}
 
             {activeTab === 'search' && (
-              <View>
+              <Animated.View style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                zIndex: 100,
+                transform: [{ translateY: headerTranslateY }],
+              }}>
                 {/* シンプルなヘッダー - 絞り込み/ソートと通知ボタンを同じ行に配置 */}
                 <View style={[styles.searchHeader, { backgroundColor: 'white' }]}>
                   <View style={[styles.searchHeaderGradient, { paddingTop: insets.top + 20, paddingBottom: 16, backgroundColor: 'white' }]}>
@@ -1688,7 +1729,7 @@ function AppContent() {
                   </TouchableOpacity>
                 </View>
                 */}
-              </View>
+              </Animated.View>
             )}
 
             {activeTab === 'talk' && (
@@ -1733,6 +1774,7 @@ function AppContent() {
                   isGroup: false,
                 });
               }}
+              onScroll={handleSearchScroll}
             />
             {/* ユーザー検索は将来的な復活のためにコメントで残す
             <FlatList

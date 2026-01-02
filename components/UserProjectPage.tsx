@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, Alert, Animated, Easing } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, Alert, Animated, Easing, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
@@ -43,6 +43,7 @@ interface UserProjectPageProps {
     onChat: (ownerId: string, ownerName: string, ownerImage: string) => void;
     sortOrder?: 'recommended' | 'newest' | 'deadline';
     filterCriteria?: FilterCriteria | null;
+    onScroll?: (scrollY: number) => void;
 }
 
 // NOTE: 旧カードUIで使用していたROLE系定数は、ProjectSummaryCard移行により不要になりました。
@@ -96,7 +97,7 @@ const ProjectCard = ({ project, onPress, index = 0 }: { project: Project; onPres
     );
 };
 
-export function UserProjectPage({ currentUser, onChat, sortOrder = 'recommended', filterCriteria }: UserProjectPageProps) {
+export function UserProjectPage({ currentUser, onChat, sortOrder = 'recommended', filterCriteria, onScroll }: UserProjectPageProps) {
     const [refreshing, setRefreshing] = useState(false);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -215,6 +216,10 @@ export function UserProjectPage({ currentUser, onChat, sortOrder = 'recommended'
             <ScrollView
                 style={styles.content}
                 showsVerticalScrollIndicator={false}
+                scrollEventThrottle={16}
+                onScroll={(event: NativeSyntheticEvent<NativeScrollEvent>) => {
+                    onScroll?.(event.nativeEvent.contentOffset.y);
+                }}
                 refreshControl={
                     <CustomRefreshControl
                         refreshing={refreshing}
@@ -305,6 +310,7 @@ const styles = StyleSheet.create({
     },
     gridContainer: {
         padding: 16,
+        paddingTop: 100, // ヘッダー（absolute）の高さ分のスペースを確保
     },
     grid: {
         flexDirection: 'column',
