@@ -399,31 +399,17 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
         }
     };
 
-    // 棄却確認用のアラート（2段階確認）
+    // 棄却確認用のアラート（1段階確認に簡略化）
     const handleRejectConfirmation = (applicationId: string, userName: string) => {
         Alert.alert(
-            '⚠️ 棄却の確認',
-            `${userName}さんの申請を棄却しますか？\n\nこの操作は取り消すことができません。\n慎重にご判断ください。`,
+            '見送りの確認',
+            `${userName}さんの申請を見送りますか？`,
             [
                 { text: 'キャンセル', style: 'cancel' },
                 {
-                    text: '棄却する',
+                    text: '見送る',
                     style: 'destructive',
-                    onPress: () => {
-                        // 2段階目の確認
-                        Alert.alert(
-                            '最終確認',
-                            `本当に${userName}さんを棄却してよろしいですか？`,
-                            [
-                                { text: 'やめる', style: 'cancel' },
-                                {
-                                    text: '棄却する',
-                                    style: 'destructive',
-                                    onPress: () => updateApplicantStatus(applicationId, 'rejected', userName)
-                                }
-                            ]
-                        );
-                    }
+                    onPress: () => updateApplicantStatus(applicationId, 'rejected', userName)
                 }
             ]
         );
