@@ -529,111 +529,121 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
             <TouchableOpacity
                 style={styles.recruitingCard}
                 onPress={() => handleApplicantProfileSelect(item)}
-                activeOpacity={0.7}
+                activeOpacity={0.95}
             >
                 {/* Unread indicator */}
                 {isUnread && <View style={styles.recruitingUnreadDot} />}
 
-                <View style={styles.recruitingCardInner}>
-                    {/* Left: Avatar */}
-                    <Image
-                        source={getImageSource(user.image)}
-                        style={styles.recruitingAvatar}
-                    />
+                <View style={styles.recruitingCardContent}>
+                    {/* Top Row: Avatar, Info, Actions */}
+                    <View style={styles.recruitingTopRow}>
+                        {/* Avatar */}
+                        <Image
+                            source={getImageSource(user.image)}
+                            style={styles.recruitingAvatar}
+                        />
 
-                    {/* Middle: Info */}
-                    <View style={styles.recruitingUserInfo}>
-                        <Text style={styles.recruitingUserName} numberOfLines={1}>
-                            {user.name}
-                        </Text>
-                        <Text style={styles.recruitingUserUniversity} numberOfLines={1}>
-                            {user.university || '所属なし'}{user.grade ? ` / ${user.grade}` : ''}
-                        </Text>
-
-                        {/* 役割タグ */}
-                        {userSkills.length > 0 && (
-                            <View style={styles.recruitingRoleTags}>
-                                {userSkills.slice(0, 2).map((skill, index) => {
-                                    const roleColor = ROLE_COLORS[skill] || { bg: '#E5E7EB', icon: '#4B5563' };
-                                    const roleIcon = ROLE_ICONS[skill] || 'person';
-                                    return (
-                                        <View key={index} style={[styles.recruitingRoleTag, { backgroundColor: roleColor.bg }]}>
-                                            <Ionicons name={roleIcon as any} size={10} color={roleColor.icon} />
-                                            <Text style={[styles.recruitingRoleTagText, { color: roleColor.icon }]}>{skill}</Text>
-                                        </View>
-                                    );
-                                })}
-                                {userSkills.length > 2 && (
-                                    <Text style={styles.recruitingMoreRoles}>+{userSkills.length - 2}</Text>
-                                )}
+                        {/* User Info */}
+                        <View style={styles.recruitingMainInfo}>
+                            <View style={styles.recruitingNameRow}>
+                                <Text style={styles.recruitingUserName} numberOfLines={1}>
+                                    {user.name}
+                                </Text>
                             </View>
-                        )}
 
-                        {/* 応募先 */}
-                        <View style={styles.appliedProjectContainer}>
-                            <Text style={styles.appliedProjectLabel}>応募先:</Text>
-                            <Text style={styles.appliedProjectName} numberOfLines={1}>
-                                {item.project?.title}
-                            </Text>
+                            <View style={styles.recruitingMetaRow}>
+                                <Ionicons name="school-outline" size={12} color="#6B7280" />
+                                <Text style={styles.recruitingUserUniversity} numberOfLines={1}>
+                                    {user.university || '所属なし'}{user.grade ? ` ${user.grade}` : ''}
+                                </Text>
+                            </View>
+
+                            {/* 役割タグ */}
+                            {userSkills.length > 0 && (
+                                <View style={styles.recruitingRoleTags}>
+                                    {userSkills.slice(0, 2).map((skill, index) => {
+                                        const roleColor = ROLE_COLORS[skill] || { bg: '#F3F4F6', icon: '#4B5563' };
+                                        const roleIcon = ROLE_ICONS[skill] || 'person';
+                                        return (
+                                            <View key={index} style={[styles.recruitingRoleTag, { backgroundColor: roleColor.bg }]}>
+                                                <Ionicons name={roleIcon as any} size={10} color={roleColor.icon} />
+                                                <Text style={[styles.recruitingRoleTagText, { color: roleColor.icon }]}>{skill}</Text>
+                                            </View>
+                                        );
+                                    })}
+                                    {userSkills.length > 2 && (
+                                        <Text style={styles.recruitingMoreRoles}>+{userSkills.length - 2}</Text>
+                                    )}
+                                </View>
+                            )}
                         </View>
 
-                        {/* メッセージプレビュー */}
-                        {item.message && (
-                            <View style={styles.messagePreviewContainer}>
-                                <Ionicons name="chatbubble-ellipses-outline" size={12} color="#9CA3AF" />
-                                <Text style={styles.messagePreviewText} numberOfLines={1}>
-                                    {item.message}
-                                </Text>
-                            </View>
-                        )}
-                    </View>
-
-                    {/* Right: Actions */}
-                    <View style={styles.recruitingActionsRight}>
-                        {isPending ? (
-                            <>
-                                {item.message && (
+                        {/* Actions (Top Right) */}
+                        <View style={styles.recruitingActionsColumn}>
+                            {isPending ? (
+                                <View style={styles.actionButtonsRow}>
                                     <TouchableOpacity
-                                        style={styles.messageIconButton}
+                                        style={styles.actionIconButtonReject}
                                         onPress={(e) => {
                                             e.stopPropagation();
-                                            setSelectedMessage(item.message || '');
-                                            setShowMessageModal(true);
+                                            handleRejectConfirmation(item.id, user.name);
                                         }}
                                     >
-                                        <Ionicons name="chatbubble-outline" size={20} color="#009688" />
+                                        <Ionicons name="close" size={20} color="#EF4444" />
                                     </TouchableOpacity>
-                                )}
-                                <TouchableOpacity
-                                    style={styles.actionIconButtonReject}
-                                    onPress={(e) => {
-                                        e.stopPropagation();
-                                        handleRejectConfirmation(item.id, user.name);
-                                    }}
-                                >
-                                    <Ionicons name="close" size={20} color="#EF4444" />
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    style={styles.actionIconButtonApprove}
-                                    onPress={(e) => {
-                                        e.stopPropagation();
-                                        updateApplicantStatus(item.id, 'approved', user.name);
-                                    }}
-                                >
-                                    <Ionicons name="checkmark" size={20} color="#FFFFFF" />
-                                </TouchableOpacity>
-                            </>
-                        ) : (
-                            <View style={[
-                                styles.statusBadgeCompact,
-                                { backgroundColor: isApproved ? '#D1FAE5' : '#FEE2E2' }
-                            ]}>
-                                <Text style={{ fontSize: 11, fontWeight: 'bold', color: isApproved ? '#10B981' : '#EF4444' }}>
-                                    {isApproved ? '決定' : '見送り'}
-                                </Text>
-                            </View>
-                        )}
+                                    <TouchableOpacity
+                                        style={styles.actionIconButtonApprove}
+                                        onPress={(e) => {
+                                            e.stopPropagation();
+                                            updateApplicantStatus(item.id, 'approved', user.name);
+                                        }}
+                                    >
+                                        <Ionicons name="checkmark" size={20} color="#FFFFFF" />
+                                    </TouchableOpacity>
+                                </View>
+                            ) : (
+                                <View style={[
+                                    styles.statusBadgeCompact,
+                                    { backgroundColor: isApproved ? '#D1FAE5' : '#FEE2E2' }
+                                ]}>
+                                    <Text style={{ fontSize: 11, fontWeight: 'bold', color: isApproved ? '#10B981' : '#EF4444' }}>
+                                        {isApproved ? '決定' : '見送り'}
+                                    </Text>
+                                </View>
+                            )}
+                        </View>
                     </View>
+
+                    {/* Middle: Applied Project */}
+                    <View style={styles.appliedProjectRow}>
+                        <View style={styles.appliedProjectBadge}>
+                            <Text style={styles.appliedProjectLabel}>応募先</Text>
+                        </View>
+                        <Text style={styles.appliedProjectName} numberOfLines={1}>
+                            {item.project?.title}
+                        </Text>
+                    </View>
+
+                    {/* Bottom: Message Bubble */}
+                    {item.message && (
+                        <TouchableOpacity
+                            style={styles.messageBubble}
+                            onPress={(e) => {
+                                e.stopPropagation();
+                                setSelectedMessage(item.message || '');
+                                setShowMessageModal(true);
+                            }}
+                            activeOpacity={0.8}
+                        >
+                            <View style={styles.messageHeader}>
+                                <Ionicons name="chatbubble-ellipses" size={14} color="#009688" />
+                                <Text style={styles.messageHeaderText}>メッセージ</Text>
+                            </View>
+                            <Text style={styles.messageContentText} numberOfLines={2}>
+                                {item.message}
+                            </Text>
+                        </TouchableOpacity>
+                    )}
                 </View>
             </TouchableOpacity>
         );
@@ -1437,15 +1447,24 @@ const styles = StyleSheet.create({
     // Recruiting card styles (応募者カード)
     recruitingCard: {
         backgroundColor: '#FFFFFF',
-        borderRadius: 16,
-        marginBottom: 10,
+        borderRadius: 20,
+        marginBottom: 12,
         position: 'relative',
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
-        elevation: 2,
-        padding: 14,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+        elevation: 3,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: '#F3F4F6',
+    },
+    recruitingCardContent: {
+        flexDirection: 'column',
+    },
+    recruitingTopRow: {
+        flexDirection: 'row',
+        marginBottom: 12,
     },
     recruitingUnreadDot: {
         position: 'absolute',
@@ -1460,56 +1479,106 @@ const styles = StyleSheet.create({
         borderColor: '#FFFFFF',
     },
     recruitingCardInner: {
+        // Deprecated but kept for safety
         flexDirection: 'row',
         alignItems: 'center',
     },
     recruitingAvatar: {
-        width: 54,
-        height: 54,
-        borderRadius: 27,
-        marginRight: 12,
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        marginRight: 14,
         backgroundColor: '#F3F4F6',
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
     },
-    recruitingUserInfo: {
+    recruitingMainInfo: {
         flex: 1,
         justifyContent: 'center',
-        paddingRight: 8,
+    },
+    recruitingNameRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 2,
     },
     recruitingUserName: {
-        fontSize: 15,
+        fontSize: 16,
         fontWeight: 'bold',
-        color: '#111827',
-        marginBottom: 2,
+        color: '#1F2937',
+    },
+    recruitingMetaRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 6,
+        gap: 4,
     },
     recruitingUserUniversity: {
         fontSize: 12,
         color: '#6B7280',
-        marginBottom: 4,
     },
-    appliedProjectContainer: {
+    appliedProjectRow: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#F9FAFB',
+        paddingHorizontal: 10,
+        paddingVertical: 8,
+        borderRadius: 8,
+        marginTop: 4,
+        marginBottom: 8,
+        borderWidth: 1,
+        borderColor: '#F3F4F6',
+    },
+    appliedProjectBadge: {
+        backgroundColor: '#E0E7FF',
         paddingHorizontal: 6,
         paddingVertical: 2,
         borderRadius: 4,
-        alignSelf: 'flex-start',
+        marginRight: 8,
     },
     appliedProjectLabel: {
-        fontSize: 10,
-        color: '#9CA3AF',
-        marginRight: 4,
+        fontSize: 11,
+        color: '#4338CA',
+        fontWeight: '600',
     },
     appliedProjectName: {
-        fontSize: 10,
-        color: '#4B5563',
+        fontSize: 13,
+        color: '#374151',
         fontWeight: '500',
+        flex: 1,
     },
-    recruitingActionsRight: {
+    recruitingActionsColumn: {
+        justifyContent: 'flex-start',
+        paddingLeft: 8,
+    },
+    actionButtonsRow: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    // New Message Bubble Styles
+    messageBubble: {
+        backgroundColor: '#F0FDFA', // 薄いTeal
+        borderRadius: 12,
+        padding: 10,
+        marginTop: 4,
+        borderWidth: 1,
+        borderColor: '#CCFBF1',
+        borderTopLeftRadius: 4,
+    },
+    messageHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
-        paddingLeft: 4,
+        marginBottom: 4,
+        gap: 4,
+    },
+    messageHeaderText: {
+        fontSize: 11,
+        fontWeight: 'bold',
+        color: '#0D9488',
+    },
+    messageContentText: {
+        fontSize: 13,
+        color: '#374151',
+        lineHeight: 18,
     },
     messageIconButton: {
         width: 36,
@@ -1522,9 +1591,9 @@ const styles = StyleSheet.create({
         borderColor: '#B2DFDB',
     },
     actionIconButtonReject: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
         backgroundColor: '#FEF2F2',
         alignItems: 'center',
         justifyContent: 'center',
@@ -1532,9 +1601,9 @@ const styles = StyleSheet.create({
         borderColor: '#FECACA',
     },
     actionIconButtonApprove: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
         backgroundColor: '#009688', // テーマカラー
         alignItems: 'center',
         justifyContent: 'center',
@@ -1576,22 +1645,11 @@ const styles = StyleSheet.create({
         color: '#9CA3AF',
         fontWeight: '500',
     },
-    // メッセージプレビュースタイル
-    messagePreviewContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginTop: 4,
-        paddingTop: 4,
-        borderTopWidth: 1,
-        borderTopColor: '#F3F4F6',
-        gap: 4,
-    },
-    messagePreviewText: {
-        fontSize: 11,
-        color: '#6B7280',
-        flex: 1,
-        fontStyle: 'italic',
-    },
+    // Deprecated styles
+    recruitingActionsRight: { flexDirection: 'row' },
+    appliedProjectContainer: { flexDirection: 'row' },
+    messagePreviewContainer: { flexDirection: 'row' },
+    messagePreviewText: { fontSize: 11 },
     // Legacy applicant card styles (keep for compatibility)
     applicantCardWrapper: {
         position: 'relative',
