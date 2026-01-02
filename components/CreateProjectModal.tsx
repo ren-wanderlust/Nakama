@@ -437,7 +437,7 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
                         <View style={styles.inputWrapper}>
                             <TextInput
                                 style={styles.input}
-                                placeholder="AIを使った英語学習アプリ開発"
+                                placeholder="プロジェクト名を入力"
                                 placeholderTextColor="#9CA3AF"
                                 value={title}
                                 onChangeText={setTitle}
@@ -459,7 +459,7 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
                         <View style={styles.inputWrapper}>
                             <TextInput
                                 style={styles.input}
-                                placeholder="例: MVP完成、資金調達、サービスリリース"
+                                placeholder="例: MVP完成、マネタイズ、サービスリリース"
                                 placeholderTextColor="#9CA3AF"
                                 value={goal}
                                 onChangeText={setGoal}
@@ -731,7 +731,7 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
                         <View style={styles.textAreaWrapper}>
                             <TextInput
                                 style={styles.textArea}
-                                placeholder="プロジェクトの目的、背景、求める人物像などを詳しく書きましょう。&#10;&#10;例:&#10;• プロジェクトの目標&#10;• 開発予定の機能&#10;• 活動頻度やコミュニケーション方法"
+                                placeholder="やりたいことの詳細、目的、背景、求める人物等を書きましょう。&#10;&#10;例:&#10;• プロジェクトの目標&#10;• 開発予定の機能&#10;• 活動頻度やコミュニケーション方法"
                                 placeholderTextColor="#9CA3AF"
                                 value={description}
                                 onChangeText={setDescription}
