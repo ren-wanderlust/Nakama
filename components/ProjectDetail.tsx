@@ -1052,7 +1052,7 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                         <Text style={styles.tagline}>{project.tagline}</Text>
                     )}
 
-                    <Text style={styles.title}>仮プロジェクト名：{project.title}</Text>
+                    <Text style={styles.title}>プロジェクト名：{project.title}</Text>
 
                     <View style={[styles.divider, styles.dividerTight]} />
 
@@ -1138,7 +1138,9 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                                 <Text style={styles.themeContentLabel}>内容：</Text>
                                 <ScrollView
                                     horizontal
+                                    nestedScrollEnabled
                                     showsHorizontalScrollIndicator={false}
+                                    style={styles.themeContentRowScroll}
                                     contentContainerStyle={styles.themeContentRowContent}
                                 >
                                     {!!project.tags?.length && project.tags.map((tag, index) => (
@@ -1464,12 +1466,15 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginBottom: 16,
     },
+    themeContentRowScroll: {
+        flex: 1,
+        minWidth: 0,
+    },
     themeContentRowContent: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
-        flex: 1,
-        minWidth: 0,
+        paddingRight: 8,
     },
     moreTagsDotsInline: {
         fontSize: 14,

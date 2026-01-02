@@ -73,7 +73,7 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
     // プリセット内容タグ
     const CONTENT_TAGS = [
         // 開発形態
-        'WEBサービス', 'AI開発', 'アプリ', '生成AI', 'iOS', 'Android',
+        '個人開発', 'WEBサービス', 'AI開発', 'アプリ', '生成AI', 'iOS', 'Android',
         // ユーティリティ
         '無料', 'ツール', '効率化', 'タスク管理', 'カレンダー', '自動化',
         // 分野
@@ -403,28 +403,6 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
                         )}
                     </View>
 
-                    {/* Project Title Section */}
-                    <View style={styles.section}>
-                        <View style={styles.sectionHeader}>
-                            <View style={styles.sectionIconContainer}>
-                                <Ionicons name="rocket" size={18} color="#009688" />
-                            </View>
-                            <Text style={styles.sectionTitle}>プロジェクト名</Text>
-                            <Text style={styles.requiredBadge}>必須</Text>
-                        </View>
-                        <View style={styles.inputWrapper}>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="AIを使った英語学習アプリ開発"
-                                placeholderTextColor="#9CA3AF"
-                                value={title}
-                                onChangeText={setTitle}
-                                maxLength={50}
-                            />
-                            <Text style={styles.charCount}>{title.length}/50</Text>
-                        </View>
-                    </View>
-
                     {/* Tagline Section */}
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
@@ -444,6 +422,28 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
                                 maxLength={60}
                             />
                             <Text style={styles.charCount}>{tagline.length}/60</Text>
+                        </View>
+                    </View>
+
+                    {/* Project Title Section */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <View style={styles.sectionIconContainer}>
+                                <Ionicons name="rocket" size={18} color="#009688" />
+                            </View>
+                            <Text style={styles.sectionTitle}>プロジェクト名</Text>
+                            <Text style={styles.requiredBadge}>必須</Text>
+                        </View>
+                        <View style={styles.inputWrapper}>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="AIを使った英語学習アプリ開発"
+                                placeholderTextColor="#9CA3AF"
+                                value={title}
+                                onChangeText={setTitle}
+                                maxLength={50}
+                            />
+                            <Text style={styles.charCount}>{title.length}/50</Text>
                         </View>
                     </View>
 
