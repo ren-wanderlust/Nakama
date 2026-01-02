@@ -131,6 +131,7 @@ function AppContent() {
   const [isSortModalOpen, setIsSortModalOpen] = useState(false);
 
   const [refreshing, setRefreshing] = useState(false);
+  const [searchRefreshing, setSearchRefreshing] = useState(false);
   const [showCreateProjectModal, setShowCreateProjectModal] = useState(false);
   const [matchedProfile, setMatchedProfile] = useState<Profile | null>(null);
   const [pendingMatches, setPendingMatches] = useState<Profile[]>([]); // Queue of unviewed matches
@@ -1604,6 +1605,13 @@ function AppContent() {
                   </View>
                 </View>
 
+                {/* リフレッシュ中のスピナー表示 */}
+                {searchRefreshing && (
+                  <View style={styles.searchRefreshIndicator}>
+                    <ActivityIndicator size="small" color="#F39800" />
+                  </View>
+                )}
+
                 {/* アクティブフィルタータグ表示 */}
                 {((filterCriteria?.themes && filterCriteria.themes.length > 0) || (filterCriteria?.seekingRoles && filterCriteria.seekingRoles.length > 0)) && (
                   <View style={styles.activeFilterTagsContainer}>
@@ -1775,6 +1783,7 @@ function AppContent() {
                 });
               }}
               onScroll={handleSearchScroll}
+              onRefreshingChange={setSearchRefreshing}
             />
             {/* ユーザー検索は将来的な復活のためにコメントで残す
             <FlatList
@@ -2751,6 +2760,13 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 14,
     fontWeight: '600',
+  },
+  searchRefreshIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    backgroundColor: '#FFF3E0',
   },
 });
 
